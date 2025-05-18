@@ -9,7 +9,7 @@
 <body>
   <div class="login-container">
     <h2>Entrar no Sistema</h2>
-    <form action="/login" method="POST">
+    <form id="loginForm">
       <label for="usuario">Usuário</label>
       <input type="text" id="usuario" name="usuario" placeholder="Digite seu usuário" required>
 
@@ -19,5 +19,7 @@
       <button type="submit">Entrar</button>
     </form>
   </div>
+
+  <script src="login.js" defer></script>
 </body>
 </html>
