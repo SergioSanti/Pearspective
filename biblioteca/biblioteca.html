@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Biblioteca de Cursos - Cultura Organizacional</title>
+  <link href="../index.css" rel="stylesheet" type="text/css" />
+  <link href="biblioteca.css" rel="stylesheet" type="text/css" />
+</head>
+<header>
+  <a href="../Page_inicial/index.html" class="voltar-home">← Voltar à Página Principal</a>
+</header>
+<body>
+  <div class="container biblioteca-container">
+    <h1>Buscador de Cursos com Certificado</h1>
+
+    <form id="search-form">
+      <label for="search-query">
+        Informe a área, competência ou habilidade que deseja aprender:
+      </label>
+      <input
+        type="text"
+        id="search-query"
+        name="search-query"
+        placeholder="Ex: gestão de projetos, programação, liderança"
+        required
+      />
+      <button type="submit">Buscar Cursos</button>
+    </form>
+
+    <div id="results-container"></div>
+  </div>
+
+  <script src="biblioteca.js"></script>
+</body>
+</html>

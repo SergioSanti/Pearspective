@@ -1,0 +1,32 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #fffdf5;
+}
+
+h1 {
+  color: #C0392B;
+}
+
+.certificados {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cert {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.cert a {
+  display: inline-block;
+  margin-top: 10px;
+  background: #D4AC0D;
+  color: black;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+}

@@ -1,0 +1,47 @@
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f9f9f9;
+}
+
+h1 {
+  color: #C0392B;
+}
+
+.filtros {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filtros input, .filtros select {
+  padding: 8px;
+}
+
+.cursos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.curso {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.curso h3 {
+  margin-top: 0;
+}
+
+.curso a {
+  display: inline-block;
+  margin-top: 10px;
+  background: #D4AC0D;
+  color: black;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+}
