@@ -13,13 +13,16 @@
 <![endif]-->
 </head>
 <body>
+
+<!-- Navbar carregado dinamicamente -->
+<div id="navbar"></div>
+
 <div id="logo" class="container">
 	<h1><a href="#">Pearspective</a></h1>
 </div>
 <div id="menu-wrapper">
 	<div id="menu" class="container">
 		<ul>
-			<li class="current_page_item"><a href="#">Início</a></li>
 			<li><a href="../simulador/simulador.html">Simulador</a></li>
 			<li><a href="../biblioteca/biblioteca.html">Cursos</a></li>
 			<li><a href="../recomendacoes.html">Recomendações</a></li>
@@ -50,5 +53,14 @@
 		</ul>
 	</div>
 </div>
+
+<!-- Script para carregar o conteúdo da navbar -->
+<script>
+  fetch("../navbar.html")
+    .then(res => res.text())
+    .then(data => {
+      document.getElementById("navbar").innerHTML = data;
+    });
+</script>
 </body>
 </html>

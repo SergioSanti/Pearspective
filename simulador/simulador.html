@@ -2,107 +2,30 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simulador de Carreira</title>
+  <title>Simulador de Cargos</title>
   <link rel="stylesheet" href="simulador.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Simulador de Caminhos e Carreiras</h1>
-    <form id="simuladorForm">
-      <label for="area">Selecione a área de interesse:</label>
-      <select id="area" name="area" required>
-        <option value="">-- Escolha uma área --</option>
-        <option value="backoffice">Backoffice</option>
-        <option value="ti">Tecnologia da Informação</option>
-        <option value="administrativo">Administrativo</option>
-        <option value="comercial">Comercial</option>
-        <option value="juridico">Jurídico</option>
+    <h1>Simulador de Cargos</h1>
+    <form>
+      <label for="area">Área:</label>
+      <select id="area" name="area">
+        <option value="">Carregando áreas...</option>
       </select>
 
-      <label for="cargo">Selecione o cargo de interesse:</label>
-      <select id="cargo" name="cargo" required>
-        <option value="">-- Escolha uma área primeiro --</option>
+      <label for="cargo">Cargo:</label>
+      <select id="cargo" name="cargo" disabled>
+        <option value="">Escolha uma área primeiro</option>
       </select>
-
-      <button type="submit">Simular Caminho</button>
     </form>
 
-    <div class="results" id="resultados" style="display: none;">
-      <h2>Trilha sugerida:</h2>
-      <ul>
-        <li>Experiência mínima: 2 anos na área</li>
-        <li>Certificados recomendados: Gestão de Projetos, Excel Avançado</li>
-        <li>Idiomas: Inglês Intermediário</li>
-        <li>Tempo interno recomendado: 1 ano</li>
-        <li>Cursos sugeridos: Comunicação Corporativa, Liderança, Scrum Fundamentals</li>
-      </ul>
+    <div class="results" id="resultado" style="display:none;">
+      <h2>Informações do Cargo</h2>
+      <ul id="infoCargo"></ul>
     </div>
   </div>
 
-  <script>
-    const cargosPorArea = {
-      backoffice: [
-        "Assistente de RH",
-        "Auxiliar Financeiro",
-        "Analista de DP",
-        "Analista de RH",
-        "Analista Financeiro",
-        "Coordenador de RH"
-      ],
-      ti: [
-        "Assistente de Suporte",
-        "Auxiliar de TI",
-        "Analista de Sistemas",
-        "Analista de Suporte",
-        "Coordenador de TI"
-      ],
-      administrativo: [
-        "Assistente Administrativo",
-        "Auxiliar Administrativo",
-        "Analista Administrativo",
-        "Coordenador Administrativo"
-      ],
-      comercial: [
-        "Assistente Comercial",
-        "Auxiliar de Vendas",
-        "Analista Comercial",
-        "Coordenador de Vendas"
-      ],
-      juridico: [
-        "Assistente Jurídico",
-        "Auxiliar Jurídico",
-        "Analista Jurídico",
-        "Coordenador Jurídico"
-      ]
-    };
-
-    const areaSelect = document.getElementById("area");
-    const cargoSelect = document.getElementById("cargo");
-
-    areaSelect.addEventListener("change", function () {
-      const area = areaSelect.value;
-      const cargos = cargosPorArea[area] || [];
-
-      // Limpa opções atuais
-      cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
-
-      // Adiciona novas opções
-      cargos.forEach(cargo => {
-        const option = document.createElement("option");
-        option.value = cargo;
-        option.textContent = cargo;
-        cargoSelect.appendChild(option);
-      });
-    });
-
-    const form = document.getElementById("simuladorForm");
-    const resultados = document.getElementById("resultados");
-
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
-      resultados.style.display = "block";
-    });
-  </script>
+  <script src="simulador.js"></script>
 </body>
 </html>
