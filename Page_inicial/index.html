@@ -20,18 +20,7 @@
 <div id="logo" class="container">
 	<h1><a href="#">Pearspective</a></h1>
 </div>
-<div id="menu-wrapper">
-	<div id="menu" class="container">
-		<ul>
-			<li><a href="../simulador/simulador.html">Simulador</a></li>
-			<li><a href="../biblioteca/biblioteca.html">Cursos</a></li>
-			<li><a href="../recomendacoes.html">Recomendações</a></li>
-			<li><a href="../historico/historico.html">Histórico</a></li>
-			<li><a href="admin.html">Admin</a></li>
-			<li><a href="relatorios.html">Relatórios</a></li>
-		</ul>
-	</div>
-</div>
+<!-- Removido o menu-wrapper, pois agora está na navbar -->
 <div id="page" class="container">
 	<div id="box1">
 		<h2 class="title"><a href="#">Sistema de Cultura Organizacional</a></h2>
@@ -60,6 +49,10 @@
     .then(res => res.text())
     .then(data => {
       document.getElementById("navbar").innerHTML = data;
+      // Carrega o JS da navbar após inserir o HTML
+      const script = document.createElement('script');
+      script.src = '../navbar.js';
+      document.body.appendChild(script);
     });
 </script>
 </body>

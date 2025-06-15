@@ -8,7 +8,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const senha = document.getElementById("senha").value.trim();
 
     try {
-      const response = await fetch('http://localhost:3000/login', {
+      // Limpa localStorage antes do login
+      localStorage.clear();
+      
+      const response = await fetch('/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -17,21 +20,21 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       const data = await response.json();
+      console.log('[LOGIN] Resposta do servidor:', data);
 
-      if (data.success) {
-        alert(`Bem-vindo, ${usuario}! Tipo: ${data.tipo_usuario}`);
-        // Aqui você pode redirecionar conforme tipo de usuário:
-        if (data.tipo_usuario === 'admin') {
-          window.location.href = 'Page_inicial/index.html';  // exemplo
-        } else {
-          window.location.href = 'comum.html';  // exemplo
-        }
+      if (data.success && data.id) {
+        localStorage.setItem('userName', data.nome);
+        localStorage.setItem('userId', data.id);
+        console.log('[LOGIN] userId salvo:', data.id);
+        
+        // Redireciona após salvar os dados
+        window.location.href = 'Page_inicial/index.html';
       } else {
-        alert(data.message);
+        alert(data.message || 'Erro no login');
       }
     } catch (error) {
+      console.error('[LOGIN] Erro:', error);
       alert('Erro ao conectar com o servidor.');
-      console.error(error);
     }
   });
 });

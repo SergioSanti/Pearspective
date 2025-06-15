@@ -3,22 +3,187 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Certificados e Histórico</title>
+  <title>Meus Certificados</title>
+  <link href="../Page_inicial/index.css" rel="stylesheet" type="text/css" />
   <link rel="stylesheet" href="certificados.css">
 </head>
 <body>
-  <h1>Seus Certificados</h1>
-  <div class="certificados">
-    <div class="cert">
-      <h3>Curso de HTML Básico</h3>
-      <p>Concluído em: 10/05/2025</p>
-      <a href="#">Download Certificado</a>
+  <div id="navbar-placeholder"></div>
+
+  <div class="container">
+    <a href="../Page_inicial/index.html" class="back-arrow">← Voltar</a>
+    <h1>Meus Certificados</h1>
+    <button id="add-cert-btn" class="add-cert-btn">Adicionar Certificado</button>
+
+    <!-- Modal para adicionar certificado -->
+    <div id="certModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Adicionar Novo Certificado</h2>
+        <form id="certForm" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="nome">Nome do Certificado:</label>
+            <input type="text" id="nome" name="nome" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="instituicao">Instituição de Ensino:</label>
+            <input type="text" id="instituicao" name="instituicao" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="data_inicio">Data de Início:</label>
+            <input type="date" id="data_inicio" name="data_inicio" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="data_conclusao">Data de Conclusão:</label>
+            <input type="date" id="data_conclusao" name="data_conclusao" required>
+          </div>
+
+          <div class="form-group">
+            <label for="pdf">Anexar Certificado (PDF):</label>
+            <input type="file" id="pdf" name="pdf" accept="application/pdf" required>
+          </div>
+
+          <button type="submit" class="btn-submit">Salvar</button>
+        </form>
+      </div>
     </div>
-    <div class="cert">
-      <h3>Curso de Gestão Ágil</h3>
-      <p>Concluído em: 02/04/2025</p>
-      <a href="#">Download Certificado</a>
+
+    <div class="certificados" id="certificados-list">
+      <!-- Certificados serão carregados aqui via JavaScript -->
     </div>
   </div>
+
+  <script src="../navbar.js"></script>
+  <script>
+    // Bloqueio de acesso: se não estiver logado, redireciona
+    if (!localStorage.getItem('userId')) {
+      alert('Você precisa estar logado para acessar esta página.');
+      window.location.href = '/login.html';
+    }
+
+    // Elementos do DOM
+    const modal = document.getElementById('certModal');
+    const btn = document.getElementById('add-cert-btn');
+    const span = document.getElementsByClassName('close')[0];
+    const form = document.getElementById('certForm');
+    const certificadosList = document.getElementById('certificados-list');
+
+    // Funções auxiliares
+    const formatarData = (data) => {
+      return new Date(data).toLocaleDateString('pt-BR');
+    };
+
+    const carregarCertificados = async () => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert('Usuário não identificado. Faça login novamente.');
+        window.location.href = '/login.html';
+        return;
+      }
+      try {
+        const response = await fetch(`/api/certificados?usuario_id=${userId}`);
+        if (!response.ok) throw new Error('Erro ao buscar certificados. Tente novamente mais tarde.');
+        const certificados = await response.json();
+        certificadosList.innerHTML = certificados.map(cert => `
+          <div class="cert">
+            <h3>${cert.nome}</h3>
+            <p><strong>Instituição:</strong> ${cert.instituicao}</p>
+            <p><strong>Período:</strong> ${formatarData(cert.data_inicio)} - ${formatarData(cert.data_conclusao)}</p>
+            <div class="cert-actions">
+              <button onclick="deletarCertificado(${cert.id})" class="btn-delete">Excluir</button>
+              <button onclick="baixarCertificado(${cert.id})" class="btn-download">Baixar PDF</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Erro ao carregar certificados:', err);
+        certificadosList.innerHTML = '<div class="erro-cert">Erro ao carregar certificados. Tente novamente mais tarde.</div>';
+      }
+    };
+
+    // Event Listeners
+    btn.onclick = () => {
+      form.reset();
+      modal.style.display = 'block';
+    };
+
+    span.onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+      if (event.target == modal) {
+        modal.style.display = 'none';
+      }
+    };
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert('Usuário não identificado. Faça login novamente.');
+        window.location.href = '/login.html';
+        return;
+      }
+      const formData = new FormData(form);
+      formData.set('usuario_id', userId);
+      try {
+        const response = await fetch('/api/certificados', {
+          method: 'POST',
+          body: formData
+        });
+        if (!response.ok) throw new Error('Erro ao salvar certificado');
+        modal.style.display = 'none';
+        carregarCertificados();
+      } catch (err) {
+        console.error('Erro ao salvar certificado:', err);
+        alert('Erro ao salvar certificado');
+      }
+    });
+
+    // Função global para deletar certificado
+    window.deletarCertificado = async (id) => {
+      if (!confirm('Tem certeza que deseja excluir este certificado?')) return;
+
+      try {
+        const response = await fetch(`/api/certificados/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Erro ao deletar certificado');
+
+        carregarCertificados();
+      } catch (err) {
+        console.error('Erro ao deletar certificado:', err);
+        alert('Erro ao deletar certificado');
+      }
+    };
+
+    // Função global para baixar certificado
+    window.baixarCertificado = async (id) => {
+      try {
+        const response = await fetch(`/api/certificados/${id}/pdf`);
+        if (!response.ok) throw new Error('Erro ao baixar PDF');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'certificado.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Erro ao baixar o PDF do certificado.');
+      }
+    };
+
+    // Carregar certificados ao iniciar
+    carregarCertificados();
+  </script>
 </body>
+
 </html>

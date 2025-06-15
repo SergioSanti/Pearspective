@@ -1,32 +1,197 @@
 body {
-  font-family: Arial, sans-serif;
-  margin: 20px;
-  background: #fffdf5;
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  background: #F4F8EF;
+  color: #444;
+}
+
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  padding: 40px 30px;
 }
 
 h1 {
-  color: #C0392B;
+  color: #6B8E4E;
+  font-size: 2.2em;
+  margin-bottom: 30px;
+  text-align: center;
 }
 
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.close {
+  position: absolute;
+  right: 20px;
+  top: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #666;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #333;
+}
+
+.modal h2 {
+  color: #6B8E4E;
+  margin-bottom: 25px;
+  font-size: 1.5em;
+}
+
+/* Formulário */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  border-color: #6B8E4E;
+  outline: none;
+}
+
+.btn-submit {
+  background-color: #6B8E4E;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.btn-submit:hover {
+  background-color: #A8C66C;
+}
+
+/* Botão Adicionar */
+.add-cert-btn {
+  background-color: #6B8E4E;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 30px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background 0.3s;
+}
+
+.add-cert-btn:hover {
+  background-color: #A8C66C;
+}
+
+/* Estilo para o botão Voltar (back-arrow) */
+.back-arrow {
+  display: inline-block;
+  margin-bottom: 20px;
+  text-decoration: none;
+  color: #6B8E4E;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+.back-arrow:hover { color: #A8C66C; }
+
+/* Lista de Certificados */
 .certificados {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
 }
 
 .cert {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  background: #f8fbe9;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 24px 20px;
+  min-width: 260px;
+  max-width: 320px;
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-.cert a {
-  display: inline-block;
-  margin-top: 10px;
-  background: #D4AC0D;
-  color: black;
-  padding: 8px 12px;
-  border-radius: 4px;
-  text-decoration: none;
+.cert h3 {
+  margin: 0 0 10px 0;
+  color: #6B8E4E;
+  font-size: 1.2em;
+}
+
+.cert p {
+  margin: 0 0 12px 0;
+  color: #444;
+  font-size: 1em;
+  line-height: 1.4;
+}
+
+.cert-actions {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.3s;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
 }

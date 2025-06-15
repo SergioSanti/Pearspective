@@ -1,37 +1,80 @@
-<div style="display: flex; justify-content: space-between; align-items: center; background-color: #f2f2f2; padding: 10px;">
-  <div>
-    <a href="/Page_inicial/index.html" style="text-decoration: none; font-size: 18px;">⬅ Início</a>
-  </div>
-  <div style="position: relative;">
-    <div id="user-circle" style="width: 40px; height: 40px; background: #666; color: white; text-align: center; line-height: 40px; border-radius: 50%; cursor: pointer;">
-      U
-    </div>
-    <div id="user-menu" style="display: none; position: absolute; right: 0; top: 50px; background: white; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 100;">
-      <ul style="list-style: none; margin: 0; padding: 10px;">
-        <li><a href="#">Meus Certificados</a></li>
-        <li><a href="#">Logoff</a></li>
+<link rel="stylesheet" href="../navbar.css">
+<!-- Navbar -->
+<div class="navbar">
+  <!-- Círculo do usuário e menu dropdown -->
+  <div class="user-circle-container">
+    <div class="user-circle" id="userCircle"></div>
+    <div class="user-name" id="userNameDisplay"></div>
+    <div class="user-menu">
+      <ul>
+        <li><a href="../simulador/simulador.html">Simulador</a></li>
+        <li><a href="../biblioteca/biblioteca.html">Cursos</a></li>
+        <li><a href="../recomendacoes.html">Recomendações</a></li>
+        <li><a href="../Page_inicial/relatorios.html">Relatórios</a></li>
+        <li class="divider"></li>
+        <li><a href="../historico/historico.html">Meus Certificados</a></li>
+        <li><a href="../perfil/perfil.html">Meu Perfil</a></li>
+        <li class="divider"></li>
+        <li class="photo-upload">
+          <label class="photo-upload-label">
+            Alterar Foto
+            <input type="file" id="photoUpload" accept="image/*">
+          </label>
+        </li>
+        <li class="divider"></li>
+        <li><a href="#" id="logoutButton">Logoff</a></li>
       </ul>
     </div>
   </div>
 </div>
 
 <script>
-  const circle = document.getElementById('user-circle');
-  const menu = document.getElementById('user-menu');
+document.addEventListener('DOMContentLoaded', function() {
+  // Função para obter a inicial do usuário
+  function getUserInitial() {
+    const userName = localStorage.getItem('userName') || 'U';
+    return userName.charAt(0).toUpperCase();
+  }
 
-  circle.addEventListener('mouseenter', () => {
-    menu.style.display = 'block';
+  // Função para atualizar o círculo do usuário
+  function updateUserCircle() {
+    const userCircle = document.getElementById('userCircle');
+    const userPhoto = localStorage.getItem('userPhoto');
+    const userName = localStorage.getItem('userName') || '';
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    console.log('[NAVBAR] userName lido do localStorage:', userName);
+    
+    if (userPhoto) {
+      userCircle.innerHTML = `<img src="${userPhoto}" alt="Foto do usuário">`;
+    } else {
+      userCircle.textContent = getUserInitial();
+    }
+    userNameDisplay.textContent = userName;
+  }
+
+  // Função para lidar com o upload de foto
+  document.getElementById('photoUpload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        localStorage.setItem('userPhoto', e.target.result);
+        updateUserCircle();
+      };
+      reader.readAsDataURL(file);
+    }
   });
 
-  circle.addEventListener('mouseleave', () => {
-    setTimeout(() => { menu.style.display = 'none'; }, 300);
+  // Função para lidar com o logout
+  document.getElementById('logoutButton').addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userPhoto');
+    console.log('[NAVBAR] Logoff: localStorage após remoção:', localStorage.getItem('userName'));
+    window.location.href = '/login.html';
   });
 
-  menu.addEventListener('mouseenter', () => {
-    menu.style.display = 'block';
-  });
-
-  menu.addEventListener('mouseleave', () => {
-    menu.style.display = 'none';
-  });
+  // Atualiza o círculo do usuário ao carregar a página
+  updateUserCircle();
+});
 </script>

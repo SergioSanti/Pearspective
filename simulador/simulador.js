@@ -91,10 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(cargo => {
         infoCargo.innerHTML = `
-          <li>ID do cargo: ${cargo.id}</li>
-          <li>Nome: ${cargo.nome}</li>
-          <li>Requisitos: ${cargo.requisitos || 'Sem requisitos cadastrados'}</li>
-          <li>ID da área: ${cargo.area_id}</li>
+          <li><strong>Cargo:</strong> ${cargo.nome_cargo}</li>
+          <li><strong>Experiência:</strong> ${cargo.requisitos.experiencia}</li>
+          <li><strong>Formação:</strong> ${cargo.requisitos.formacao}</li>
+          <li><strong>Idiomas:</strong> ${cargo.requisitos.idiomas}</li>
+          <li><strong>Habilidades Técnicas:</strong> ${cargo.requisitos.habilidades}</li>
+          <li><strong>Soft Skills:</strong> ${cargo.requisitos.soft_skills}</li>
         `;
         resultadoDiv.style.display = 'block';
       })
