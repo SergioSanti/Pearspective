@@ -1,13 +1,155 @@
-.biblioteca-container {
-  max-width: 700px;
-  margin: 2em auto;
-  color: #444;
+/* Estilos para a página da Biblioteca (Pesquisar Cursos) */
+
+body {
+    background-color: var(--gray-100);
 }
 
-.biblioteca-container h1 {
-  color: #6B8E4E;
-  font-weight: 700;
-  margin-bottom: 1em;
+.page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page-header {
+    background-color: var(--brand-primary);
+    color: white;
+    padding: var(--spacing-8) 0;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    position: relative;
+}
+
+.page-header .container {
+    position: relative;
+}
+
+.page-header .btn-outline {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    border-color: var(--gray-600);
+    color: var(--gray-200);
+}
+.page-header .btn-outline:hover {
+    background-color: var(--gray-700);
+    border-color: var(--gray-500);
+    color: white;
+}
+
+.header-content {
+    display: inline-block;
+}
+
+.page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    margin: 0;
+    color: white;
+}
+
+.page-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--gray-300);
+    margin: var(--spacing-2) 0 0 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-4);
+}
+
+main.container {
+    width: 100%;
+    max-width: 800px;
+}
+
+.content-panel {
+    background-color: white;
+    border-radius: var(--border-radius-2xl);
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-10);
+    margin: calc(-1 * var(--spacing-8)) auto 0 auto;
+    position: relative;
+    z-index: 10;
+    width: 100%;
+}
+
+#search-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-6);
+    margin-bottom: var(--spacing-8);
+}
+
+#search-form .form-group {
+    width: 100%;
+    text-align: center;
+}
+
+#search-form label {
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-4);
+    display: block;
+}
+
+.input-lg {
+    padding: var(--spacing-4);
+    font-size: var(--font-size-lg);
+    text-align: center;
+}
+
+.btn-lg {
+    padding: var(--spacing-4) var(--spacing-8);
+    font-size: var(--font-size-lg);
+}
+
+#results-container {
+    margin-top: var(--spacing-8);
+}
+
+.biblioteca-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.header {
+  padding: var(--spacing-6) 0;
+  background-color: var(--gray-100);
+  border-bottom: 1px solid var(--gray-200);
+  text-align: center;
+  margin-bottom: var(--spacing-8);
+}
+
+.header .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.header .btn {
+  position: absolute;
+  left: 0;
+}
+
+.header-title {
+  margin: 0;
+}
+
+h1 {
+  color: var(--gray-800);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: var(--font-size-3xl);
 }
 
 #search-form label {

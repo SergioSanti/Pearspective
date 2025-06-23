@@ -7,6 +7,8 @@
 
 # Database configuration with sensitive data
 database/database.js
+database/config.js
+database/credentials.js
 
 # Dependencies
 node_modules/
@@ -147,4 +149,42 @@ public/uploads/
 
 # Package lock files (optional - some teams prefer to commit these)
 # package-lock.json
-# yarn.lock 
+# yarn.lock
+
+# Project-specific files
+# Database dumps and exports
+*.sql
+!init.sql
+!migration_*.sql
+!fix.sql
+
+# Test files that might contain sensitive data
+test-db.js
+
+# Local development files
+local/
+dev/
+
+# Session files
+sessions/
+*.session
+
+# Cache directories
+.cache/
+cache/
+
+# Build artifacts
+build/
+dist/
+out/
+
+# IDE specific files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea/workspace.xml
+.idea/tasks.xml
+
+# Local configuration overrides
+config.local.js
+config.local.json 

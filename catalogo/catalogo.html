@@ -1,45 +1,258 @@
 <!-- catalogo.html -->
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Catálogo de Cursos</title>
-  <link rel="stylesheet" href="catalogo.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Recomendações de cursos do Pearspective - Cursos certificados selecionados para seu desenvolvimento profissional">
+  <script>
+    // Proteção de Rota: verifica se o usuário está logado
+    if (!localStorage.getItem('userId')) {
+      alert('Você precisa estar logado para acessar esta página.');
+      window.location.href = '../login.html';
+    }
+  </script>
+  <meta name="keywords" content="cursos, recomendações, treinamento, desenvolvimento profissional, certificados">
+  <meta name="author" content="Pearspective Team">
+  <meta name="theme-color" content="#6B8E4E">
+  
+  <!-- Preconnect para performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Fonte Inter - Padrão moderno -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="catalogo.css" rel="stylesheet">
+  
+  <title>Recomendações de Cursos - Pearspective</title>
 </head>
 <body>
-  <h1>Catálogo de Cursos</h1>
-  <div class="filtros">
-    <input type="text" placeholder="Buscar cursos...">
-    <select>
-      <option>Área</option>
-      <option>TI</option>
-      <option>Backoffice</option>
-      <option>Jurídico</option>
-    </select>
-    <select>
-      <option>Nível</option>
-      <option>Básico</option>
-      <option>Intermediário</option>
-      <option>Avançado</option>
-    </select>
-    <select>
-      <option>Duração</option>
-      <option>Até 1h</option>
-      <option>1h a 3h</option>
-      <option>Mais de 3h</option>
-    </select>
-  </div>
-  <div class="cursos">
-    <div class="curso">
-      <h3>Curso de HTML</h3>
-      <p>Plataforma: YouTube</p>
-      <a href="#" target="_blank">Iniciar</a>
+  <div class="catalog-page">
+    <!-- Header com navegação -->
+    <header class="catalog-header">
+      <div class="container">
+        <div class="header-content">
+          <div class="header-left">
+            <a href="../Page_inicial/index.html" class="btn btn-outline btn-sm">
+              ← Voltar ao Início
+            </a>
+          </div>
+          <div class="header-center">
+            <h1 class="catalog-title">Recomendações de Cursos</h1>
+            <p class="catalog-subtitle">Cursos certificados selecionados para impulsionar sua carreira</p>
+          </div>
+          <div class="header-right">
+            <button id="admin-toggle" class="btn btn-secondary btn-sm">
+              🔧 Admin
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Painel Admin (inicialmente oculto) -->
+    <div id="admin-panel" class="admin-panel" style="display: none;">
+      <div class="container">
+        <div class="admin-header">
+          <h2>Painel Administrativo</h2>
+          <button id="add-course-btn" class="btn btn-primary">
+            ➕ Adicionar Curso
+          </button>
+        </div>
+        
+        <!-- Formulário para adicionar/editar curso -->
+        <div id="course-form" class="course-form" style="display: none;">
+          <h3 id="form-title">Adicionar Novo Curso</h3>
+          <form id="course-form-element">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="course-title">Título do Curso *</label>
+                <input type="text" id="course-title" name="title" required class="input">
+              </div>
+              
+              <div class="form-group">
+                <label for="course-platform">Plataforma *</label>
+                <select id="course-platform" name="platform" required class="select">
+                  <option value="">Selecione a plataforma</option>
+                  <option value="Alura">Alura</option>
+                  <option value="Udemy">Udemy</option>
+                  <option value="Coursera">Coursera</option>
+                  <option value="edX">edX</option>
+                  <option value="LinkedIn Learning">LinkedIn Learning</option>
+                  <option value="Pluralsight">Pluralsight</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="course-url">URL do Curso *</label>
+                <input type="url" id="course-url" name="url" required class="input" placeholder="https://...">
+              </div>
+              
+              <div class="form-group">
+                <label for="course-area">Área *</label>
+                <select id="course-area" name="area" required class="select">
+                  <option value="">Selecione a área</option>
+                  <option value="ti">Tecnologia da Informação</option>
+                  <option value="gestao">Gestão e Liderança</option>
+                  <option value="marketing">Marketing e Vendas</option>
+                  <option value="financas">Finanças e Contabilidade</option>
+                  <option value="rh">Recursos Humanos</option>
+                  <option value="juridico">Jurídico</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="course-level">Nível *</label>
+                <select id="course-level" name="level" required class="select">
+                  <option value="">Selecione o nível</option>
+                  <option value="basico">Básico</option>
+                  <option value="intermediario">Intermediário</option>
+                  <option value="avancado">Avançado</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="course-duration">Duração *</label>
+                <select id="course-duration" name="duration" required class="select">
+                  <option value="">Selecione a duração</option>
+                  <option value="curto">Até 10h</option>
+                  <option value="medio">10h a 30h</option>
+                  <option value="longo">Mais de 30h</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="course-badge">Categoria *</label>
+                <input type="text" id="course-badge" name="badge" required class="input" placeholder="Ex: Frontend, DevOps, Marketing...">
+              </div>
+              
+              <div class="form-group">
+                <label for="course-badge-color">Cor da Categoria</label>
+                <select id="course-badge-color" name="badgeColor" class="select">
+                  <option value="primary">Azul (Primary)</option>
+                  <option value="success">Verde (Success)</option>
+                  <option value="warning">Amarelo (Warning)</option>
+                  <option value="danger">Vermelho (Danger)</option>
+                  <option value="info">Ciano (Info)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="course-description">Descrição *</label>
+              <textarea id="course-description" name="description" required class="textarea" rows="4" placeholder="Descreva o curso, incluindo o que será aprendido e se oferece certificado..."></textarea>
+            </div>
+            
+            <div class="form-options">
+              <label class="checkbox-label">
+                <input type="checkbox" id="course-featured" name="featured">
+                <span class="checkmark"></span>
+                Curso em destaque
+              </label>
+              
+              <label class="checkbox-label">
+                <input type="checkbox" id="course-new" name="new">
+                <span class="checkmark"></span>
+                Curso novo
+              </label>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                💾 Salvar Curso
+              </button>
+              <button type="button" id="cancel-form" class="btn btn-secondary">
+                ❌ Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
-    <div class="curso">
-      <h3>Curso de Gestão de Pessoas</h3>
-      <p>Plataforma: Alura</p>
-      <a href="#" target="_blank">Inscrever-se</a>
+
+    <main class="catalog-main">
+      <div class="container">
+        <!-- Filtros -->
+        <section class="filters-section">
+          <div class="filters-grid">
+            <div class="filter-group">
+              <label for="search-input" class="filter-label">Buscar cursos</label>
+              <input 
+                type="text" 
+                id="search-input"
+                class="input" 
+                placeholder="Digite o nome do curso..."
+                aria-label="Buscar cursos"
+              >
+            </div>
+            
+            <div class="filter-group">
+              <label for="area-select" class="filter-label">Área</label>
+              <select id="area-select" class="select" aria-label="Filtrar por área">
+                <option value="">Todas as áreas</option>
+                <option value="ti">Tecnologia da Informação</option>
+                <option value="gestao">Gestão e Liderança</option>
+                <option value="marketing">Marketing e Vendas</option>
+                <option value="financas">Finanças e Contabilidade</option>
+                <option value="rh">Recursos Humanos</option>
+                <option value="juridico">Jurídico</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label for="level-select" class="filter-label">Nível</label>
+              <select id="level-select" class="select" aria-label="Filtrar por nível">
+                <option value="">Todos os níveis</option>
+                <option value="basico">Básico</option>
+                <option value="intermediario">Intermediário</option>
+                <option value="avancado">Avançado</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label for="duration-select" class="filter-label">Duração</label>
+              <select id="duration-select" class="select" aria-label="Filtrar por duração">
+                <option value="">Qualquer duração</option>
+                <option value="curto">Até 10h</option>
+                <option value="medio">10h a 30h</option>
+                <option value="longo">Mais de 30h</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lista de Cursos -->
+        <section class="courses-section">
+          <div class="courses-grid" id="courses-grid">
+            <!-- Os cursos serão carregados dinamicamente via JavaScript -->
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal de confirmação para exclusão -->
+  <div id="delete-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Confirmar Exclusão</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Tem certeza que deseja excluir o curso "<span id="delete-course-title"></span>"?</p>
+        <p class="text-warning">Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-delete" class="btn btn-danger">🗑️ Excluir</button>
+        <button onclick="closeModal()" class="btn btn-secondary">Cancelar</button>
+      </div>
     </div>
   </div>
+
+  <script src="cursos.js"></script>
 </body>
 </html>

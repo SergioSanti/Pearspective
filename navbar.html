@@ -1,32 +1,124 @@
+<!-- CSS da Navbar -->
+<link rel="stylesheet" href="../assets/global-styles.css">
 <link rel="stylesheet" href="../navbar.css">
-<!-- Navbar -->
-<div class="navbar">
-  <!-- Círculo do usuário e menu dropdown -->
-  <div class="user-circle-container">
-    <div class="user-circle" id="userCircle"></div>
-    <div class="user-name" id="userNameDisplay"></div>
-    <div class="user-menu">
-      <ul>
-        <li><a href="../simulador/simulador.html">Simulador</a></li>
-        <li><a href="../biblioteca/biblioteca.html">Cursos</a></li>
-        <li><a href="../recomendacoes.html">Recomendações</a></li>
-        <li><a href="../Page_inicial/relatorios.html">Relatórios</a></li>
-        <li class="divider"></li>
-        <li><a href="../historico/historico.html">Meus Certificados</a></li>
-        <li><a href="../perfil/perfil.html">Meu Perfil</a></li>
-        <li class="divider"></li>
-        <li class="photo-upload">
-          <label class="photo-upload-label">
-            Alterar Foto
-            <input type="file" id="photoUpload" accept="image/*">
-          </label>
-        </li>
-        <li class="divider"></li>
-        <li><a href="#" id="logoutButton">Logoff</a></li>
-      </ul>
+
+<!-- Navbar Principal -->
+<nav class="navbar" role="navigation" aria-label="Navegação principal">
+  <!-- Logo/Brand -->
+  <div class="navbar-brand">
+    <a href="../Page_inicial/index.html" class="brand-link">
+      <img src="../assets/Pearspective-logo.png" alt="Pearspective Logo" class="brand-logo">
+      <span class="brand-text">Pearspective</span>
+    </a>
+  </div>
+
+  <!-- Menu de Navegação -->
+  <ul class="navbar-menu" role="menubar">
+    <li class="navbar-item" role="none">
+      <a href="../Page_inicial/index.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Início</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../catalogo/catalogo.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">💡</span>
+        <span class="nav-text">Recomendações</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../biblioteca/biblioteca.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🔍</span>
+        <span class="nav-text">Pesquisar Cursos</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../simulador/simulador.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-text">Simulador</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../historico/historico.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">📜</span>
+        <span class="nav-text">Certificados</span>
+      </a>
+    </li>
+  </ul>
+
+  <!-- Área do Usuário -->
+  <div class="user-area">
+    <!-- Círculo do usuário e menu dropdown -->
+    <div class="user-circle-container" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+      <div class="user-circle" id="userCircle" aria-label="Foto do usuário"></div>
+      <div class="user-name" id="userNameDisplay" aria-label="Nome do usuário"></div>
+      
+      <!-- Menu do Usuário -->
+      <div class="user-menu" role="menu" aria-label="Menu do usuário">
+        <ul class="user-menu-list">
+          <li class="user-menu-item" role="none">
+            <a href="../simulador/simulador.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">🎯</span>
+              Simulador
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../biblioteca/biblioteca.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">📚</span>
+              Cursos
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../recomendacoes.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">💡</span>
+              Recomendações
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../Page_inicial/relatorios.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">📊</span>
+              Relatórios
+            </a>
+          </li>
+          
+          <li class="user-menu-divider" role="separator"></li>
+          
+          <li class="user-menu-item" role="none">
+            <a href="../historico/historico.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">📜</span>
+              Meus Certificados
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../perfil/perfil.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">👤</span>
+              Meu Perfil
+            </a>
+          </li>
+          
+          <li class="user-menu-divider" role="separator"></li>
+          
+          <li class="user-menu-item" role="none">
+            <label class="photo-upload-label" role="menuitem">
+              <span class="menu-icon">📷</span>
+              Alterar Foto
+              <input type="file" id="photoUpload" accept="image/*" class="sr-only" aria-label="Selecionar foto">
+            </label>
+          </li>
+          
+          <li class="user-menu-divider" role="separator"></li>
+          
+          <li class="user-menu-item" role="none">
+            <button id="logoutButton" class="user-menu-button" role="menuitem">
+              <span class="menu-icon">🚪</span>
+              Logoff
+            </button>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
-</div>
+</nav>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

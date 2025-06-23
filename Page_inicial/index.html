@@ -1,59 +1,112 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Sistema de Cultura Organizacional</title>
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="//fonts.googleapis.com/css?family=Open+Sans:400,300,600,700|Archivo+Narrow:400,700" rel="stylesheet" type="text/css">
-<link href="index.css" rel="stylesheet" type="text/css" media="all" />
-<!--[if IE 6]>
-<link href="default_ie6.css" rel="stylesheet" type="text/css" />
-<![endif]-->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pearspective - Sistema moderno de desenvolvimento profissional com IA e Analytics">
+  <meta name="keywords" content="desenvolvimento profissional, cursos, treinamento, carreira, cultura organizacional">
+  <meta name="author" content="Pearspective Team">
+  <meta name="theme-color" content="#6B8E4E">
+  
+  <!-- Preconnect para performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Fonte Inter - Padrão moderno -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="index.css" rel="stylesheet">
+  
+  <title>Pearspective - Sistema de Cultura Organizacional</title>
+
+  <script>
+    // Proteção de Rota: verifica se o usuário está logado
+    if (!localStorage.getItem('userId')) {
+      alert('Você precisa estar logado para acessar esta página.');
+      window.location.href = '../login.html';
+    }
+  </script>
 </head>
 <body>
+  <!-- Navbar carregado dinamicamente -->
+  <div id="navbar"></div>
 
-<!-- Navbar carregado dinamicamente -->
-<div id="navbar"></div>
+  <main class="main-content">
+    <!-- Header -->
+    <header class="hero-section">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">
+            <a href="#" class="brand-link">Pearspective</a>
+          </h1>
+          <p class="hero-subtitle">Sistema de Cultura Organizacional</p>
+        </div>
+      </div>
+    </header>
 
-<div id="logo" class="container">
-	<h1><a href="#">Pearspective</a></h1>
-</div>
-<!-- Removido o menu-wrapper, pois agora está na navbar -->
-<div id="page" class="container">
-	<div id="box1">
-		<h2 class="title"><a href="#">Sistema de Cultura Organizacional</a></h2>
-		<div style="clear: both;">&nbsp;</div>
-		<div class="entry">
-			<p>Bem-vindo ao nosso sistema dedicado a fortalecer a cultura organizacional através do desenvolvimento de pessoas e gestão do conhecimento. Aqui, os colaboradores têm acesso a trilhas de carreira, cursos recomendados e ferramentas para planejar o crescimento profissional.</p>
-			<p>Explore as funcionalidades acima para acessar treinamentos, visualizar seu progresso e contribuir com a evolução da cultura da sua empresa.</p>
-		</div>
-	</div>
-	<div id="box3">
-		<h2>Objetivos</h2>
-		<ul class="style1">
-			<li class="first"><a href="#">Promover aprendizado contínuo</a></li>
-			<li><a href="#">Guiar o crescimento profissional</a></li>
-			<li><a href="#">Centralizar o conhecimento interno</a></li>
-			<li><a href="#">Estreitar a cultura e os valores da empresa</a></li>
-			<li><a href="#">Apoiar a gestão com dados e relatórios</a></li>
-			<li><a href="#">Facilitar o acesso a conteúdos relevantes</a></li>
-		</ul>
-	</div>
-</div>
+    <!-- Conteúdo Principal -->
+    <section class="content-section">
+      <div class="container">
+        <div class="content-grid">
+          <!-- Box Principal -->
+          <article class="content-box main-content-box">
+            <header class="content-header">
+              <h2 class="content-title">
+                <a href="#" class="title-link">Sistema de Cultura Organizacional</a>
+              </h2>
+            </header>
+            <div class="content-body">
+              <p>Bem-vindo ao nosso sistema dedicado a fortalecer a cultura organizacional através do desenvolvimento de pessoas e gestão do conhecimento. Aqui, os colaboradores têm acesso a trilhas de carreira, cursos recomendados e ferramentas para planejar o crescimento profissional.</p>
+              <p>Explore as funcionalidades acima para acessar treinamentos, visualizar seu progresso e contribuir com a evolução da cultura da sua empresa.</p>
+            </div>
+          </article>
 
-<!-- Script para carregar o conteúdo da navbar -->
-<script>
-  fetch("../navbar.html")
-    .then(res => res.text())
-    .then(data => {
-      document.getElementById("navbar").innerHTML = data;
-      // Carrega o JS da navbar após inserir o HTML
-      const script = document.createElement('script');
-      script.src = '../navbar.js';
-      document.body.appendChild(script);
-    });
-</script>
+          <!-- Box de Objetivos -->
+          <aside class="content-box objectives-box">
+            <header class="content-header">
+              <h2 class="content-title">Objetivos</h2>
+            </header>
+            <div class="content-body">
+              <ul class="objectives-list">
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Promover aprendizado contínuo</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Guiar o crescimento profissional</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Centralizar o conhecimento interno</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Estreitar a cultura e os valores da empresa</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Apoiar a gestão com dados e relatórios</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Facilitar o acesso a conteúdos relevantes</a>
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Script para carregar o conteúdo da navbar -->
+  <script>
+    fetch("../navbar.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+        // Carrega o JS da navbar após inserir o HTML
+        const script = document.createElement('script');
+        script.src = '../navbar.js';
+        document.body.appendChild(script);
+      });
+  </script>
 </body>
 </html>

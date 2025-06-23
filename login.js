@@ -8,9 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const senha = document.getElementById("senha").value.trim();
 
     try {
-      // Limpa localStorage antes do login
-      localStorage.clear();
-      
       const response = await fetch('/login', {
         method: 'POST',
         headers: {
@@ -25,6 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.success && data.id) {
         localStorage.setItem('userName', data.nome);
         localStorage.setItem('userId', data.id);
+        localStorage.setItem('tipo_usuario', data.tipo_usuario);
         console.log('[LOGIN] userId salvo:', data.id);
         
         // Redireciona após salvar os dados
