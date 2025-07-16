@@ -1,18 +1,92 @@
-version: '3.8'
-
 services:
+  # Banco de dados PostgreSQL
   postgres:
-    image: postgres:latest
-    container_name: pearspective-db
-    restart: always
+    image: postgres:15-alpine
+    container_name: pearspective_postgres
     environment:
       POSTGRES_DB: pearspective
-      POSTGRES_USER: sergio
-      POSTGRES_PASSWORD: 12345
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: Admin123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=pt_BR.UTF-8 --lc-ctype=pt_BR.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/migration_cursos.sql:/docker-entrypoint-initdb.d/02-migration_cursos.sql
+      - ./database/fix.sql:/docker-entrypoint-initdb.d/03-fix.sql
+      - ./database/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./database/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - pearspective_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pearspective_user -d pearspective"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Aplicação Node.js
+  app:
+    build: .
+    container_name: pearspective_app
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=pearspective_postgres
+      - DB_PORT=5432
+      - DB_NAME=pearspective
+      - DB_USER=admin
+      - DB_PASSWORD=Admin123
+      - DOCKER_ENV=true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./assets:/app/assets
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pearspective_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: pearspective_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - pearspective_network
+    restart: unless-stopped
 
 volumes:
-  pgdata:
+  postgres_data:
+    driver: local
+
+networks:
+  pearspective_network:
+    driver: bridge

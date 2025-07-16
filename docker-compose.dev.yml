@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL para desenvolvimento
+  postgres:
+    image: postgres:15-alpine
+    container_name: perspective_postgres_dev
+    environment:
+      POSTGRES_DB: pearspective_dev
+      POSTGRES_USER: perspective_user
+      POSTGRES_PASSWORD: perspective_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/migration_cursos.sql:/docker-entrypoint-initdb.d/migration_cursos.sql
+      - ./database/fix.sql:/docker-entrypoint-initdb.d/fix.sql
+    networks:
+      - perspective_network_dev
+    restart: unless-stopped
+
+  # Aplicação Node.js para desenvolvimento
+  StartServer():
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: perspective_app_dev
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=pearspective_dev
+      - DB_USER=perspective_user
+      - DB_PASSWORD=perspective_password
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Porta para debugging
+    volumes:
+      - .:/app
+      - /app/node_modules  # Volume para node_modules
+      - ./assets:/app/assets
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+    networks:
+      - perspective_network_dev
+    restart: unless-stopped
+    command: npm run dev
+
+  # Redis para cache (opcional)
+  redis:
+    image: redis:7-alpine
+    container_name: perspective_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - perspective_network_dev
+    restart: unless-stopped
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+
+networks:
+  perspective_network_dev:
+    driver: bridge 

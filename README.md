@@ -11,7 +11,7 @@ Um sistema moderno de desenvolvimento profissional com foco em cultura organizac
 - **Biblioteca de Recursos** com busca inteligente
 - **Simulador de Cargos** interativo
 - **Gestão de Certificados** completa
-- **Analytics e Relatórios** detalhados
+
 
 ## 🛠️ **Tecnologias Utilizadas**
 
@@ -166,8 +166,7 @@ Perspective/
 ### Análise de Sentimento
 - Processamento de feedback dos usuários
 - Métricas de satisfação
-- Relatórios de sentimento organizacional
-- Integração com analytics
+
 
 ### Predição de Carreira
 - Análise de habilidades atuais
@@ -175,25 +174,7 @@ Perspective/
 - Timeline de desenvolvimento
 - Cursos recomendados
 
-## 📊 **Analytics e Relatórios**
 
-### Dashboard de Analytics
-- Métricas em tempo real
-- Gráficos interativos
-- KPIs organizacionais
-- Comparativos mensais
-
-### Relatórios Personalizados
-- Geração sob demanda
-- Filtros customizáveis
-- Múltiplos formatos
-- Agendamento automático
-
-### Exportação de Dados
-- PDF com gráficos
-- Excel com fórmulas
-- CSV para análise
-- APIs para integração
 
 ## 🎨 **Design System**
 
@@ -270,4 +251,4 @@ Contribuições são bem-vindas! Por favor, leia o guia de contribuição antes 
 
 ---
 
-**Pearspective v2.0** - Transformando o desenvolvimento profissional com IA e Analytics modernos.
+**Pearspective v2.0** - Transformando o desenvolvimento profissional com IA moderna.

@@ -5,12 +5,14 @@ class CourseManager {
     this.courses = [];
     this.currentEditId = null;
     this.isAdminMode = false;
+    this.userType = localStorage.getItem('tipo_usuario') || 'usuario';
     
     this.apiBaseUrl = 'http://localhost:3000/api';
 
     this.initializeElements();
     this.bindEvents();
     this.loadCourses(); // Carregar cursos da API na inicialização
+    this.setupAdminAccess(); // Configurar acesso de admin
   }
 
   // Inicializar elementos do DOM
@@ -125,7 +127,26 @@ class CourseManager {
   }
 
   // --- Funções de UI e Lógica ---
+  setupAdminAccess() {
+    // Verificar se o usuário é admin
+    if (this.userType !== 'admin') {
+      // Ocultar botão admin para usuários não-admin
+      if (this.adminToggle) {
+        this.adminToggle.style.display = 'none';
+      }
+      console.log('🔒 Acesso restrito: Apenas administradores podem editar recomendações');
+    } else {
+      console.log('🔓 Acesso de administrador ativado');
+    }
+  }
+
   toggleAdminMode() {
+    // Verificar se o usuário é admin antes de permitir toggle
+    if (this.userType !== 'admin') {
+      this.showNotification('Acesso negado: Apenas administradores podem editar recomendações', 'danger');
+      return;
+    }
+
     this.isAdminMode = !this.isAdminMode;
     this.adminPanel.style.display = this.isAdminMode ? 'block' : 'none';
     this.adminToggle.textContent = this.isAdminMode ? '👤 Usuário' : '🔧 Admin';
@@ -133,6 +154,12 @@ class CourseManager {
   }
 
   showAddForm() {
+    // Verificar se o usuário é admin
+    if (this.userType !== 'admin') {
+      this.showNotification('Acesso negado: Apenas administradores podem adicionar cursos', 'danger');
+      return;
+    }
+
     this.currentEditId = null;
     this.formTitle.textContent = 'Adicionar Novo Curso';
     this.courseFormElement.reset();
@@ -141,6 +168,12 @@ class CourseManager {
   }
   
   showEditForm(courseId) {
+    // Verificar se o usuário é admin
+    if (this.userType !== 'admin') {
+      this.showNotification('Acesso negado: Apenas administradores podem editar cursos', 'danger');
+      return;
+    }
+
     const course = this.courses.find(c => c.id === courseId);
     if (!course) return;
 
@@ -200,6 +233,12 @@ class CourseManager {
   }
 
   showDeleteModal(courseId) {
+    // Verificar se o usuário é admin
+    if (this.userType !== 'admin') {
+      this.showNotification('Acesso negado: Apenas administradores podem excluir cursos', 'danger');
+      return;
+    }
+
     const course = this.courses.find(c => c.id === courseId);
     if (!course) return;
 

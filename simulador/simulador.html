@@ -14,10 +14,17 @@
   <link href="simulador.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
+  <!-- Botão de Voltar -->
+  <div class="back-btn-container">
+    <a href="../Page_inicial/index.html" class="btn btn-primary back-btn">
+      <span class="btn-icon">←</span>
+      Voltar à Página Inicial
+    </a>
+  </div>
+
   <div class="page-container">
     <header class="page-header">
       <div class="container">
-        <a href="../Page_inicial/index.html" class="btn btn-outline btn-sm">← Voltar ao Início</a>
         <div class="header-content">
           <h1 class="page-title">Simulador de Cargos</h1>
           <p class="page-subtitle">Veja as informações e responsabilidades de cada cargo.</p>
@@ -28,7 +35,7 @@
     <main class="container">
       <div class="content-panel">
         <div class="panel-header">
-          <h2>Simulador de Cargos</h2>
+          <h2></h2>
         </div>
         <form id="simulador-form">
           <div class="form-group">
@@ -117,6 +124,10 @@
             <div class="form-group">
               <label for="cargo-name">Nome do Cargo</label>
               <input type="text" id="cargo-name" class="input" required>
+            </div>
+            <div class="form-group">
+              <label for="cargo-vagas">Quantidade de Vagas</label>
+              <input type="number" id="cargo-vagas" class="input" min="1" value="1" required>
             </div>
             <div class="requirements-grid">
               <div class="form-group">

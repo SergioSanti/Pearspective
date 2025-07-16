@@ -7,46 +7,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modal-title');
     const certIdInput = document.getElementById('cert-id');
 
-    const getCertsFromStorage = () => {
+    // API base URL
+    const API_BASE_URL = 'http://localhost:3000/api';
+
+    // Função para buscar certificados do usuário logado
+    const fetchUserCertificates = async () => {
         try {
-            const certs = localStorage.getItem('certificados');
-            return certs ? JSON.parse(certs) : [];
-        } catch (e) {
-            console.error("Erro ao ler certificados do localStorage:", e);
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                console.error('Usuário não logado');
+                return [];
+            }
+
+            const response = await fetch(`${API_BASE_URL}/certificados/usuario/${userId}`);
+            if (!response.ok) {
+                throw new Error('Erro ao buscar certificados');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Erro ao buscar certificados:', error);
             return [];
         }
     };
 
-    const saveCertsToStorage = (certs) => {
+    const renderCerts = async () => {
         try {
-            localStorage.setItem('certificados', JSON.stringify(certs));
-        } catch (e) {
-            console.error("Erro ao salvar certificados no localStorage:", e);
-        }
-    };
+            const certs = await fetchUserCertificates();
+            certGrid.innerHTML = ''; // Limpa a grade antes de renderizar
+            
+            if (certs.length === 0) {
+                certGrid.innerHTML = '<p class="text-center text-gray-500">Nenhum certificado adicionado ainda. Clique em "Adicionar Certificado" para começar!</p>';
+                return;
+            }
 
-    const renderCerts = () => {
-        const certs = getCertsFromStorage();
-        certGrid.innerHTML = ''; // Limpa a grade antes de renderizar
-        if (certs.length === 0) {
-            certGrid.innerHTML = '<p class="text-center text-gray-500">Nenhum certificado adicionado ainda. Clique em "Adicionar Certificado" para começar!</p>';
-            return;
+            certs.forEach(cert => {
+                const certCard = document.createElement('div');
+                certCard.className = 'cert-card';
+                
+                // Formatar data
+                const dataConclusao = new Date(cert.data_conclusao).toLocaleDateString('pt-BR');
+                
+                // Botão para visualizar PDF se existir
+                const pdfButton = cert.pdf ? 
+                    `<button class="btn btn-primary btn-sm" onclick="viewPdf('${cert.id}')">📄 Ver PDF</button>` : 
+                    '<span class="no-pdf">Sem PDF anexado</span>';
+                
+                certCard.innerHTML = `
+                    <h3>${cert.nome}</h3>
+                    <p><strong>Instituição:</strong> ${cert.instituicao}</p>
+                    <p class="dates"><strong>Conclusão:</strong> ${dataConclusao}</p>
+                    ${cert.descricao ? `<p class="description"><strong>Descrição:</strong> ${cert.descricao}</p>` : ''}
+                    <div class="pdf-section">
+                        ${pdfButton}
+                    </div>
+                    <div class="cert-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editCert('${cert.id}')">✏️ Editar</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCert('${cert.id}')">🗑️ Excluir</button>
+                    </div>
+                `;
+                certGrid.appendChild(certCard);
+            });
+        } catch (error) {
+            console.error('Erro ao renderizar certificados:', error);
+            certGrid.innerHTML = '<p class="error-message">Erro ao carregar certificados. Tente novamente mais tarde.</p>';
         }
-
-        certs.forEach(cert => {
-            const certCard = document.createElement('div');
-            certCard.className = 'cert-card';
-            certCard.innerHTML = `
-                <h3>${cert.nome}</h3>
-                <p><strong>Instituição:</strong> ${cert.instituicao}</p>
-                <p class="dates"><strong>Conclusão:</strong> ${cert.dataConclusao}</p>
-                <div class="cert-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="editCert('${cert.id}')">Editar</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteCert('${cert.id}')">Excluir</button>
-                </div>
-            `;
-            certGrid.appendChild(certCard);
-        });
     };
 
     const openModal = (cert = null) => {
@@ -56,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
             certIdInput.value = cert.id;
             document.getElementById('cert-name').value = cert.nome;
             document.getElementById('cert-issuer').value = cert.instituicao;
-            document.getElementById('cert-date').value = cert.dataConclusao;
+            document.getElementById('cert-date').value = cert.data_conclusao;
+            document.getElementById('cert-description').value = cert.descricao || '';
         } else {
             modalTitle.textContent = 'Adicionar Novo Certificado';
             certIdInput.value = '';
@@ -76,53 +101,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    certForm.addEventListener('submit', (e) => {
+    certForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const certs = getCertsFromStorage();
-        const certData = {
-            id: certIdInput.value || `cert-${Date.now()}`,
-            nome: document.getElementById('cert-name').value,
-            instituicao: document.getElementById('cert-issuer').value,
-            dataConclusao: document.getElementById('cert-date').value,
-        };
-
-        if (certIdInput.value) { // Editando
-            const certIndex = certs.findIndex(c => c.id === certIdInput.value);
-            if (certIndex > -1) {
-                certs[certIndex] = certData;
+        
+        try {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert('Usuário não logado');
+                return;
             }
-        } else { // Adicionando
-            certs.push(certData);
-        }
 
-        saveCertsToStorage(certs);
-        renderCerts();
-        closeModal();
+            const formData = new FormData();
+            formData.append('usuario_id', userId);
+            formData.append('nome', document.getElementById('cert-name').value);
+            formData.append('instituicao', document.getElementById('cert-issuer').value);
+            formData.append('data_conclusao', document.getElementById('cert-date').value);
+            formData.append('descricao', document.getElementById('cert-description').value);
+            
+            // Adicionar arquivo PDF se selecionado
+            const pdfFile = document.getElementById('cert-pdf').files[0];
+            if (pdfFile) {
+                formData.append('pdf', pdfFile);
+            }
+
+            const certId = certIdInput.value;
+            const url = certId ? 
+                `${API_BASE_URL}/certificados/${certId}` : 
+                `${API_BASE_URL}/certificados`;
+            const method = certId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao salvar certificado');
+            }
+
+            await renderCerts();
+            closeModal();
+            alert(certId ? 'Certificado atualizado com sucesso!' : 'Certificado adicionado com sucesso!');
+            
+        } catch (error) {
+            console.error('Erro ao salvar certificado:', error);
+            alert('Erro ao salvar certificado. Tente novamente.');
+        }
     });
 
-    window.editCert = (id) => {
-        const certs = getCertsFromStorage();
-        const cert = certs.find(c => c.id === id);
-        if (cert) {
+    window.editCert = async (id) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/certificados/${id}`);
+            if (!response.ok) {
+                throw new Error('Erro ao buscar certificado');
+            }
+            const cert = await response.json();
             openModal(cert);
+        } catch (error) {
+            console.error('Erro ao buscar certificado:', error);
+            alert('Erro ao carregar certificado para edição.');
         }
     };
 
-    window.deleteCert = (id) => {
+    window.deleteCert = async (id) => {
         if (confirm('Tem certeza que deseja excluir este certificado?')) {
-            let certs = getCertsFromStorage();
-            certs = certs.filter(c => c.id !== id);
-            saveCertsToStorage(certs);
-            renderCerts();
+            try {
+                const response = await fetch(`${API_BASE_URL}/certificados/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao excluir certificado');
+                }
+                
+                await renderCerts();
+                alert('Certificado excluído com sucesso!');
+            } catch (error) {
+                console.error('Erro ao excluir certificado:', error);
+                alert('Erro ao excluir certificado. Tente novamente.');
+            }
+        }
+    };
+
+    window.viewPdf = async (id) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/certificados/${id}/pdf`);
+            if (!response.ok) {
+                throw new Error('Erro ao buscar PDF');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('Erro ao visualizar PDF:', error);
+            alert('Erro ao visualizar PDF. Tente novamente.');
         }
     };
 
     // Renderização inicial
-    try {
-        renderCerts();
-    } catch (error) {
-        console.error("Erro ao renderizar certificados:", error);
-        certGrid.innerHTML = '<p class="error-message">Erro ao carregar certificados. Tente novamente mais tarde.</p>';
-    }
+    renderCerts();
 });
 

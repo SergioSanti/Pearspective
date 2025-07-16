@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const requisitosObj = cargo.requisitos || {};
         
         infoCargo.innerHTML = `
+          <li><strong>Vagas Disponíveis:</strong> ${cargo.quantidade_vagas || 1} vaga(s)</li>
           <li><strong>Experiência:</strong> ${requisitosObj.experiencia || 'Não informado'}</li>
           <li><strong>Formação:</strong> ${requisitosObj.formacao || 'Não informado'}</li>
           <li><strong>Idiomas:</strong> ${requisitosObj.idiomas || 'Não informado'}</li>
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cargoIdInput = document.getElementById('cargo-id');
     const cargoAreaSelect = document.getElementById('cargo-area-select');
     const cargoNameInput = document.getElementById('cargo-name');
+    const cargoVagasInput = document.getElementById('cargo-vagas');
     const cargoRequisitosInput = document.getElementById('cargo-requisitos');
     const cargosList = document.getElementById('cargos-list');
     const cancelCargoEditBtn = document.getElementById('cancel-cargo-edit');
@@ -242,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cargos.forEach(cargo => {
             const li = document.createElement('li');
             li.innerHTML = `
-                <span>${cargo.nome_cargo}</span>
+                <span>${cargo.nome_cargo} (${cargo.quantidade_vagas || 1} vaga${cargo.quantidade_vagas > 1 ? 's' : ''})</span>
                 <div class="item-actions">
                     <button class="btn btn-sm btn-secondary edit-cargo" data-id="${cargo.id}">✏️</button>
                     <button class="btn btn-sm btn-danger delete-cargo" data-id="${cargo.id}">🗑️</button>
@@ -266,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const body = {
             area_id: cargoAreaSelect.value,
             nome_cargo: cargoNameInput.value,
+            quantidade_vagas: parseInt(cargoVagasInput.value),
             requisitos: requisitos, // Objeto montado a partir dos inputs
             complexidade: '', 
             responsabilidades: ''
@@ -294,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cargoIdInput.value = cargo.id;
             cargoAreaSelect.value = cargo.area_id;
             cargoNameInput.value = cargo.nome_cargo;
+            cargoVagasInput.value = cargo.quantidade_vagas || 1;
             
             document.getElementById('req-experiencia').value = requisitos.experiencia || '';
             document.getElementById('req-formacao').value = requisitos.formacao || '';

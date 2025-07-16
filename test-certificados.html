@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste de Certificados</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Endpoints de Certificados</h1>
+    
+    <div class="test-section">
+        <h3>1. Testar Endpoint de Certificados do Usuário</h3>
+        <button onclick="testGetCertificados()">Testar GET /api/certificados/usuario/2</button>
+        <div id="result1"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Testar Endpoint de Adicionar Certificado</h3>
+        <button onclick="testAddCertificado()">Testar POST /api/certificados</button>
+        <div id="result2"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Testar Endpoint de Teste do Banco</h3>
+        <button onclick="testDatabase()">Testar GET /api/test/database</button>
+        <div id="result3"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function testGetCertificados() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.innerHTML = '<p>Testando...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/certificados/usuario/2`);
+                const data = await response.json();
+                
+                resultDiv.className = 'test-section success';
+                resultDiv.innerHTML = `
+                    <h4>✅ Sucesso!</h4>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro!</h4>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function testAddCertificado() {
+            const resultDiv = document.getElementById('result2');
+            resultDiv.innerHTML = '<p>Testando...</p>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('usuario_id', '2');
+                formData.append('nome', 'Curso de Teste');
+                formData.append('instituicao', 'Instituição de Teste');
+                formData.append('data_conclusao', '2024-01-01');
+                formData.append('descricao', 'Descrição de teste');
+
+                const response = await fetch(`${API_BASE}/certificados`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'test-section success';
+                resultDiv.innerHTML = `
+                    <h4>✅ Sucesso!</h4>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro!</h4>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function testDatabase() {
+            const resultDiv = document.getElementById('result3');
+            resultDiv.innerHTML = '<p>Testando...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/test/database`);
+                const data = await response.json();
+                
+                resultDiv.className = 'test-section success';
+                resultDiv.innerHTML = `
+                    <h4>✅ Sucesso!</h4>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro!</h4>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        // Teste automático ao carregar a página
+        window.onload = function() {
+            console.log('🧪 Página de teste carregada');
+            console.log('📋 Execute os testes clicando nos botões acima');
+        };
+    </script>
+</body>
+</html> 

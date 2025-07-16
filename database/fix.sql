@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS cargos_new (
 INSERT INTO cargos_new (id, nome_cargo, area_id, requisitos)
 SELECT 
     id,
-    COALESCE(nome_cargo, nome) as nome_cargo,
+    COALESCE(nome_cargo, 'Cargo Padrão') as nome_cargo,
     area_id,
     requisitos
 FROM cargos
@@ -55,4 +55,20 @@ INSERT INTO cargos (nome_cargo, area_id, requisitos) VALUES
     ('Desenvolvedor Backend', 1, '{"experiencia": "3+ anos", "formacao": "Superior em Ciência da Computação ou áreas afins", "idiomas": "Inglês intermediário", "habilidades": "Node.js, PostgreSQL, APIs REST", "soft_skills": "Resolução de problemas, autonomia"}'),
     ('Analista de RH', 3, '{"experiencia": "2+ anos", "formacao": "Superior em Administração, Psicologia ou áreas afins", "idiomas": "Inglês básico", "habilidades": "Recrutamento, gestão de pessoas", "soft_skills": "Empatia, comunicação, organização"}'),
     ('Gerente de Projetos', 1, '{"experiencia": "5+ anos", "formacao": "Superior em áreas técnicas", "idiomas": "Inglês avançado", "habilidades": "Metodologias ágeis, gestão de equipes", "soft_skills": "Liderança, negociação, gestão de conflitos"}'),
-    ('Analista de Marketing Digital', 2, '{"experiencia": "2+ anos", "formacao": "Superior em Marketing, Publicidade ou áreas afins", "idiomas": "Inglês intermediário", "habilidades": "SEO, mídias sociais, analytics", "soft_skills": "Criatividade, análise de dados"}'); 
+    ('Analista de Marketing Digital', 2, '{"experiencia": "2+ anos", "formacao": "Superior em Marketing, Publicidade ou áreas afins", "idiomas": "Inglês intermediário", "habilidades": "SEO, mídias sociais", "soft_skills": "Criatividade, análise de dados"}');
+
+-- Adicionar campo foto_perfil se não existir
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'usuarios' 
+        AND column_name = 'foto_perfil'
+    ) THEN
+        ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT;
+        RAISE NOTICE 'Campo foto_perfil adicionado à tabela usuarios';
+    ELSE
+        RAISE NOTICE 'Campo foto_perfil já existe na tabela usuarios';
+    END IF;
+END $$; 

@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     tipo_usuario VARCHAR(50) DEFAULT 'usuario',
     departamento VARCHAR(100),
     cargo_atual VARCHAR(100),
+    foto_perfil TEXT,
+    curriculo BYTEA,
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -105,19 +107,7 @@ CREATE TABLE IF NOT EXISTS atividades_usuario (
     dados_extras JSONB
 );
 
--- Criar tabela de métricas de analytics
-CREATE TABLE IF NOT EXISTS metricas_analytics (
-    id SERIAL PRIMARY KEY,
-    data_metricas DATE NOT NULL,
-    total_usuarios INTEGER DEFAULT 0,
-    usuarios_ativos INTEGER DEFAULT 0,
-    taxa_conclusao DECIMAL(5,2) DEFAULT 0,
-    satisfacao_media DECIMAL(3,2) DEFAULT 0,
-    total_horas INTEGER DEFAULT 0,
-    certificados_emitidos INTEGER DEFAULT 0,
-    dados_departamento JSONB,
-    dados_mensais JSONB
-);
+
 
 -- Criar tabela de recomendações de IA
 CREATE TABLE IF NOT EXISTS recomendacoes_ia (
@@ -143,19 +133,7 @@ CREATE TABLE IF NOT EXISTS conversas_chatbot (
     data_conversa TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Criar tabela de relatórios gerados
-CREATE TABLE IF NOT EXISTS relatorios (
-    id SERIAL PRIMARY KEY,
-    nome VARCHAR(200) NOT NULL,
-    tipo VARCHAR(50), -- 'PDF', 'Excel', 'CSV'
-    tamanho VARCHAR(50),
-    usuario_gerador INTEGER REFERENCES usuarios(id),
-    filtros JSONB,
-    dados_relatorio JSONB,
-    status VARCHAR(50) DEFAULT 'processing',
-    data_geracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    data_conclusao TIMESTAMP
-);
+
 
 -- Inserir dados iniciais
 
@@ -239,9 +217,14 @@ INSERT INTO cargos (nome_cargo, area_id, requisitos) VALUES
     )
 ON CONFLICT (id) DO NOTHING;
 
+-- Inserir usuário administrador principal
+INSERT INTO usuarios (nome, email, senha, tipo_usuario, departamento, cargo_atual) VALUES
+    ('admin', 'admin@pearspective.com', 'Admin123', 'admin', 'TI', 'Administrador do Sistema')
+ON CONFLICT (email) DO NOTHING;
+
 -- Inserir usuário de teste
 INSERT INTO usuarios (nome, email, senha, tipo_usuario, departamento, cargo_atual) VALUES
-    ('Administrador', 'admin@pearspective.com', 'admin', 'admin', 'TI', 'Administrador do Sistema')
+    ('sergio', 'sergio@pearspective.com', '12345', 'usuario', 'Tecnologia', 'Desenvolvedor Frontend')
 ON CONFLICT (email) DO NOTHING;
 
 -- Inserir cursos de exemplo
@@ -264,22 +247,4 @@ INSERT INTO recursos (titulo, autor, tipo, categoria, descricao, tamanho, duraca
     ('E-book: TypeScript Avançado', 'Lucas Mendes', 'document', 'frontend', 'E-book completo sobre TypeScript avançado com padrões e boas práticas.', '8.1 MB', NULL, ARRAY['TypeScript', 'JavaScript', 'Frontend', 'Padrões'])
 ON CONFLICT (id) DO NOTHING;
 
--- Inserir métricas iniciais
-INSERT INTO metricas_analytics (data_metricas, total_usuarios, usuarios_ativos, taxa_conclusao, satisfacao_media, total_horas, certificados_emitidos, dados_departamento, dados_mensais) VALUES
-    (CURRENT_DATE, 1247, 892, 76.5, 4.2, 2847, 342, 
-    '[
-        {"name": "TI", "engagement": 85, "completion": 78, "satisfaction": 92},
-        {"name": "RH", "engagement": 72, "completion": 65, "satisfaction": 88},
-        {"name": "Marketing", "engagement": 68, "completion": 71, "satisfaction": 85},
-        {"name": "Vendas", "engagement": 75, "completion": 69, "satisfaction": 87},
-        {"name": "Financeiro", "engagement": 61, "completion": 58, "satisfaction": 82}
-    ]'::jsonb,
-    '[
-        {"month": "Jan", "users": 120, "courses": 45, "certificates": 12},
-        {"month": "Fev", "users": 135, "courses": 52, "certificates": 18},
-        {"month": "Mar", "users": 142, "courses": 48, "certificates": 15},
-        {"month": "Abr", "users": 158, "courses": 61, "certificates": 22},
-        {"month": "Mai", "users": 165, "courses": 58, "certificates": 19},
-        {"month": "Jun", "users": 180, "courses": 67, "certificates": 25}
-    ]'::jsonb)
-ON CONFLICT (id) DO NOTHING; 
+ 

@@ -15,10 +15,17 @@
   <link href="certificados.css" rel="stylesheet">
 </head>
 <body>
+  <!-- Botão de Voltar -->
+  <div class="back-btn-container">
+    <a href="../Page_inicial/index.html" class="btn btn-primary back-btn">
+      <span class="btn-icon">←</span>
+      Voltar à Página Inicial
+    </a>
+  </div>
+
   <div class="page-container">
     <header class="page-header">
       <div class="container">
-        <a href="../Page_inicial/index.html" class="btn btn-outline btn-sm">← Voltar ao Início</a>
         <div class="header-content">
           <h1 class="page-title">Meus Certificados</h1>
           <p class="page-subtitle">Gerencie e visualize suas conquistas profissionais.</p>
@@ -49,7 +56,7 @@
         <h2 id="modal-title">Adicionar Novo Certificado</h2>
         <button class="close-btn">&times;</button>
       </div>
-      <form id="cert-form">
+      <form id="cert-form" enctype="multipart/form-data">
         <input type="hidden" id="cert-id">
         <div class="form-group">
           <label for="cert-name">Nome do Curso/Certificado</label>
@@ -62,6 +69,15 @@
         <div class="form-group">
           <label for="cert-date">Data de Conclusão</label>
           <input type="date" id="cert-date" class="input" required>
+        </div>
+        <div class="form-group">
+          <label for="cert-pdf">Anexar PDF do Certificado</label>
+          <input type="file" id="cert-pdf" name="pdf" accept=".pdf" class="input">
+          <small class="form-help">Apenas arquivos PDF são aceitos (máximo 10MB)</small>
+        </div>
+        <div class="form-group">
+          <label for="cert-description">Descrição (opcional)</label>
+          <textarea id="cert-description" class="textarea" rows="3" placeholder="Descreva o que foi aprendido no curso..."></textarea>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary close-btn">Cancelar</button>

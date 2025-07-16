@@ -1,22 +1,75 @@
 const express = require('express');
-const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
+const pool = require('./database');
 
 const app = express();
 const PORT = 3000;
 
-// Configuração da conexão com PostgreSQL
-const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  database: 'pearspective',
-  user: 'admin',
-  password: 'admin123',
-});
+// Função para aguardar o banco de dados estar pronto
+async function waitForDatabase() {
+  const maxRetries = 50; // Aumentado para 50 tentativas
+  let retries = 0;
+  
+  console.log('🔍 Tentando conectar ao banco de dados...');
+  
+  while (retries < maxRetries) {
+    try {
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      console.log('✅ Banco de dados conectado com sucesso!');
+      return true;
+    } catch (error) {
+      retries++;
+      console.log(`⏳ Aguardando banco de dados... (tentativa ${retries}/${maxRetries}) - ${error.message}`);
+      
+      // Aguarda mais tempo entre tentativas
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+  }
+  
+  console.error('❌ Falha ao conectar ao banco de dados após várias tentativas');
+  return false;
+}
 
 app.use(cors());
 app.use(express.json());
+
+// Middleware de erro global para capturar erros do multer
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('❌ Erro do Multer:', err);
+    return res.status(400).json({ 
+      error: 'Erro no upload do arquivo',
+      details: err.message 
+    });
+  } else if (err) {
+    console.error('❌ Erro geral:', err);
+    return res.status(500).json({ 
+      error: 'Erro interno do servidor',
+      details: err.message 
+    });
+  }
+  next();
+});
+
+// Configuração do multer para upload de arquivos
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Apenas arquivos PDF são permitidos'), false);
+        }
+    }
+});
 
 // Serve arquivos estáticos da raiz do projeto (onde está o login.html)
 app.use(express.static(path.join(__dirname, '..')));
@@ -134,14 +187,14 @@ app.delete('/api/areas/:id', async (req, res) => {
 
 // Criar Cargo (POST)
 app.post('/api/cargos', async (req, res) => {
-  const { area_id, nome_cargo, complexidade, responsabilidades, requisitos } = req.body;
+  const { area_id, nome_cargo, complexidade, responsabilidades, requisitos, quantidade_vagas } = req.body;
   if (!area_id || !nome_cargo) {
     return res.status(400).json({ error: 'ID da área e nome do cargo são obrigatórios.' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO cargos (area_id, nome_cargo, complexidade, responsabilidades, requisitos) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [area_id, nome_cargo, complexidade, responsabilidades, JSON.stringify(requisitos || {})]
+      'INSERT INTO cargos (area_id, nome_cargo, complexidade, responsabilidades, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [area_id, nome_cargo, complexidade, responsabilidades, JSON.stringify(requisitos || {}), quantidade_vagas || 1]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -153,14 +206,14 @@ app.post('/api/cargos', async (req, res) => {
 // Atualizar Cargo (PUT)
 app.put('/api/cargos/:id', async (req, res) => {
   const { id } = req.params;
-  const { nome_cargo, complexidade, responsabilidades, requisitos } = req.body;
+  const { nome_cargo, complexidade, responsabilidades, requisitos, quantidade_vagas } = req.body;
   if (!nome_cargo) {
     return res.status(400).json({ error: 'O nome do cargo é obrigatório.' });
   }
   try {
     const result = await pool.query(
-      'UPDATE cargos SET nome_cargo = $1, complexidade = $2, responsabilidades = $3, requisitos = $4 WHERE id = $5 RETURNING *',
-      [nome_cargo, complexidade, responsabilidades, JSON.stringify(requisitos || {}), id]
+      'UPDATE cargos SET nome_cargo = $1, complexidade = $2, responsabilidades = $3, requisitos = $4, quantidade_vagas = $5 WHERE id = $6 RETURNING *',
+      [nome_cargo, complexidade, responsabilidades, JSON.stringify(requisitos || {}), quantidade_vagas || 1, id]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Cargo não encontrado.' });
@@ -187,6 +240,307 @@ app.delete('/api/cargos/:id', async (req, res) => {
   }
 });
 
+// --- ROTAS DE PERFIL DO USUÁRIO ---
+
+// Buscar perfil do usuário por nome
+app.get('/api/users/profile/:userName', async (req, res) => {
+  const { userName } = req.params;
+  
+  console.log('🔍 Buscando perfil do usuário:', userName);
+  
+  try {
+    const result = await pool.query(
+      'SELECT id, nome, email, tipo_usuario, departamento, cargo_atual, foto_perfil, data_cadastro FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    if (result.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', userName);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    console.log('✅ Perfil encontrado:', { 
+      id: result.rows[0].id, 
+      nome: result.rows[0].nome,
+      foto_perfil: result.rows[0].foto_perfil ? 'Presente' : 'Não presente'
+    });
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao buscar perfil do usuário:', error);
+    res.status(500).json({ error: 'Erro ao buscar perfil do usuário' });
+  }
+});
+
+// Atualizar perfil do usuário
+app.put('/api/users/profile/:userName', async (req, res) => {
+  const { userName } = req.params;
+  const { nome, departamento, cargo_atual, foto_perfil } = req.body;
+  
+  console.log('📸 Atualizando perfil do usuário:', { userName, nome, departamento, cargo_atual, foto_perfil: foto_perfil ? 'Foto presente' : 'Sem foto' });
+  
+  try {
+    const result = await pool.query(
+      'UPDATE usuarios SET nome = $1, departamento = $2, cargo_atual = $3, foto_perfil = $4 WHERE nome = $5 RETURNING *',
+      [nome, departamento, cargo_atual, foto_perfil, userName]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    console.log('✅ Perfil atualizado com sucesso:', { 
+      id: result.rows[0].id, 
+      nome: result.rows[0].nome,
+      foto_perfil: result.rows[0].foto_perfil ? 'Salva' : 'Não salva'
+    });
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao atualizar perfil do usuário:', error);
+    res.status(500).json({ error: 'Erro ao atualizar perfil do usuário' });
+  }
+});
+
+// --- ROTAS DE CURRÍCULO ---
+
+// Upload de currículo
+app.post('/api/users/curriculum/:userName', upload.single('curriculum'), async (req, res) => {
+  const { userName } = req.params;
+  const file = req.file;
+  
+  console.log('📄 Upload de currículo para usuário:', userName);
+  console.log('📄 Arquivo recebido:', file ? {
+    originalname: file.originalname,
+    mimetype: file.mimetype,
+    size: file.size,
+    buffer: file.buffer ? 'Presente' : 'Não presente'
+  } : 'Nenhum arquivo');
+  
+  if (!file) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  }
+  
+  // Validar tipo de arquivo
+  if (file.mimetype !== 'application/pdf') {
+    return res.status(400).json({ error: 'Apenas arquivos PDF são permitidos' });
+  }
+  
+  // Validar tamanho (máximo 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    return res.status(400).json({ error: 'O arquivo deve ter no máximo 10MB' });
+  }
+  
+  try {
+    console.log('📄 Tentando salvar no banco de dados...');
+    const result = await pool.query(
+      'UPDATE usuarios SET curriculo = $1, curriculo_nome = $2 WHERE nome = $3 RETURNING id, nome, curriculo, curriculo_nome',
+      [file.buffer, file.originalname, userName]
+    );
+    
+    if (result.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', userName);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    console.log('✅ Currículo salvo com sucesso:', { 
+      id: result.rows[0].id, 
+      nome: result.rows[0].nome,
+      curriculo: result.rows[0].curriculo ? 'Presente' : 'Não presente',
+      curriculo_nome: result.rows[0].curriculo_nome
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Currículo enviado com sucesso',
+      fileName: file.originalname,
+      fileSize: file.size
+    });
+  } catch (error) {
+    console.error('❌ Erro ao salvar currículo:', error);
+    console.error('❌ Detalhes do erro:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    res.status(500).json({ 
+      error: 'Erro ao salvar currículo',
+      details: error.message
+    });
+  }
+});
+
+// Download de currículo
+app.get('/api/users/curriculum/:userName', async (req, res) => {
+  const { userName } = req.params;
+  
+  console.log('📄 Buscando currículo do usuário:', userName);
+  
+  try {
+    const result = await pool.query(
+      'SELECT curriculo, curriculo_nome FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    if (!result.rows[0].curriculo) {
+      return res.status(404).json({ error: 'Currículo não encontrado' });
+    }
+    
+    console.log('✅ Currículo encontrado para usuário:', userName);
+    
+    // Usar nome original do arquivo ou nome padrão
+    const fileName = result.rows[0].curriculo_nome || `curriculo_${userName}.pdf`;
+    
+    // Configurar headers para download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', result.rows[0].curriculo.length);
+    
+    res.send(result.rows[0].curriculo);
+  } catch (error) {
+    console.error('❌ Erro ao buscar currículo:', error);
+    res.status(500).json({ error: 'Erro ao buscar currículo' });
+  }
+});
+
+// Verificar se usuário tem currículo
+app.get('/api/users/curriculum/:userName/status', async (req, res) => {
+  const { userName } = req.params;
+  
+  console.log('📄 Verificando status do currículo para usuário:', userName);
+  
+  try {
+    const result = await pool.query(
+      'SELECT curriculo, curriculo_nome FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    const curriculo = result.rows[0].curriculo;
+    const curriculoNome = result.rows[0].curriculo_nome;
+    const hasCurriculum = curriculo !== null && curriculo.length > 0;
+    const fileSize = curriculo ? curriculo.length : 0;
+    
+    console.log('✅ Status do currículo verificado:', { 
+      usuario: userName, 
+      tem_curriculo: hasCurriculum,
+      tamanho: fileSize,
+      nome_arquivo: curriculoNome
+    });
+    
+    res.json({ 
+      hasCurriculum,
+      fileSize,
+      fileName: curriculoNome || 'curriculo.pdf',
+      message: hasCurriculum ? 'Currículo encontrado' : 'Nenhum currículo encontrado'
+    });
+  } catch (error) {
+    console.error('❌ Erro ao verificar currículo:', error);
+    res.status(500).json({ error: 'Erro ao verificar currículo' });
+  }
+});
+
+// Excluir currículo
+app.delete('/api/users/curriculum/:userName', async (req, res) => {
+  const { userName } = req.params;
+  
+  console.log('🗑️ Excluindo currículo do usuário:', userName);
+  
+  try {
+    const result = await pool.query(
+      'UPDATE usuarios SET curriculo = NULL, curriculo_nome = NULL WHERE nome = $1 RETURNING id, nome',
+      [userName]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    console.log('✅ Currículo excluído com sucesso:', { 
+      id: result.rows[0].id, 
+      nome: result.rows[0].nome
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Currículo excluído com sucesso' 
+    });
+  } catch (error) {
+    console.error('❌ Erro ao excluir currículo:', error);
+    res.status(500).json({ error: 'Erro ao excluir currículo' });
+  }
+});
+
+// Adicionar área se não existir
+app.post('/api/areas', async (req, res) => {
+  const { nome } = req.body;
+  
+  if (!nome) {
+    return res.status(400).json({ error: 'Nome da área é obrigatório' });
+  }
+  
+  try {
+    // Verificar se a área já existe
+    const existingArea = await pool.query('SELECT id FROM areas WHERE nome = $1', [nome]);
+    
+    if (existingArea.rows.length > 0) {
+      return res.json(existingArea.rows[0]);
+    }
+    
+    // Criar nova área
+    const result = await pool.query('INSERT INTO areas (nome) VALUES ($1) RETURNING *', [nome]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro ao adicionar área:', error);
+    res.status(500).json({ error: 'Erro ao adicionar área' });
+  }
+});
+
+// Adicionar cargo se não existir
+app.post('/api/positions', async (req, res) => {
+  const { nome_cargo, area_nome } = req.body;
+  
+  if (!nome_cargo || !area_nome) {
+    return res.status(400).json({ error: 'Nome do cargo e área são obrigatórios' });
+  }
+  
+  try {
+    // Buscar área
+    const areaResult = await pool.query('SELECT id FROM areas WHERE nome = $1', [area_nome]);
+    
+    if (areaResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Área não encontrada' });
+    }
+    
+    const areaId = areaResult.rows[0].id;
+    
+    // Verificar se o cargo já existe
+    const existingPosition = await pool.query('SELECT id FROM cargos WHERE nome_cargo = $1 AND area_id = $2', [nome_cargo, areaId]);
+    
+    if (existingPosition.rows.length > 0) {
+      return res.json(existingPosition.rows[0]);
+    }
+    
+    // Criar novo cargo
+    const result = await pool.query(
+      'INSERT INTO cargos (nome_cargo, area_id, requisitos) VALUES ($1, $2, $3) RETURNING *',
+      [nome_cargo, areaId, JSON.stringify({})]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro ao adicionar cargo:', error);
+    res.status(500).json({ error: 'Erro ao adicionar cargo' });
+  }
+});
+
 // Endpoint de login
 app.post('/login', async (req, res) => {
   const { usuario, senha } = req.body;
@@ -197,7 +551,14 @@ app.post('/login', async (req, res) => {
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      res.json({ success: true, message: 'Login válido', tipo_usuario: user.tipo_usuario, id: user.id, nome: user.nome });
+      res.json({ 
+        success: true, 
+        message: 'Login válido', 
+        tipo_usuario: user.tipo_usuario, 
+        id: user.id, 
+        nome: user.nome,
+        foto_perfil: user.foto_perfil || null
+      });
     } else {
       res.status(401).json({ success: false, message: 'Usuário ou senha incorretos.' });
     }
@@ -207,57 +568,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// --- ROTAS DE CERTIFICADOS ---
-
-// Listar certificados de um usuário
-app.get('/api/certificados', async (req, res) => {
-  const userId = req.query.usuario_id;
-  if (!userId) {
-    return res.status(400).json({ error: 'ID do usuário não fornecido' });
-  }
-  try {
-    const result = await pool.query(
-      `SELECT id, nome, data_inicio, data_conclusao, instituicao, status, nota, horas, categoria, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC`,
-      [userId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Erro ao buscar certificados:', err);
-    res.status(500).json({ error: 'Erro ao buscar certificados' });
-  }
-});
-
-// Adicionar certificado
-app.post('/api/certificados', async (req, res) => {
-  const { usuario_id, nome, data_inicio, data_conclusao, instituicao, nota, horas, categoria, descricao } = req.body;
-  if (!usuario_id || !nome || !data_inicio || !data_conclusao || !instituicao) {
-    return res.status(400).json({ error: 'Campos obrigatórios não fornecidos.' });
-  }
-  try {
-    const result = await pool.query(
-      `INSERT INTO certificados (usuario_id, nome, data_inicio, data_conclusao, instituicao, nota, horas, categoria, descricao)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING *`,
-      [usuario_id, nome, data_inicio, data_conclusao, instituicao, nota, horas, categoria, descricao]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error('Erro ao adicionar certificado:', err);
-    res.status(500).json({ error: 'Erro ao adicionar certificado' });
-  }
-});
-
-// Deletar certificado
-app.delete('/api/certificados/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    await pool.query('DELETE FROM certificados WHERE id = $1', [id]);
-    res.status(204).send();
-  } catch (err) {
-    console.error('Erro ao deletar certificado:', err);
-    res.status(500).json({ error: 'Erro ao deletar certificado' });
-  }
-});
+// --- ROTAS DE CERTIFICADOS (REMOVIDAS - USAR NOVOS ENDPOINTS ABAIXO) ---
 
 // --- ROTAS DE RECOMENDAÇÃO DE CURSOS (CRUD COMPLETO) ---
 
@@ -532,59 +843,26 @@ async function gerarRecomendacoes(userId) {
   }
 }
 
-// --- ROTAS DE ANALYTICS ---
-
-// API para métricas de uso
-app.get('/api/analytics/usage', async (req, res) => {
-  try {
-    // Buscar métricas mais recentes do banco
-    const result = await pool.query(
-      `SELECT * FROM metricas_analytics 
-       ORDER BY data_metricas DESC 
-       LIMIT 1`
-    );
-
-    if (result.rows.length > 0) {
-      const metricas = result.rows[0];
-      res.json({
-        totalUsers: metricas.total_usuarios,
-        activeUsers: metricas.usuarios_ativos,
-        courseCompletionRate: metricas.taxa_conclusao,
-        averageSatisfaction: metricas.satisfacao_media,
-        totalHours: metricas.total_horas,
-        certificatesIssued: metricas.certificados_emitidos,
-        monthlyEngagement: metricas.dados_mensais,
-        departmentPerformance: metricas.dados_departamento
-      });
-    } else {
-      // Dados padrão se não houver métricas
-      res.json({
-        totalUsers: 1247,
-        activeUsers: 892,
-        courseCompletionRate: 76.5,
-        averageSatisfaction: 4.2,
-        totalHours: 2847,
-        certificatesIssued: 342,
-        monthlyEngagement: [],
-        departmentPerformance: []
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao buscar métricas:', error);
-    res.status(500).json({ error: 'Erro ao buscar métricas' });
-  }
-});
-
 // API para estatísticas do dashboard
 app.get('/api/dashboard/stats/:usuario_id', async (req, res) => {
   const { usuario_id } = req.params;
   
   try {
+    // Se o usuario_id não é um número, buscar pelo nome
+    let userId = usuario_id;
+    if (isNaN(usuario_id)) {
+      const userResult = await pool.query('SELECT id FROM usuarios WHERE nome = $1', [usuario_id]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+      }
+      userId = userResult.rows[0].id;
+    }
+    
     // Buscar estatísticas do usuário
     const [certificados, progresso, atividades] = await Promise.all([
-      pool.query('SELECT COUNT(*) as total FROM certificados WHERE usuario_id = $1', [usuario_id]),
-      pool.query('SELECT COUNT(*) as total, SUM(horas_estudadas) as horas FROM progresso_usuario WHERE usuario_id = $1', [usuario_id]),
-      pool.query('SELECT COUNT(*) as total FROM atividades_usuario WHERE usuario_id = $1', [usuario_id])
+      pool.query('SELECT COUNT(*) as total FROM certificados WHERE usuario_id = $1', [userId]),
+      pool.query('SELECT COUNT(*) as total, SUM(horas_estudadas) as horas FROM progresso_usuario WHERE usuario_id = $1', [userId]),
+      pool.query('SELECT COUNT(*) as total FROM atividades_usuario WHERE usuario_id = $1', [userId])
     ]);
 
     const stats = {
@@ -603,6 +881,371 @@ app.get('/api/dashboard/stats/:usuario_id', async (req, res) => {
   }
 });
 
+// Endpoint de debug para verificar consulta SQL
+app.get('/api/debug/users/:userName', async (req, res) => {
+  const { userName } = req.params;
+  
+  console.log('🔍 [DEBUG] Verificando usuário:', userName);
+  
+  try {
+    // Testar consulta exata
+    const exactQuery = await pool.query(
+      'SELECT * FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    console.log('🔍 [DEBUG] Consulta exata:', {
+      parametro: userName,
+      encontrou: exactQuery.rows.length > 0,
+      resultado: exactQuery.rows[0] || 'não encontrado'
+    });
+    
+    // Testar consulta case-insensitive
+    const caseInsensitiveQuery = await pool.query(
+      'SELECT * FROM usuarios WHERE LOWER(nome) = LOWER($1)',
+      [userName]
+    );
+    
+    console.log('🔍 [DEBUG] Consulta case-insensitive:', {
+      parametro: userName,
+      encontrou: caseInsensitiveQuery.rows.length > 0,
+      resultado: caseInsensitiveQuery.rows[0] || 'não encontrado'
+    });
+    
+    // Listar todos os usuários para comparação
+    const allUsers = await pool.query('SELECT id, nome, email FROM usuarios ORDER BY id');
+    
+    console.log('📋 [DEBUG] Todos os usuários:', allUsers.rows);
+    
+    res.json({
+      searchedFor: userName,
+      exactMatch: {
+        found: exactQuery.rows.length > 0,
+        user: exactQuery.rows[0] || null
+      },
+      caseInsensitiveMatch: {
+        found: caseInsensitiveQuery.rows.length > 0,
+        user: caseInsensitiveQuery.rows[0] || null
+      },
+      allUsers: allUsers.rows,
+      debug: {
+        exactQuery: `SELECT * FROM usuarios WHERE nome = '${userName}'`,
+        caseInsensitiveQuery: `SELECT * FROM usuarios WHERE LOWER(nome) = LOWER('${userName}')`
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro na consulta:', error);
+    res.status(500).json({ 
+      error: 'Erro na consulta',
+      debug: {
+        error: error.message,
+        stack: error.stack
+      }
+    });
+  }
+});
+
+// Buscar foto do usuário por nome (para navbar)
+app.get('/api/users/photo/:userName', async (req, res) => {
+  const { userName } = req.params;
+  
+  console.log('🔍 [DEBUG] Buscando foto para usuário:', userName);
+  
+  try {
+    // Primeiro, vamos verificar se o usuário existe
+    const checkUser = await pool.query(
+      'SELECT id, nome, email FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    console.log('🔍 [DEBUG] Resultado da busca:', {
+      encontrou: checkUser.rows.length > 0,
+      total_usuarios: checkUser.rows.length,
+      usuario: checkUser.rows[0] || 'não encontrado'
+    });
+    
+    if (checkUser.rows.length === 0) {
+      console.log('❌ [DEBUG] Usuário não encontrado:', userName);
+      
+      // Vamos listar todos os usuários para debug
+      const allUsers = await pool.query('SELECT id, nome, email FROM usuarios');
+      console.log('📋 [DEBUG] Todos os usuários no banco:', allUsers.rows);
+      
+      return res.status(404).json({ 
+        error: 'Usuário não encontrado',
+        debug: {
+          searchedFor: userName,
+          totalUsers: allUsers.rows.length,
+          allUsers: allUsers.rows.map(u => ({ id: u.id, nome: u.nome }))
+        }
+      });
+    }
+    
+    // Agora buscar a foto
+    const result = await pool.query(
+      'SELECT foto_perfil FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    console.log('✅ [DEBUG] Foto encontrada:', {
+      usuario: userName,
+      foto_presente: result.rows[0].foto_perfil ? 'Sim' : 'Não',
+      tamanho_foto: result.rows[0].foto_perfil ? result.rows[0].foto_perfil.length : 0
+    });
+    
+    res.json({ foto_perfil: result.rows[0].foto_perfil });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro ao buscar foto do usuário:', error);
+    res.status(500).json({ 
+      error: 'Erro ao buscar foto do usuário',
+      debug: {
+        error: error.message,
+        stack: error.stack
+      }
+    });
+  }
+});
+
+// Endpoint de teste para verificar estado do banco
+app.get('/api/test/database', async (req, res) => {
+  try {
+    // Testar conexão
+    const result = await pool.query('SELECT NOW() as current_time');
+    
+    // Verificar tabela de usuários
+    const usersResult = await pool.query('SELECT COUNT(*) as total FROM usuarios');
+    
+    // Verificar estrutura da tabela
+    const structureResult = await pool.query(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'usuarios' 
+      ORDER BY ordinal_position
+    `);
+    
+    res.json({
+      status: 'OK',
+      database_time: result.rows[0].current_time,
+      total_users: usersResult.rows[0].total,
+      table_structure: structureResult.rows,
+      message: 'Banco de dados funcionando corretamente'
+    });
+  } catch (error) {
+    console.error('❌ Erro no teste do banco:', error);
+    res.status(500).json({ 
+      status: 'ERROR',
+      error: error.message,
+      message: 'Problema com o banco de dados'
+    });
+  }
+});
+
+// Endpoint de teste para verificar usuário específico
+app.get('/api/test/user/:userName', async (req, res) => {
+  const { userName } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'SELECT id, nome, email, tipo_usuario, departamento, cargo_atual, foto_perfil, data_cadastro FROM usuarios WHERE nome = $1',
+      [userName]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        status: 'NOT_FOUND',
+        message: 'Usuário não encontrado',
+        userName: userName
+      });
+    }
+    
+    const user = result.rows[0];
+    res.json({
+      status: 'FOUND',
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        tipo_usuario: user.tipo_usuario,
+        departamento: user.departamento,
+        cargo_atual: user.cargo_atual,
+        foto_perfil: user.foto_perfil ? 'Presente' : 'Não presente',
+        foto_tamanho: user.foto_perfil ? user.foto_perfil.length : 0,
+        data_cadastro: user.data_cadastro
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao buscar usuário:', error);
+    res.status(500).json({ 
+      status: 'ERROR',
+      error: error.message,
+      message: 'Erro ao buscar usuário'
+    });
+  }
+});
+
+// ===== ENDPOINTS PARA CERTIFICADOS =====
+
+// Buscar certificados de um usuário (DEVE VIR ANTES DO /:id)
+app.get('/api/certificados/usuario/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  console.log('🔍 [DEBUG] Buscando certificados para usuário:', userId);
+  
+  try {
+    const result = await pool.query(
+      'SELECT id, nome, instituicao, data_conclusao, descricao, pdf IS NOT NULL as tem_pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC',
+      [userId]
+    );
+    
+    console.log('✅ [DEBUG] Certificados encontrados:', result.rows.length);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro ao buscar certificados:', error);
+    res.status(500).json({ error: 'Erro ao buscar certificados' });
+  }
+});
+
+// Buscar PDF do certificado (DEVE VIR ANTES DO /:id)
+app.get('/api/certificados/:id/pdf', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'SELECT pdf FROM certificados WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0 || !result.rows[0].pdf) {
+      return res.status(404).json({ error: 'PDF não encontrado' });
+    }
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="certificado.pdf"');
+    res.send(result.rows[0].pdf);
+  } catch (error) {
+    console.error('Erro ao buscar PDF:', error);
+    res.status(500).json({ error: 'Erro ao buscar PDF' });
+  }
+});
+
+// Buscar certificado específico (DEVE VIR POR ÚLTIMO)
+app.get('/api/certificados/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'SELECT id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Erro ao buscar certificado:', error);
+    res.status(500).json({ error: 'Erro ao buscar certificado' });
+  }
+});
+
+// Adicionar novo certificado
+app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
+  console.log('🔍 [DEBUG] Recebendo requisição POST para certificados');
+  console.log('📋 [DEBUG] Body:', req.body);
+  console.log('📁 [DEBUG] File:', req.file ? 'Presente' : 'Não presente');
+  
+  const { usuario_id, nome, instituicao, data_conclusao, descricao } = req.body;
+  const pdfBuffer = req.file ? req.file.buffer : null;
+  
+  if (!usuario_id || !nome || !instituicao || !data_conclusao) {
+    console.log('❌ [DEBUG] Campos obrigatórios não fornecidos');
+    console.log('📋 [DEBUG] Campos recebidos:', { usuario_id, nome, instituicao, data_conclusao });
+    return res.status(400).json({ error: 'Campos obrigatórios não fornecidos' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'INSERT INTO certificados (usuario_id, nome, instituicao, data_conclusao, descricao, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [usuario_id, nome, instituicao, data_conclusao, descricao, pdfBuffer]
+    );
+    
+    console.log('✅ [DEBUG] Certificado adicionado com sucesso, ID:', result.rows[0].id);
+    res.status(201).json({ id: result.rows[0].id, message: 'Certificado adicionado com sucesso' });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro ao adicionar certificado:', error);
+    res.status(500).json({ error: 'Erro ao adicionar certificado' });
+  }
+});
+
+// Atualizar certificado
+app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
+  const { id } = req.params;
+  const { nome, instituicao, data_conclusao, descricao } = req.body;
+  const pdfBuffer = req.file ? req.file.buffer : null;
+  
+  if (!nome || !instituicao || !data_conclusao) {
+    return res.status(400).json({ error: 'Campos obrigatórios não fornecidos' });
+  }
+  
+  try {
+    let query, params;
+    
+    if (pdfBuffer) {
+      // Atualizar com novo PDF
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING id';
+      params = [nome, instituicao, data_conclusao, descricao, pdfBuffer, id];
+    } else {
+      // Atualizar sem alterar PDF
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING id';
+      params = [nome, instituicao, data_conclusao, descricao, id];
+    }
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+    
+    res.json({ id: result.rows[0].id, message: 'Certificado atualizado com sucesso' });
+  } catch (error) {
+    console.error('Erro ao atualizar certificado:', error);
+    res.status(500).json({ error: 'Erro ao atualizar certificado' });
+  }
+});
+
+// Excluir certificado
+app.delete('/api/certificados/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query('DELETE FROM certificados WHERE id = $1', [id]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+    
+    res.json({ message: 'Certificado excluído com sucesso' });
+  } catch (error) {
+    console.error('Erro ao excluir certificado:', error);
+    res.status(500).json({ error: 'Erro ao excluir certificado' });
+  }
+});
+
+// Iniciar servidor apenas após o banco estar pronto
+async function startServer() {
+  const dbReady = await waitForDatabase();
+  
+  if (dbReady) {
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-}); 
+      console.log(`🚀 Servidor rodando na porta ${PORT}`);
+      console.log(`📊 Acesse: http://localhost:${PORT}`);
+    });
+  } else {
+    console.error('❌ Não foi possível iniciar o servidor - banco de dados não disponível');
+    process.exit(1);
+  }
+}
+
+startServer(); 

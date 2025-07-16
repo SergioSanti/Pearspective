@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Nome Original do Arquivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .filename-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste - Nome Original do Arquivo</h1>
+    
+    <div class="container">
+        <h2>📄 Status do Currículo</h2>
+        <div class="test-section">
+            <label>Nome do Usuário:</label>
+            <input type="text" id="userName" value="admin" placeholder="Digite o nome do usuário">
+            <button onclick="testCurriculumStatus()">Verificar Status</button>
+            <div id="curriculumStatusResult" class="result"></div>
+            <div id="filenameDisplay" class="filename-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📤 Upload de Currículo</h2>
+        <div class="test-section">
+            <form id="uploadForm">
+                <label>Arquivo PDF (use um nome específico como "meu_curriculo_2024.pdf"):</label>
+                <input type="file" name="curriculum" accept=".pdf" required>
+                <button type="submit">Enviar Currículo</button>
+            </form>
+            <div id="uploadResult" class="result"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📥 Download de Currículo</h2>
+        <div class="test-section">
+            <button onclick="testCurriculumDownload()">Baixar Currículo</button>
+            <div id="downloadResult" class="result"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔄 Teste Completo</h2>
+        <div class="test-section">
+            <button onclick="runFullTest()">Executar Teste Completo</button>
+            <div id="fullTestResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function testCurriculumStatus() {
+            const userName = document.getElementById('userName').value;
+            const resultDiv = document.getElementById('curriculumStatusResult');
+            const filenameDiv = document.getElementById('filenameDisplay');
+            resultDiv.innerHTML = '🔄 Verificando status...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/curriculum/${encodeURIComponent(userName)}/status`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `✅ Status verificado:\n\n${JSON.stringify(data, null, 2)}`;
+                    
+                    if (data.hasCurriculum) {
+                        filenameDiv.innerHTML = `📄 Nome do arquivo: <strong>${data.fileName}</strong>`;
+                        filenameDiv.style.display = 'block';
+                    } else {
+                        filenameDiv.style.display = 'none';
+                    }
+                } else {
+                    resultDiv.innerHTML = `❌ Erro ${response.status}: ${JSON.stringify(data, null, 2)}`;
+                    filenameDiv.style.display = 'none';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Erro ao verificar status: ' + error.message;
+                filenameDiv.style.display = 'none';
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('uploadResult');
+            resultDiv.innerHTML = '🔄 Enviando currículo...';
+            
+            const formData = new FormData(e.target);
+            const userName = document.getElementById('userName').value;
+            const file = formData.get('curriculum');
+            
+            if (!file) {
+                resultDiv.innerHTML = '❌ Nenhum arquivo selecionado';
+                return;
+            }
+            
+            resultDiv.innerHTML = `📤 Enviando arquivo: "${file.name}"...`;
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/curriculum/${encodeURIComponent(userName)}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `✅ Currículo enviado com sucesso!\n\nNome original: "${data.fileName}"\nTamanho: ${data.fileSize} bytes\n\n${JSON.stringify(data, null, 2)}`;
+                    
+                    // Atualizar status automaticamente
+                    setTimeout(() => testCurriculumStatus(), 1000);
+                } else {
+                    resultDiv.innerHTML = `❌ Erro ${response.status}: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Erro ao enviar currículo: ' + error.message;
+            }
+        });
+
+        async function testCurriculumDownload() {
+            const userName = document.getElementById('userName').value;
+            const resultDiv = document.getElementById('downloadResult');
+            resultDiv.innerHTML = '🔄 Baixando currículo...';
+            
+            try {
+                // Primeiro, obter informações do arquivo
+                const statusResponse = await fetch(`${API_BASE}/users/curriculum/${encodeURIComponent(userName)}/status`);
+                const statusData = await statusResponse.json();
+                
+                if (!statusData.hasCurriculum) {
+                    resultDiv.innerHTML = '❌ Nenhum currículo encontrado';
+                    return;
+                }
+                
+                resultDiv.innerHTML = `📥 Baixando arquivo: "${statusData.fileName}"...`;
+                
+                const response = await fetch(`${API_BASE}/users/curriculum/${encodeURIComponent(userName)}`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = statusData.fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    resultDiv.innerHTML = `✅ Download iniciado!\n\nArquivo: "${statusData.fileName}"\nTamanho: ${statusData.fileSize} bytes`;
+                } else {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `❌ Erro ${response.status}: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Erro ao baixar currículo: ' + error.message;
+            }
+        }
+
+        async function runFullTest() {
+            const resultDiv = document.getElementById('fullTestResult');
+            resultDiv.innerHTML = '🔄 Executando teste completo...\n\n';
+            
+            const userName = document.getElementById('userName').value;
+            
+            try {
+                // 1. Verificar status inicial
+                resultDiv.innerHTML += '1️⃣ Verificando status inicial...\n';
+                const statusResponse = await fetch(`${API_BASE}/users/curriculum/${encodeURIComponent(userName)}/status`);
+                const statusData = await statusResponse.json();
+                
+                if (statusResponse.ok) {
+                    resultDiv.innerHTML += `✅ Status: ${statusData.hasCurriculum ? 'Tem currículo' : 'Sem currículo'}\n`;
+                    if (statusData.hasCurriculum) {
+                        resultDiv.innerHTML += `📄 Nome atual: "${statusData.fileName}"\n`;
+                    }
+                } else {
+                    resultDiv.innerHTML += `❌ Erro no status: ${statusData.error}\n`;
+                    return;
+                }
+                
+                resultDiv.innerHTML += '\n2️⃣ Teste concluído!\n';
+                resultDiv.innerHTML += '💡 Agora faça upload de um arquivo com nome específico e recarregue a página para ver se o nome é preservado.\n';
+                
+            } catch (error) {
+                resultDiv.innerHTML += `❌ Erro no teste: ${error.message}\n`;
+            }
+        }
+
+        // Verificar status ao carregar a página
+        window.onload = function() {
+            testCurriculumStatus();
+        };
+    </script>
+</body>
+</html> 

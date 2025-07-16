@@ -23,7 +23,16 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem('userName', data.nome);
         localStorage.setItem('userId', data.id);
         localStorage.setItem('tipo_usuario', data.tipo_usuario);
+        
+        // Salvar foto do perfil se disponível
+        if (data.foto_perfil) {
+          localStorage.setItem('userPhoto', data.foto_perfil);
+        } else {
+          localStorage.removeItem('userPhoto');
+        }
+        
         console.log('[LOGIN] userId salvo:', data.id);
+        console.log('[LOGIN] foto_perfil:', data.foto_perfil ? 'Presente' : 'Não presente');
         
         // Redireciona após salvar os dados
         window.location.href = 'Page_inicial/index.html';

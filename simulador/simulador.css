@@ -1,3 +1,91 @@
+/* ===== BOTÃO DE VOLTAR PADRÃO ===== */
+.back-btn-container {
+    max-width: 1200px;
+    margin: 2rem auto 0 auto;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.back-btn {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    padding: 0.75rem 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow-sm);
+    gap: 0.5rem;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    color: white;
+    box-shadow: 0 4px 15px rgba(107, 142, 78, 0.3);
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(107, 142, 78, 0.4);
+}
+
+.back-btn .btn-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+/* ===== BOTÕES PADRÃO ===== */
+.btn-primary {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    color: white;
+    box-shadow: 0 4px 15px rgba(107, 142, 78, 0.3);
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(107, 142, 78, 0.4);
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--gray-700);
+    border: 2px solid var(--gray-200);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-300);
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
 body {
   margin: 0;
   padding: 0;
