@@ -1107,52 +1107,36 @@ app.get('/api/cursos', async (req, res) => {
     const existingColumns = columnsCheck.rows.map(row => row.column_name);
     console.log('🔍 Colunas existentes na tabela cursos:', existingColumns);
     
-    // Construir query adaptativa baseada nas colunas existentes
-    let selectColumns = ['id'];
-    
-    if (existingColumns.includes('title')) {
-      selectColumns.push('title');
-    } else if (existingColumns.includes('titulo')) {
-      selectColumns.push('titulo');
-    }
-    
-    if (existingColumns.includes('platform')) {
-      selectColumns.push('platform');
-    } else if (existingColumns.includes('plataforma')) {
-      selectColumns.push('plataforma');
-    }
-    
-    if (existingColumns.includes('description')) {
-      selectColumns.push('description');
-    } else if (existingColumns.includes('descricao')) {
-      selectColumns.push('descricao');
-    }
-    
-    if (existingColumns.includes('area')) {
-      selectColumns.push('area');
-    } else if (existingColumns.includes('categoria')) {
-      selectColumns.push('categoria');
-    }
-    
-    if (existingColumns.includes('url_externa')) {
-      selectColumns.push('url_externa as url');
-    }
-    
-    if (existingColumns.includes('nivel')) {
-      selectColumns.push('nivel as level');
-    }
-    
-    if (existingColumns.includes('duracao')) {
-      selectColumns.push('duracao as duration');
-    }
-    
-    const query = `SELECT ${selectColumns.join(', ')} FROM cursos ORDER BY id`;
+    // Query simples e direta com JOIN para áreas
+    const query = `
+      SELECT 
+        c.id,
+        c.titulo as title,
+        c.plataforma as platform,
+        c.url_externa as url,
+        c.categoria as area,
+        c.nivel as level,
+        c.duracao as duration,
+        c.descricao as description,
+        a.id as area_id,
+        a.nome as area_nome
+      FROM cursos c
+      LEFT JOIN areas a ON c.categoria = a.nome
+      ORDER BY c.id DESC
+    `;
     
     const result = await pool.query(query);
     
     console.log(`✅ Encontrados ${result.rows.length} cursos`);
-    console.log('📊 Primeiros 3 cursos:', result.rows.slice(0, 3));
-    console.log('🔍 Colunas selecionadas:', selectColumns);
+    
+    // Processar resultados para incluir informações corretas das áreas
+    const cursosProcessados = result.rows.map(curso => ({
+      ...curso,
+      area: curso.area_nome || curso.area || 'Área não definida',
+      area_id: curso.area_id || null
+    }));
+    
+    console.log('📊 Primeiros 3 cursos processados:', cursosProcessados.slice(0, 3));
     
     // Se não há cursos, retornar dados de teste
     if (result.rows.length === 0) {
@@ -1191,7 +1175,7 @@ app.get('/api/cursos', async (req, res) => {
       ];
       res.json(testCursos);
     } else {
-      res.json(result.rows);
+      res.json(cursosProcessados);
     }
   } catch (error) {
     console.error('❌ Erro ao buscar cursos:', error);
@@ -1475,18 +1459,28 @@ app.delete('/api/cursos/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`🗑️ Deletando curso ${id}...`);
     
+    // Primeiro verificar se o curso existe
+    const checkResult = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      console.log('❌ Curso não encontrado para deletar:', id);
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+    
+    console.log('✅ Curso encontrado para deletar:', checkResult.rows[0]);
+    
     const result = await pool.query('DELETE FROM cursos WHERE id = $1 RETURNING *', [id]);
     
     if (result.rows.length > 0) {
-      console.log('✅ Curso deletado:', result.rows[0]);
+      console.log('✅ Curso deletado com sucesso:', result.rows[0]);
       res.json({ message: 'Curso deletado com sucesso' });
     } else {
-      console.log('❌ Curso não encontrado para deletar:', id);
-      res.status(404).json({ error: 'Curso não encontrado' });
+      console.log('❌ Erro: Nenhuma linha foi deletada');
+      res.status(500).json({ error: 'Falha na deleção' });
     }
   } catch (error) {
     console.error('❌ Erro ao deletar curso:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 

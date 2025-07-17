@@ -264,7 +264,8 @@ class CourseManager {
     document.getElementById('course-title').value = course.title;
     document.getElementById('course-platform').value = course.platform;
     document.getElementById('course-url').value = course.url;
-    document.getElementById('course-area').value = course.area;
+    // Usar area_id se disponível, senão usar o nome da área
+    document.getElementById('course-area').value = course.area_id || course.area;
     document.getElementById('course-level').value = course.level;
     document.getElementById('course-duration').value = course.duration;
     document.getElementById('course-description').value = course.description;
