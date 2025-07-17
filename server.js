@@ -201,6 +201,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
+// Rota para áreas (mock data)
+app.get('/api/areas', (req, res) => {
+  res.json([
+    { id: 1, nome: 'Tecnologia da Informação' },
+    { id: 2, nome: 'Recursos Humanos' },
+    { id: 3, nome: 'Marketing' },
+    { id: 4, nome: 'Vendas' },
+    { id: 5, nome: 'Financeiro' }
+  ]);
+});
+
 // Middleware de erro para capturar rotas não encontradas
 app.use((req, res, next) => {
   console.log(`❌ Rota não encontrada: ${req.method} ${req.url}`);
@@ -212,6 +223,9 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`📁 Diretório atual: ${__dirname}`);
   console.log(`🌐 Acesse: http://localhost:${PORT}`);
+  console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`🗄️ DATABASE_URL: ${process.env.DATABASE_URL ? 'Configurado' : 'Não configurado'}`);
+  console.log(`📦 Versão Node: ${process.version}`);
 });
 
 module.exports = app; 
