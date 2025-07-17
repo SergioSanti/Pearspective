@@ -343,6 +343,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     cargoForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Validar campos obrigatórios
+        const areaId = cargoAreaSelect.value;
+        const nomeCargo = cargoNameInput.value.trim();
+        
+        if (!areaId) {
+            showErrorMessage('Selecione uma área para o cargo.');
+            return;
+        }
+        
+        if (!nomeCargo) {
+            showErrorMessage('Digite o nome do cargo.');
+            return;
+        }
+        
         const id = cargoIdInput.value;
         const requisitos = {
             experiencia: document.getElementById('req-experiencia').value,
@@ -353,8 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const body = {
-            area_id: parseInt(cargoAreaSelect.value),
-            nome_cargo: cargoNameInput.value,
+            area_id: parseInt(areaId),
+            nome_cargo: nomeCargo,
             quantidade_vagas: parseInt(cargoVagasInput.value) || 1,
             requisitos: requisitos
         };
@@ -375,6 +390,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const message = id ? 'Cargo atualizado com sucesso!' : 'Cargo criado com sucesso!';
                 showSuccessMessage(message);
                 console.log('✅ Cargo salvo com sucesso');
+                
+                // Só resetar o formulário após sucesso
+                cargoForm.reset();
+                cargoIdInput.value = '';
+                cargoAreaSelect.dispatchEvent(new Event('change'));
             } else {
                 const errorData = await response.json();
                 showErrorMessage(`Erro ao salvar cargo: ${errorData.error || 'Tente novamente.'}`);
@@ -384,10 +404,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showErrorMessage('Erro ao conectar com o servidor.');
             console.error('❌ Erro de conexão:', error);
         }
-
-        cargoForm.reset();
-        cargoIdInput.value = '';
-        cargoAreaSelect.dispatchEvent(new Event('change'));
     });
 
     cargosList.addEventListener('click', async (e) => {
