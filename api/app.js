@@ -788,10 +788,10 @@ app.post('/api/cursos', async (req, res) => {
       }
     }
     
-    // Query com TODOS os campos obrigatórios
+    // Query apenas com os campos do formulário
     const query = `
-      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, ativo)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     const values = [
@@ -801,12 +801,7 @@ app.post('/api/cursos', async (req, res) => {
       categoria,
       level || 'Intermediário',
       duration || '',
-      description || '',
-      'Instrutor não especificado',
-      0.00,
-      0.0,
-      0,
-      true
+      description || ''
     ];
     
     const result = await pool.query(query, values);
@@ -836,7 +831,7 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Query com valores padrão para campos obrigatórios
+    // Query apenas com os campos do formulário
     const query = `
       UPDATE cursos SET
         titulo = $1,
@@ -845,12 +840,8 @@ app.put('/api/cursos/:id', async (req, res) => {
         categoria = $4,
         nivel = $5,
         duracao = $6,
-        descricao = $7,
-        instrutor = $8,
-        preco = $9,
-        avaliacao = $10,
-        estudantes = $11
-      WHERE id = $12
+        descricao = $7
+      WHERE id = $8
       RETURNING *
     `;
     const values = [
@@ -861,10 +852,6 @@ app.put('/api/cursos/:id', async (req, res) => {
       level || 'Intermediário',
       duration || '',
       description || '',
-      'Instrutor não especificado',
-      0.00,
-      0.0,
-      0,
       id
     ];
     
