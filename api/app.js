@@ -353,11 +353,7 @@ app.get('/api/me', async (req, res) => {
     console.log('🔍 Verificando sessão atual:', { 
       hasAuthHeader: !!authHeader, 
       hasSessionToken: !!sessionToken,
-      cookies: req.cookies,
-      allHeaders: Object.keys(req.headers),
-      userAgent: req.headers['user-agent'],
-      origin: req.headers.origin,
-      referer: req.headers.referer
+      cookies: req.cookies
     });
     
     if (!sessionToken) {
@@ -368,37 +364,73 @@ app.get('/api/me', async (req, res) => {
       });
     }
     
-    // Para simplificar, vamos usar uma abordagem mais direta
-    // Se o token começa com "1-", é admin, se começa com "2-", é sergio
+    // Determinar qual usuário baseado no token
+    let userName = '';
     if (sessionToken.startsWith('1-')) {
-      console.log('✅ Admin autenticado via token');
-      res.json({
-        authenticated: true,
-        user: {
-          id: 1,
-          nome: 'admin',
-          email: 'admin@example.com',
-          tipo_usuario: 'admin',
-        foto_perfil: null
-        }
-      });
+      userName = 'admin';
     } else if (sessionToken.startsWith('2-')) {
-      console.log('✅ Sergio autenticado via token');
-      res.json({
-        authenticated: true,
-        user: {
-          id: 2,
-          nome: 'sergio',
-          email: 'sergio@example.com',
-          tipo_usuario: 'usuario',
-          foto_perfil: null
-        }
-      });
+      userName = 'sergio';
     } else {
       console.log('❌ Token inválido:', sessionToken);
-      res.status(401).json({ 
+      return res.status(401).json({ 
         authenticated: false, 
         message: 'Sessão inválida' 
+      });
+    }
+    
+    console.log('✅ Usuário identificado:', userName);
+    
+    // Buscar dados do usuário no banco Railway PostgreSQL
+    try {
+      const userQuery = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1';
+      const userResult = await pool.query(userQuery, [userName]);
+      
+      if (userResult.rows.length > 0) {
+        const user = userResult.rows[0];
+        console.log('✅ Dados do usuário encontrados no banco:', user);
+        
+        res.json({
+          authenticated: true,
+          user: {
+            id: user.id,
+            nome: user.nome,
+            email: user.email,
+            tipo_usuario: user.tipo_usuario,
+            foto_perfil: user.foto_perfil
+          }
+        });
+      } else {
+        console.log('❌ Usuário não encontrado no banco:', userName);
+        // Fallback com dados básicos
+        const fallbackUser = {
+          id: userName === 'admin' ? 1 : 2,
+          nome: userName,
+          email: `${userName}@example.com`,
+          tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
+          foto_perfil: null
+        };
+        
+        console.log('🔄 Usando dados fallback:', fallbackUser);
+        res.json({
+          authenticated: true,
+          user: fallbackUser
+        });
+      }
+    } catch (dbError) {
+      console.error('❌ Erro ao buscar usuário no banco:', dbError);
+      // Fallback com dados básicos em caso de erro no banco
+      const fallbackUser = {
+        id: userName === 'admin' ? 1 : 2,
+        nome: userName,
+        email: `${userName}@example.com`,
+        tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
+        foto_perfil: null
+      };
+      
+      console.log('🔄 Usando dados fallback devido a erro no banco:', fallbackUser);
+      res.json({
+        authenticated: true,
+        user: fallbackUser
       });
     }
   } catch (error) {

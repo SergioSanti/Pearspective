@@ -21,6 +21,7 @@ async function updateUserCircle() {
         
         if (sessionData.authenticated && sessionData.user) {
           const user = sessionData.user;
+          console.log('[NAVBAR] Dados do usuário recebidos:', user);
           
           // Foto
           if (user.foto_perfil) {
@@ -35,6 +36,8 @@ async function updateUserCircle() {
           if (userNameDisplay) {
             userNameDisplay.textContent = user.nome;
           }
+        } else {
+          console.error('[NAVBAR] Dados de sessão inválidos:', sessionData);
         }
       } else {
         console.log('[NAVBAR] Sessão inválida ou expirada');
@@ -95,7 +98,12 @@ if (photoUpload) {
           const sessionData = await sessionResponse.json();
           console.log('[NAVBAR] Dados da sessão recebidos:', sessionData);
           
-          const userName = sessionData.user?.nome;
+          if (!sessionData.authenticated || !sessionData.user) {
+            console.error('[NAVBAR] Sessão inválida para upload:', sessionData);
+            return;
+          }
+          
+          const userName = sessionData.user.nome;
           console.log('[NAVBAR] Nome do usuário extraído:', userName);
           
           if (!userName) {
