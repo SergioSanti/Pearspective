@@ -2,10 +2,10 @@
   "name": "pearspective",
   "version": "1.0.0",
   "description": "Sistema de Desenvolvimento Profissional Pearspective",
-  "main": "server.js",
+  "main": "api/app.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node api/app.js",
+    "dev": "nodemon api/app.js"
   },
   "keywords": ["desenvolvimento", "profissional", "cursos", "certificados"],
   "author": "Sergio",
