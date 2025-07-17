@@ -982,15 +982,28 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
     const { username } = req.params;
     console.log(`📄 Buscando status do currículo para: ${username}`);
     
+    // Verificar se o usuário existe primeiro
+    const userCheck = await pool.query('SELECT nome FROM usuarios WHERE nome = $1', [username]);
+    if (userCheck.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', username);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
     // Buscar currículo no banco de dados
     const result = await pool.query(
       'SELECT nome_arquivo, tamanho, data_upload FROM curriculos WHERE usuario_nome = $1 ORDER BY data_upload DESC LIMIT 1',
       [username]
     );
     
+    console.log(`📊 Resultado da busca: ${result.rows.length} currículos encontrados`);
+    
     if (result.rows.length > 0) {
       const curriculum = result.rows[0];
-      console.log('✅ Currículo encontrado:', curriculum);
+      console.log('✅ Currículo encontrado:', {
+        fileName: curriculum.nome_arquivo,
+        size: curriculum.tamanho,
+        uploadDate: curriculum.data_upload
+      });
       res.json({
         hasCurriculum: true,
         fileName: curriculum.nome_arquivo,
@@ -1054,41 +1067,57 @@ app.post('/api/users/curriculum/:username', upload.single('curriculum'), async (
     console.log('📋 Dados do arquivo:', {
       originalname: file?.originalname,
       mimetype: file?.mimetype,
-      size: file?.size
+      size: file?.size,
+      buffer: file?.buffer ? 'Presente' : 'Ausente'
     });
     
     if (!file) {
+      console.log('❌ Nenhum arquivo recebido');
       return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     }
     
     // Validar tipo de arquivo
     if (file.mimetype !== 'application/pdf') {
+      console.log('❌ Tipo de arquivo inválido:', file.mimetype);
       return res.status(400).json({ error: 'Apenas arquivos PDF são permitidos' });
     }
     
     // Validar tamanho (máximo 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
+      console.log('❌ Arquivo muito grande:', file.size, 'bytes');
       return res.status(400).json({ error: 'Arquivo muito grande. Máximo 10MB permitido' });
     }
     
     // Verificar se o usuário existe
     const userCheck = await pool.query('SELECT nome FROM usuarios WHERE nome = $1', [username]);
     if (userCheck.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', username);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
+    console.log('✅ Usuário encontrado, prosseguindo com upload');
+    
     // Deletar currículo anterior se existir
-    await pool.query('DELETE FROM curriculos WHERE usuario_nome = $1', [username]);
-    console.log('🗑️ Currículo anterior removido');
+    const deleteResult = await pool.query('DELETE FROM curriculos WHERE usuario_nome = $1 RETURNING id', [username]);
+    if (deleteResult.rows.length > 0) {
+      console.log('🗑️ Currículo anterior removido');
+    } else {
+      console.log('📝 Nenhum currículo anterior encontrado');
+    }
     
     // Salvar novo currículo no banco de dados
+    console.log('💾 Salvando currículo no banco de dados...');
     const result = await pool.query(
       'INSERT INTO curriculos (usuario_nome, nome_arquivo, tipo_mime, tamanho, dados) VALUES ($1, $2, $3, $4, $5) RETURNING id, data_upload',
       [username, file.originalname, file.mimetype, file.size, file.buffer]
     );
     
-    console.log('✅ Currículo salvo no banco de dados:', result.rows[0]);
+    console.log('✅ Currículo salvo no banco de dados:', {
+      id: result.rows[0].id,
+      uploadDate: result.rows[0].data_upload
+    });
+    
     res.json({
       message: 'Currículo enviado com sucesso',
       fileName: file.originalname,
@@ -1133,6 +1162,55 @@ app.delete('/api/users/curriculum/:username', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao deletar currículo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota de teste para currículo
+app.get('/api/test-curriculum', async (req, res) => {
+  try {
+    console.log('🧪 Testando funcionalidade de currículo...');
+    
+    // Verificar se a tabela curriculos existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'curriculos'
+      );
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      return res.json({ 
+        error: 'Tabela curriculos não existe',
+        status: 'table_missing'
+      });
+    }
+    
+    // Verificar estrutura da tabela
+    const columns = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'curriculos' 
+      ORDER BY ordinal_position
+    `);
+    
+    // Contar currículos existentes
+    const count = await pool.query('SELECT COUNT(*) as total FROM curriculos');
+    
+    res.json({
+      status: 'ok',
+      tableExists: true,
+      columns: columns.rows,
+      totalCurriculums: count.rows[0].total,
+      message: 'Teste de currículo concluído'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no teste de currículo:', error);
+    res.status(500).json({ 
+      error: 'Erro no teste de currículo', 
+      details: error.message 
+    });
   }
 });
 

@@ -324,32 +324,50 @@ class ProfileManager {
 
     async checkCurriculumStatus() {
         try {
+            console.log('🔍 Verificando status do currículo...');
+            
             // Buscar nome do usuário da sessão atual
             const sessionResponse = await fetch('/api/me', {
                 credentials: 'include'
             });
             
             if (!sessionResponse.ok) {
+                console.log('❌ Sessão inválida ao verificar currículo');
                 return;
             }
             
             const sessionData = await sessionResponse.json();
-            const userName = sessionData.user.nome;
+            const userName = sessionData.user?.nome;
             
-            if (!userName) return;
+            if (!userName) {
+                console.log('❌ Nome do usuário não encontrado na sessão');
+                return;
+            }
+
+            console.log('👤 Verificando currículo para usuário:', userName);
 
             const response = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}/status`);
+            
+            if (!response.ok) {
+                console.error('❌ Erro na resposta do status do currículo:', response.status);
+                this.showCurriculumActions(false);
+                return;
+            }
+            
             const data = await response.json();
+            console.log('📄 Dados do status do currículo:', data);
 
-            // Corrigir: só mostrar ações se realmente houver arquivo e tamanho > 0
+            // Verificar se há currículo válido
             if (data.hasCurriculum && data.fileSize && data.fileSize > 0) {
+                console.log('✅ Currículo encontrado, mostrando controles');
                 this.showCurriculumActions(true);
                 this.updateCurriculumInfo(data);
             } else {
+                console.log('❌ Nenhum currículo válido encontrado');
                 this.showCurriculumActions(false);
             }
         } catch (error) {
-            console.error('Erro ao verificar currículo:', error);
+            console.error('❌ Erro ao verificar currículo:', error);
             this.showCurriculumActions(false);
         }
     }
@@ -393,7 +411,16 @@ class ProfileManager {
 
     async handleCurriculumUpload(event) {
         const file = event.target.files[0];
-        if (!file) return;
+        if (!file) {
+            console.log('❌ Nenhum arquivo selecionado');
+            return;
+        }
+
+        console.log('📄 Arquivo selecionado:', {
+            name: file.name,
+            type: file.type,
+            size: file.size
+        });
 
         // Validar tipo de arquivo
         if (file.type !== 'application/pdf') {
@@ -409,6 +436,7 @@ class ProfileManager {
 
         try {
             this.showLoading(true);
+            console.log('🔄 Iniciando upload do currículo...');
 
             // Buscar nome do usuário da sessão atual
             const sessionResponse = await fetch('/api/me', {
@@ -426,17 +454,25 @@ class ProfileManager {
                 throw new Error('Nome do usuário não encontrado na sessão');
             }
 
+            console.log('👤 Fazendo upload para usuário:', userName);
+
             const formData = new FormData();
             formData.append('curriculum', file);
+
+            console.log('📤 Enviando requisição para:', `/api/users/curriculum/${encodeURIComponent(userName)}`);
 
             const response = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}`, {
                 method: 'POST',
                 body: formData
             });
 
+            console.log('📥 Resposta do servidor:', response.status, response.statusText);
+
             const data = await response.json();
+            console.log('📄 Dados da resposta:', data);
 
             if (response.ok) {
+                console.log('✅ Upload realizado com sucesso');
                 this.showSuccess('Currículo enviado com sucesso!');
                 this.showCurriculumActions(true);
                 this.updateCurriculumInfo(data);
@@ -444,7 +480,7 @@ class ProfileManager {
                 throw new Error(data.error || 'Erro ao enviar currículo');
             }
         } catch (error) {
-            console.error('Erro ao enviar currículo:', error);
+            console.error('❌ Erro ao enviar currículo:', error);
             this.showError(error.message);
         } finally {
             this.showLoading(false);
@@ -456,9 +492,29 @@ class ProfileManager {
         const fileSize = document.getElementById('curriculumFileSize');
         const lastUpdate = document.getElementById('curriculumLastUpdate');
 
-        fileName.textContent = data.fileName || 'curriculo.pdf';
-        fileSize.textContent = this.formatFileSize(data.fileSize || 0);
-        lastUpdate.textContent = new Date().toLocaleDateString('pt-BR');
+        console.log('📄 Atualizando informações do currículo:', data);
+
+        // Usar dados da resposta ou valores padrão
+        const name = data.fileName || data.nome_arquivo || 'curriculo.pdf';
+        const size = data.fileSize || data.tamanho || 0;
+        const date = data.lastUpdated || data.data_upload || new Date();
+
+        fileName.textContent = name;
+        fileSize.textContent = this.formatFileSize(size);
+        
+        // Formatar data corretamente
+        if (date) {
+            const dateObj = new Date(date);
+            lastUpdate.textContent = dateObj.toLocaleDateString('pt-BR');
+        } else {
+            lastUpdate.textContent = 'hoje';
+        }
+
+        console.log('✅ Informações do currículo atualizadas:', {
+            fileName: name,
+            fileSize: this.formatFileSize(size),
+            lastUpdate: lastUpdate.textContent
+        });
     }
 
     async viewCurriculum() {
