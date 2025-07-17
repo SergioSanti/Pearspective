@@ -384,7 +384,7 @@ app.get('/api/cargos/:id', async (req, res) => {
 // Rota para criar cargo
 app.post('/api/cargos', async (req, res) => {
   try {
-    console.log('📋 Criando cargo:', req.body);
+    console.log('📋 Criando cargo - Dados recebidos:', JSON.stringify(req.body, null, 2));
     const { nome_cargo, area_id, requisitos, quantidade_vagas } = req.body;
     
     // Validar campos obrigatórios
@@ -397,6 +397,14 @@ app.post('/api/cargos', async (req, res) => {
     let requisitosJson = requisitos;
     if (typeof requisitos === 'object' && requisitos !== null) {
       requisitosJson = JSON.stringify(requisitos);
+      console.log('🔍 Requisitos convertidos para JSON:', requisitosJson);
+    }
+    
+    // Verificar se a área existe
+    const areaCheck = await pool.query('SELECT id FROM areas WHERE id = $1', [parseInt(area_id)]);
+    if (areaCheck.rows.length === 0) {
+      console.log('❌ Área não encontrada:', area_id);
+      return res.status(400).json({ error: 'Área não encontrada' });
     }
     
     console.log('🔍 Dados processados:', {
@@ -406,16 +414,31 @@ app.post('/api/cargos', async (req, res) => {
       requisitos: requisitosJson
     });
     
+    // Verificar estrutura da tabela cargos
+    const tableInfo = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'cargos' 
+      ORDER BY ordinal_position
+    `);
+    console.log('🔍 Estrutura da tabela cargos:', tableInfo.rows);
+    
     const result = await pool.query(
       'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING *',
       [nome_cargo, parseInt(area_id), requisitosJson, parseInt(quantidade_vagas) || 1]
     );
     
-    console.log('✅ Cargo criado:', result.rows[0]);
+    console.log('✅ Cargo criado com sucesso:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao criar cargo:', error);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint
+    });
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
