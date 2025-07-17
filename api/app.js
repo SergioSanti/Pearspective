@@ -1282,85 +1282,16 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     const { userId } = req.params;
     console.log(`🏆 Buscando certificados do usuário ${userId}...`);
     
-    // Primeiro verificar se a tabela certificados existe
-    const tableExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'certificados'
-      );
-    `);
+    // Query simples e direta
+    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
+    const params = [userId];
     
-    if (!tableExists.rows[0].exists) {
-      console.log('❌ Tabela certificados não existe, criando...');
-      
-      // Criar tabela certificados
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS certificados (
-          id SERIAL PRIMARY KEY,
-          nome VARCHAR(255) NOT NULL,
-          instituicao VARCHAR(255) NOT NULL,
-          data_inicio DATE,
-          data_conclusao DATE,
-          descricao TEXT,
-          usuario_id INTEGER,
-          url_certificado VARCHAR(500),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-      
-      console.log('✅ Tabela certificados criada');
-      
-      // Retornar array vazio para primeira execução
-      return res.json([]);
-    }
-    
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name IN ('usuario_id', 'user_id')
-    `);
-    
-    const hasUsuarioId = checkSchema.rows.some(row => row.column_name === 'usuario_id');
-    const hasUserId = checkSchema.rows.some(row => row.column_name === 'user_id');
-    
-    let query = '';
-    let params = [];
-    
-    // Verificar se existe campo pdf na tabela
-    const checkPdfColumn = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name = 'pdf'
-    `);
-    
-    const hasPdfColumn = checkPdfColumn.rows.length > 0;
-    
-    if (hasUsuarioId) {
-      if (hasPdfColumn) {
-        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
-      } else {
-        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
-      }
-      params = [userId];
-    } else if (hasUserId) {
-      if (hasPdfColumn) {
-        query = 'SELECT id, user_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE user_id = $1 ORDER BY data_conclusao DESC';
-      } else {
-        query = 'SELECT id, user_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE user_id = $1 ORDER BY data_conclusao DESC';
-      }
-      params = [userId];
-    } else {
-      // Se não encontrar, retornar vazio
-      return res.json([]);
-    }
+    console.log('🔍 Query:', query, 'Params:', params);
     
     const result = await pool.query(query, params);
     
     console.log(`✅ Encontrados ${result.rows.length} certificados para usuário ${userId}`);
+    console.log('📋 Certificados:', result.rows);
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar certificados do usuário:', error);
@@ -1436,35 +1367,11 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
     const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
     
-    // Verificar se existe campo pdf na tabela
-    const checkPdfColumn = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name = 'pdf'
-    `);
+    // Query simples sem PDF por enquanto
+    const query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+    const params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id];
     
-    const hasPdfColumn = checkPdfColumn.rows.length > 0;
-    
-    let query = '';
-    let params = [];
-    
-    if (hasPdfColumn) {
-      // Se tem campo pdf, incluir o arquivo
-      const pdfData = req.file ? req.file.buffer : null;
-      const pdfName = req.file ? req.file.originalname : null;
-      
-      query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *';
-      params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id, pdfData];
-      
-      console.log('📄 Salvando PDF:', { hasFile: !!req.file, fileName: pdfName, dataSize: pdfData ? pdfData.length : 0 });
-    } else {
-      // Se não tem campo pdf, salvar sem
-      query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-      params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id];
-      
-      console.log('📄 Campo PDF não encontrado na tabela, salvando sem arquivo');
-    }
+    console.log('🔍 Query de inserção:', query, 'Params:', params);
     
     const result = await pool.query(query, params);
     
@@ -1480,35 +1387,19 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
 app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
+    const nome = req.body.nome;
+    const instituicao = req.body.instituicao;
+    const data_inicio = req.body.data_inicio;
+    const data_conclusao = req.body.data_conclusao;
+    const descricao = req.body.descricao;
     
     console.log(`🏆 Atualizando certificado ID: ${id}`, req.body);
     
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name IN ('data_inicio', 'data_conclusao', 'descricao')
-    `);
+    // Query simples
+    const query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5 WHERE id = $6 RETURNING *';
+    const params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', id];
     
-    const hasDataInicio = checkSchema.rows.some(row => row.column_name === 'data_inicio');
-    const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
-    const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
-    
-    let query = '';
-    let params = [];
-    
-    if (hasDataInicio && hasDataConclusao && hasDescricao) {
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5 WHERE id = $6 RETURNING *';
-      params = [nome, instituicao, data_inicio, data_conclusao, descricao, id];
-    } else if (hasDataConclusao && hasDescricao) {
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao, id];
-    } else {
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2 WHERE id = $3 RETURNING *';
-      params = [nome, instituicao, id];
-    }
+    console.log('🔍 Query de atualização:', query, 'Params:', params);
     
     const result = await pool.query(query, params);
     
@@ -1521,7 +1412,8 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -1531,49 +1423,13 @@ app.get('/api/certificados/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`🏆 Buscando certificado ID: ${id}`);
     
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name IN ('data_obtencao', 'data_conclusao')
-    `);
+    // Query simples
+    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE id = $1';
+    const params = [id];
     
-    const hasDataObtencao = checkSchema.rows.some(row => row.column_name === 'data_obtencao');
-    const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
+    console.log('🔍 Query de busca:', query, 'Params:', params);
     
-    // Verificar se existe campo pdf na tabela
-    const checkPdfColumn = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name = 'pdf'
-    `);
-    
-    const hasPdfColumn = checkPdfColumn.rows.length > 0;
-    
-    let query = '';
-    if (hasDataObtencao) {
-      if (hasPdfColumn) {
-        query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao, url_certificado, pdf FROM certificados WHERE id = $1';
-      } else {
-        query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao, url_certificado FROM certificados WHERE id = $1';
-      }
-    } else if (hasDataConclusao) {
-      if (hasPdfColumn) {
-        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, url_certificado, pdf FROM certificados WHERE id = $1';
-      } else {
-        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, url_certificado FROM certificados WHERE id = $1';
-      }
-    } else {
-      if (hasPdfColumn) {
-        query = 'SELECT id, usuario_id, nome, instituicao, descricao, url_certificado, pdf FROM certificados WHERE id = $1';
-      } else {
-        query = 'SELECT id, usuario_id, nome, instituicao, descricao, url_certificado FROM certificados WHERE id = $1';
-      }
-    }
-    
-    const result = await pool.query(query, [id]);
+    const result = await pool.query(query, params);
     
     if (result.rows.length > 0) {
       console.log('✅ Certificado encontrado:', result.rows[0]);
@@ -1584,7 +1440,8 @@ app.get('/api/certificados/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao buscar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -1595,7 +1452,12 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
     console.log(`📄 Buscando PDF do certificado ID: ${id}`);
     
     // Buscar informações do certificado
-    const certResult = await pool.query('SELECT nome, url_certificado FROM certificados WHERE id = $1', [id]);
+    const query = 'SELECT nome, pdf FROM certificados WHERE id = $1';
+    const params = [id];
+    
+    console.log('🔍 Query de PDF:', query, 'Params:', params);
+    
+    const certResult = await pool.query(query, params);
     
     if (certResult.rows.length === 0) {
       console.log('❌ Certificado não encontrado:', id);
@@ -1604,23 +1466,21 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
     
     const certificado = certResult.rows[0];
     
-    if (!certificado.url_certificado) {
+    if (!certificado.pdf) {
       console.log('❌ Certificado não tem PDF anexado:', id);
       return res.status(404).json({ error: 'PDF não encontrado' });
     }
     
-    // Por enquanto, retornar uma resposta de exemplo
-    // Em produção, você implementaria o download do arquivo real
+    // Retornar o PDF como blob
     console.log('✅ PDF encontrado para certificado:', certificado.nome);
-    res.json({ 
-      message: 'PDF encontrado',
-      certificado: certificado.nome,
-      url: certificado.url_certificado
-    });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${certificado.nome}.pdf"`);
+    res.send(certificado.pdf);
     
   } catch (error) {
     console.error('❌ Erro ao buscar PDF:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -1628,17 +1488,26 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
 app.delete('/api/certificados/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`🗑️ Deletando certificado ID: ${id}`);
     
-    const result = await pool.query('DELETE FROM certificados WHERE id = $1 RETURNING *', [id]);
+    const query = 'DELETE FROM certificados WHERE id = $1 RETURNING *';
+    const params = [id];
+    
+    console.log('🔍 Query de deleção:', query, 'Params:', params);
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length > 0) {
+      console.log('✅ Certificado deletado:', result.rows[0]);
       res.json({ message: 'Certificado deletado com sucesso' });
     } else {
+      console.log('❌ Certificado não encontrado para deleção:', id);
       res.status(404).json({ error: 'Certificado não encontrado' });
     }
   } catch (error) {
-    console.error('Erro ao deletar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Erro ao deletar certificado:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
