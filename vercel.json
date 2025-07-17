@@ -6,11 +6,11 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/database/app.js" },
-    { "src": "/catalogo/catalogo.html", "dest": "/catalogo.html", "status": 301 },
-    { "src": "/biblioteca/biblioteca.html", "dest": "/biblioteca.html", "status": 301 },
-    { "src": "/simulador/simulador.html", "dest": "/simulador.html", "status": 301 },
-    { "src": "/historico/historico.html", "dest": "/historico.html", "status": 301 },
-    { "src": "/perfil/perfil.html", "dest": "/perfil.html", "status": 301 },
+    { "src": "/catalogo/catalogo.html", "dest": "/public/catalogo.html", "status": 301 },
+    { "src": "/biblioteca/biblioteca.html", "dest": "/public/biblioteca.html", "status": 301 },
+    { "src": "/simulador/simulador.html", "dest": "/public/simulador.html", "status": 301 },
+    { "src": "/historico/historico.html", "dest": "/public/historico.html", "status": 301 },
+    { "src": "/perfil/perfil.html", "dest": "/public/perfil.html", "status": 301 },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]
 } 
