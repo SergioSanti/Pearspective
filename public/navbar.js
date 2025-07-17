@@ -80,22 +80,31 @@ if (photoUpload) {
         
         try {
           // Buscar nome do usuário da sessão atual
+          console.log('[NAVBAR] Buscando sessão para upload...');
           const sessionResponse = await fetch('/api/me', {
             credentials: 'include'
           });
           
+          console.log('[NAVBAR] Status da resposta da sessão:', sessionResponse.status);
+          
           if (!sessionResponse.ok) {
-            console.error('[NAVBAR] Sessão inválida');
+            console.error('[NAVBAR] Sessão inválida para upload');
             return;
           }
           
           const sessionData = await sessionResponse.json();
-          const userName = sessionData.user.nome;
+          console.log('[NAVBAR] Dados da sessão recebidos:', sessionData);
+          
+          const userName = sessionData.user?.nome;
+          console.log('[NAVBAR] Nome do usuário extraído:', userName);
           
           if (!userName) {
-            console.error('[NAVBAR] Nenhum usuário logado');
+            console.error('[NAVBAR] Nome do usuário não encontrado na sessão');
+            console.error('[NAVBAR] Estrutura da sessão:', JSON.stringify(sessionData, null, 2));
             return;
           }
+          
+          console.log('[NAVBAR] Iniciando upload para usuário:', userName);
           
           // Atualizar foto usando a rota específica
           const updateResponse = await fetch(`/api/users/photo/${encodeURIComponent(userName)}`, {
@@ -108,6 +117,8 @@ if (photoUpload) {
             })
           });
           
+          console.log('[NAVBAR] Status da resposta do upload:', updateResponse.status);
+          
           if (updateResponse.ok) {
             console.log('[NAVBAR] Foto atualizada com sucesso');
             // Atualizar interface
@@ -118,6 +129,7 @@ if (photoUpload) {
           }
         } catch (error) {
           console.error('[NAVBAR] Erro ao processar upload de foto:', error);
+          console.error('[NAVBAR] Stack trace:', error.stack);
         }
       };
       reader.readAsDataURL(file);
