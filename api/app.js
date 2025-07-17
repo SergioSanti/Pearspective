@@ -1107,36 +1107,26 @@ app.get('/api/cursos', async (req, res) => {
     const existingColumns = columnsCheck.rows.map(row => row.column_name);
     console.log('🔍 Colunas existentes na tabela cursos:', existingColumns);
     
-    // Query simples e direta com JOIN para áreas
+    // Query simples sem JOIN - voltar ao que funcionava
     const query = `
       SELECT 
-        c.id,
-        c.titulo as title,
-        c.plataforma as platform,
-        c.url_externa as url,
-        c.categoria as area,
-        c.nivel as level,
-        c.duracao as duration,
-        c.descricao as description,
-        a.id as area_id,
-        a.nome as area_nome
-      FROM cursos c
-      LEFT JOIN areas a ON c.categoria = a.nome
-      ORDER BY c.id DESC
+        id,
+        titulo as title,
+        plataforma as platform,
+        url_externa as url,
+        categoria as area,
+        nivel as level,
+        duracao as duration,
+        descricao as description
+      FROM cursos 
+      ORDER BY id DESC
     `;
     
     const result = await pool.query(query);
     
     console.log(`✅ Encontrados ${result.rows.length} cursos`);
     
-    // Processar resultados para incluir informações corretas das áreas
-    const cursosProcessados = result.rows.map(curso => ({
-      ...curso,
-      area: curso.area_nome || curso.area || 'Área não definida',
-      area_id: curso.area_id || null
-    }));
-    
-    console.log('📊 Primeiros 3 cursos processados:', cursosProcessados.slice(0, 3));
+    console.log('📊 Primeiros 3 cursos:', result.rows.slice(0, 3));
     
     // Se não há cursos, retornar dados de teste
     if (result.rows.length === 0) {
@@ -1175,7 +1165,7 @@ app.get('/api/cursos', async (req, res) => {
       ];
       res.json(testCursos);
     } else {
-      res.json(cursosProcessados);
+      res.json(result.rows);
     }
   } catch (error) {
     console.error('❌ Erro ao buscar cursos:', error);
