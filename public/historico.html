@@ -1,19 +1,19 @@
-<!-- certificados.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Meus Certificados - Pearspective</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificados - Pearspective</title>
   <script>
     // Proteção de Rota: verifica se o usuário está logado
     if (!localStorage.getItem('userId')) {
       alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = '../login.html';
+      window.location.href = 'login.html';
     }
   </script>
-  <link href="../assets/global-styles.css" rel="stylesheet">
-  <link href="../navbar.css" rel="stylesheet">
-  <link href="certificados.css" rel="stylesheet">
+  <link href="assets/global-styles.css" rel="stylesheet" />
+  <link href="navbar.css" rel="stylesheet" />
+  <link href="certificados.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
   <!-- Navbar carregado dinamicamente -->
@@ -24,69 +24,65 @@
       <div class="container">
         <div class="header-content">
           <div class="header-center">
-            <h1 class="page-title">Meus Certificados</h1>
+            <h1 class="page-title">Seus Certificados</h1>
             <p class="page-subtitle">Gerencie e visualize suas conquistas profissionais.</p>
           </div>
         </div>
       </div>
     </header>
-
+    
     <main class="container">
       <div class="content-panel">
-        <div class="panel-header">
-          <h2>Seus Certificados</h2>
-          <button id="add-cert-btn" class="btn btn-primary">
-            <span class="icon">➕</span> Adicionar Certificado
-          </button>
+        <div class="certificates-section">
+          <div class="section-header">
+            <h2>Seus Certificados</h2>
+            <button id="add-certificate-btn" class="btn btn-primary">
+              <span class="icon">➕</span>
+              Adicionar Certificado
+            </button>
+          </div>
+          
+          <div id="certificates-list">
+            <!-- Lista de certificados será carregada aqui -->
+          </div>
         </div>
-
-        <div class="cert-grid" id="cert-grid">
-          <!-- Certificados serão carregados aqui via JavaScript -->
+        
+        <div class="add-certificate-section">
+          <h2>Adicionar Novo Certificado</h2>
+          <form id="certificate-form">
+            <div class="form-group">
+              <label for="certificate-name">Nome do Curso/Certificado</label>
+              <input type="text" id="certificate-name" class="input" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="certificate-institution">Instituição Emissora</label>
+              <input type="text" id="certificate-institution" class="input" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="certificate-start-date">Data de Início</label>
+              <input type="date" id="certificate-start-date" class="input" placeholder="dd/mm/aaaa">
+            </div>
+            
+            <div class="form-group">
+              <label for="certificate-end-date">Data de Conclusão</label>
+              <input type="date" id="certificate-end-date" class="input" placeholder="dd/mm/aaaa" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="certificate-description">Descrição</label>
+              <textarea id="certificate-description" class="textarea" placeholder="Descreva o que foi aprendido no curso"></textarea>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Salvar Certificado</button>
+              <button type="button" id="cancel-certificate" class="btn btn-secondary">Cancelar</button>
+            </div>
+          </form>
         </div>
       </div>
     </main>
-  </div>
-
-  <!-- Modal para adicionar/editar certificado -->
-  <div id="certModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modal-title">Adicionar Novo Certificado</h2>
-        <button class="close-btn">&times;</button>
-      </div>
-      <form id="cert-form" enctype="multipart/form-data">
-        <input type="hidden" id="cert-id">
-        <div class="form-group">
-          <label for="cert-name">Nome do Curso/Certificado</label>
-          <input type="text" id="cert-name" class="input" required>
-        </div>
-        <div class="form-group">
-          <label for="cert-issuer">Instituição Emissora</label>
-          <input type="text" id="cert-issuer" class="input" required>
-        </div>
-        <div class="form-group">
-          <label for="cert-date-start">Data de Início</label>
-          <input type="date" id="cert-date-start" class="input" required>
-        </div>
-        <div class="form-group">
-          <label for="cert-date">Data de Conclusão</label>
-          <input type="date" id="cert-date" class="input" required>
-        </div>
-        <div class="form-group">
-          <label for="cert-pdf">Anexar PDF do Certificado</label>
-          <input type="file" id="cert-pdf" name="pdf" accept=".pdf" class="input">
-          <small class="form-help">Apenas arquivos PDF são aceitos (máximo 10MB)</small>
-        </div>
-        <div class="form-group">
-          <label for="cert-description">Descrição (opcional)</label>
-          <textarea id="cert-description" class="textarea" rows="3" placeholder="Descreva o que foi aprendido no curso..."></textarea>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary close-btn">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar</button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <!-- Script para carregar o conteúdo da navbar -->
