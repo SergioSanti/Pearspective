@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
 
 // Configuração do banco de dados
 const pool = new Pool({
@@ -130,11 +128,10 @@ app.put('/api/users/profile/:id', async (req, res) => {
   }
 });
 
-// Rota para servir arquivos estáticos
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+// Rota para verificar se o servidor está funcionando
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-}); 
+// Exportar para Vercel
+module.exports = app; 
