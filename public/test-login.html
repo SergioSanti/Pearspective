@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Login</title>
+</head>
+<body>
+    <h1>Teste de Login</h1>
+    
+    <h2>Teste 1: Endpoint de Teste</h2>
+    <button onclick="testEndpoint()">Testar /api/test-login</button>
+    <div id="result1"></div>
+    
+    <h2>Teste 2: Login Real</h2>
+    <form id="loginForm">
+        <input type="text" id="usuario" placeholder="Usuário" value="admin"><br>
+        <input type="password" id="senha" placeholder="Senha" value="Admin123"><br>
+        <button type="submit">Testar Login</button>
+    </form>
+    <div id="result2"></div>
+    
+    <script>
+        async function testEndpoint() {
+            try {
+                const response = await fetch('/api/test-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: 'admin', senha: 'Admin123' })
+                });
+                
+                const data = await response.json();
+                document.getElementById('result1').innerHTML = `
+                    <h3>Resultado:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result1').innerHTML = `
+                    <h3>Erro:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, senha })
+                });
+                
+                const data = await response.json();
+                document.getElementById('result2').innerHTML = `
+                    <h3>Resultado:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result2').innerHTML = `
+                    <h3>Erro:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 
