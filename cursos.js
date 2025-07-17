@@ -8,7 +8,8 @@ class CourseManager {
     this.isAdminMode = false;
     this.userType = localStorage.getItem('tipo_usuario') || 'usuario';
     
-    this.apiBaseUrl = 'http://localhost:3000/api';
+    // Detectar automaticamente se está local ou no Railway
+    this.apiBaseUrl = window.location.origin + '/api';
 
     this.initializeElements();
     this.bindEvents();
