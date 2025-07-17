@@ -3,6 +3,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,7 +18,16 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Configurar multer para upload de arquivos
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
+});
 
 // Servir arquivos estáticos da raiz
 app.use(express.static(path.join(__dirname, '..')));
@@ -1308,11 +1318,27 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
 });
 
 // Rota para criar certificado
-app.post('/api/certificados', async (req, res) => {
+app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
   try {
     console.log('🏆 Criando certificado...', req.body);
     
-    const { nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id } = req.body;
+    // Extrair dados do FormData ou JSON
+    const nome = req.body.nome;
+    const instituicao = req.body.instituicao;
+    const data_inicio = req.body.data_inicio;
+    const data_conclusao = req.body.data_conclusao;
+    const descricao = req.body.descricao;
+    const usuario_id = req.body.usuario_id;
+    
+    console.log('📋 Dados recebidos:', { nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id });
+    console.log('📄 Arquivo PDF recebido:', req.file ? 'Sim' : 'Não');
+    if (req.file) {
+      console.log('📄 Detalhes do arquivo:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+    }
     
     // Query adaptativa
     const checkSchema = await pool.query(`
@@ -1354,7 +1380,7 @@ app.post('/api/certificados', async (req, res) => {
 });
 
 // Rota para atualizar certificado
-app.put('/api/certificados/:id', async (req, res) => {
+app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
   try {
     const { id } = req.params;
     const { nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
