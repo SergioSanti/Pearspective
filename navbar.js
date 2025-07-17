@@ -10,18 +10,7 @@ async function updateUserCircle() {
   
   if (userCircle) {
     try {
-      // Primeiro, verificar se há foto no localStorage (funciona localmente)
-      const userPhoto = localStorage.getItem('userPhoto');
-      const userName = localStorage.getItem('userName');
-      
-      if (userPhoto) {
-        userCircle.innerHTML = `<img src="${userPhoto}" alt="Foto do usuário">`;
-        console.log('[NAVBAR] Foto carregada do localStorage');
-        if (userNameDisplay) userNameDisplay.textContent = userName || '';
-        return;
-      }
-      
-      // Se não há foto no localStorage, tentar buscar do banco
+      // Buscar dados do banco do Railway
       const response = await fetch('/api/me', {
         credentials: 'include' // Incluir cookies
       });
@@ -32,6 +21,7 @@ async function updateUserCircle() {
         
         if (sessionData.authenticated && sessionData.user) {
           const user = sessionData.user;
+          console.log('[NAVBAR] Dados do usuário recebidos:', user);
           
           // Foto
           if (user.foto_perfil) {
@@ -46,6 +36,8 @@ async function updateUserCircle() {
           if (userNameDisplay) {
             userNameDisplay.textContent = user.nome;
           }
+        } else {
+          console.error('[NAVBAR] Dados de sessão inválidos:', sessionData);
         }
       } else {
         console.log('[NAVBAR] Sessão inválida ou expirada');
@@ -77,6 +69,7 @@ async function updateUserCircle() {
     }
   }
 }
+
 const photoUpload = document.getElementById('photoUpload');
 if (photoUpload) {
   photoUpload.addEventListener('change', async function(e) {
@@ -90,13 +83,37 @@ if (photoUpload) {
         console.log('[NAVBAR] Arquivo convertido, tamanho:', photoData.length);
         
         try {
-          // Usar localStorage para obter o nome do usuário
-          const userName = localStorage.getItem('userName');
+          // Buscar nome do usuário da sessão atual
+          console.log('[NAVBAR] Buscando sessão para upload...');
+          const sessionResponse = await fetch('/api/me', {
+            credentials: 'include'
+          });
           
-          if (!userName) {
-            console.error('[NAVBAR] Nenhum usuário logado');
+          console.log('[NAVBAR] Status da resposta da sessão:', sessionResponse.status);
+          
+          if (!sessionResponse.ok) {
+            console.error('[NAVBAR] Sessão inválida para upload');
             return;
           }
+          
+          const sessionData = await sessionResponse.json();
+          console.log('[NAVBAR] Dados da sessão recebidos:', sessionData);
+          
+          if (!sessionData.authenticated || !sessionData.user) {
+            console.error('[NAVBAR] Sessão inválida para upload:', sessionData);
+            return;
+          }
+          
+          const userName = sessionData.user.nome;
+          console.log('[NAVBAR] Nome do usuário extraído:', userName);
+          
+          if (!userName) {
+            console.error('[NAVBAR] Nome do usuário não encontrado na sessão');
+            console.error('[NAVBAR] Estrutura da sessão:', JSON.stringify(sessionData, null, 2));
+            return;
+          }
+          
+          console.log('[NAVBAR] Iniciando upload para usuário:', userName);
           
           // Atualizar foto usando a rota específica
           const updateResponse = await fetch(`/api/users/photo/${encodeURIComponent(userName)}`, {
@@ -109,10 +126,11 @@ if (photoUpload) {
             })
           });
           
+          console.log('[NAVBAR] Status da resposta do upload:', updateResponse.status);
+          
           if (updateResponse.ok) {
             console.log('[NAVBAR] Foto atualizada com sucesso');
-            // Atualizar localStorage e interface
-            localStorage.setItem('userPhoto', photoData);
+            // Atualizar interface
             updateUserCircle();
           } else {
             const errorData = await updateResponse.json();
@@ -120,12 +138,14 @@ if (photoUpload) {
           }
         } catch (error) {
           console.error('[NAVBAR] Erro ao processar upload de foto:', error);
+          console.error('[NAVBAR] Stack trace:', error.stack);
         }
       };
       reader.readAsDataURL(file);
     }
   });
 }
+
 const logoutButton = document.getElementById('logoutButton');
 if (logoutButton) {
   logoutButton.addEventListener('click', async function(e) {
