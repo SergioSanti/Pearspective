@@ -488,10 +488,13 @@ app.get('/api/me', async (req, res) => {
     
     // Determinar qual usuário baseado no token
     let userName = '';
+    let expectedUserId = null;
     if (sessionToken.startsWith('1-')) {
       userName = 'admin';
+      expectedUserId = 1;
     } else if (sessionToken.startsWith('2-')) {
       userName = 'sergio';
+      expectedUserId = 2;
     } else {
       console.log('❌ Token inválido:', sessionToken);
       return res.status(401).json({ 
@@ -539,10 +542,14 @@ app.get('/api/me', async (req, res) => {
         const user = userResult.rows[0];
         console.log('✅ Dados do usuário encontrados no banco:', user);
         
+        // Usar o ID real do banco, não o hardcoded
+        const actualUserId = user.id || expectedUserId;
+        console.log('🔍 ID do usuário:', { expected: expectedUserId, actual: actualUserId });
+        
         res.json({
           authenticated: true,
           user: {
-            id: user.id || null,
+            id: actualUserId,
             nome: user.nome || userName,
             email: user.email || `${userName}@example.com`,
             tipo_usuario: user.tipo_usuario || 'usuario',
@@ -553,7 +560,7 @@ app.get('/api/me', async (req, res) => {
         console.log('❌ Usuário não encontrado no banco:', userName);
         // Fallback com dados básicos
         const fallbackUser = {
-          id: userName === 'admin' ? 1 : 2,
+          id: expectedUserId,
           nome: userName,
           email: `${userName}@example.com`,
           tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
@@ -570,7 +577,7 @@ app.get('/api/me', async (req, res) => {
       console.error('❌ Erro ao buscar usuário no banco:', dbError);
       // Fallback com dados básicos em caso de erro no banco
       const fallbackUser = {
-        id: userName === 'admin' ? 1 : 2,
+        id: expectedUserId,
         nome: userName,
         email: `${userName}@example.com`,
         tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
@@ -2038,6 +2045,116 @@ app.get('/api/certificados', async (req, res) => {
   }
 });
 
+// Rota de debug para verificar dados dos usuários
+app.get('/api/debug/users', async (req, res) => {
+  try {
+    console.log('🔍 Debug: Verificando dados dos usuários...');
+    
+    // Verificar estrutura da tabela usuarios
+    const tableInfo = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'usuarios' 
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('🔍 Estrutura da tabela usuarios:', tableInfo.rows);
+    
+    // Buscar todos os usuários
+    const users = await pool.query('SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios ORDER BY id');
+    console.log('👥 Usuários encontrados:', users.rows);
+    
+    // Buscar todos os certificados
+    const certs = await pool.query('SELECT id, usuario_id, nome, instituicao FROM certificados ORDER BY id');
+    console.log('🏆 Certificados encontrados:', certs.rows);
+    
+    res.json({
+      tableStructure: tableInfo.rows,
+      users: users.rows,
+      certificates: certs.rows
+    });
+  } catch (error) {
+    console.error('❌ Erro no debug:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Rota para garantir que os usuários existam com IDs corretos
+app.post('/api/ensure-users', async (req, res) => {
+  try {
+    console.log('🔧 Garantindo que os usuários existam...');
+    
+    // Verificar se a tabela usuarios existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'usuarios'
+      );
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      console.log('❌ Tabela usuarios não existe, criando...');
+      
+      // Criar tabela usuarios
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS usuarios (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(100) NOT NULL UNIQUE,
+          email VARCHAR(100) UNIQUE,
+          senha VARCHAR(255) NOT NULL,
+          tipo_usuario VARCHAR(50) DEFAULT 'usuario',
+          foto_perfil TEXT,
+          data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela usuarios criada');
+    }
+    
+    // Verificar se admin existe
+    let adminUser = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', ['admin']);
+    if (adminUser.rows.length === 0) {
+      console.log('👤 Criando usuário admin...');
+      await pool.query(
+        'INSERT INTO usuarios (id, nome, email, senha, tipo_usuario) VALUES (1, $1, $2, $3, $4) ON CONFLICT (id) DO NOTHING',
+        ['admin', 'admin@example.com', 'Admin123', 'admin']
+      );
+      adminUser = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', ['admin']);
+      console.log('✅ Admin criado:', adminUser.rows[0]);
+    } else {
+      console.log('✅ Admin já existe:', adminUser.rows[0]);
+    }
+    
+    // Verificar se sergio existe
+    let sergioUser = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', ['sergio']);
+    if (sergioUser.rows.length === 0) {
+      console.log('👤 Criando usuário sergio...');
+      await pool.query(
+        'INSERT INTO usuarios (id, nome, email, senha, tipo_usuario) VALUES (2, $1, $2, $3, $4) ON CONFLICT (id) DO NOTHING',
+        ['sergio', 'sergio@example.com', '12345', 'usuario']
+      );
+      sergioUser = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', ['sergio']);
+      console.log('✅ Sergio criado:', sergioUser.rows[0]);
+    } else {
+      console.log('✅ Sergio já existe:', sergioUser.rows[0]);
+    }
+    
+    // Buscar todos os usuários para confirmar
+    const allUsers = await pool.query('SELECT id, nome, email, tipo_usuario FROM usuarios ORDER BY id');
+    console.log('👥 Todos os usuários:', allUsers.rows);
+    
+    res.json({
+      success: true,
+      message: 'Usuários garantidos',
+      users: allUsers.rows
+    });
+  } catch (error) {
+    console.error('❌ Erro ao garantir usuários:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
 // Rota para buscar certificados por usuário
 app.get('/api/certificados/usuario/:userId', async (req, res) => {
   try {
@@ -2127,6 +2244,12 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     const result = await pool.query(query, params);
     
     console.log(`✅ Encontrados ${result.rows.length} certificados`);
+    
+    // Debug: Mostrar todos os certificados para verificar se há problema
+    console.log('🔍 Todos os certificados na tabela:');
+    const allCerts = await pool.query('SELECT id, usuario_id, nome, instituicao FROM certificados ORDER BY id');
+    console.log('📋 Certificados totais:', allCerts.rows);
+    
     res.json(result.rows);
     
   } catch (error) {
@@ -2170,6 +2293,15 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
       console.log('❌ Dados obrigatórios faltando:', { nome, instituicao, usuario_id });
       return res.status(400).json({ error: 'Nome, instituição e ID do usuário são obrigatórios' });
     }
+    
+    // Verificar se o usuário existe
+    const userCheck = await pool.query('SELECT id, nome FROM usuarios WHERE id = $1', [parseInt(usuario_id)]);
+    if (userCheck.rows.length === 0) {
+      console.log('❌ Usuário não encontrado para certificado:', usuario_id);
+      return res.status(400).json({ error: 'Usuário não encontrado' });
+    }
+    
+    console.log('✅ Usuário validado para certificado:', userCheck.rows[0]);
     
     // Verificar se a tabela certificados existe
     const tableExists = await pool.query(`
