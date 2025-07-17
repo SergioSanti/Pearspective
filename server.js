@@ -22,11 +22,17 @@ const upload = multer({
 // Configuração do banco de dados
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pearspective',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
   max: 20
 });
+
+// Log detalhado da configuração
+console.log('🔧 Configuração do banco:');
+console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? 'Configurado' : 'Não configurado'}`);
+console.log(`   SSL: ${process.env.NODE_ENV === 'production' ? 'Habilitado' : 'Desabilitado'}`);
 
 // Teste de conexão - SEMPRE funcionar mesmo sem banco
 pool.query('SELECT NOW()', (err, res) => {
