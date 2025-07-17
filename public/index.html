@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- CSS Global -->
-  <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="assets/global-styles.css" rel="stylesheet">
   <link href="index.css" rel="stylesheet">
   
   <title>Pearspective - Sistema de Cultura Organizacional</title>
@@ -25,7 +25,7 @@
     // Proteção de Rota: verifica se o usuário está logado
     if (!localStorage.getItem('userId')) {
       alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = '../login.html';
+      window.location.href = 'login.html';
     }
   </script>
 </head>
@@ -97,8 +97,21 @@
   </main>
 
   <!-- Script para carregar o conteúdo da navbar -->
-  <script src="index.js"></script>
-  
+  <script>
+    // Carregar navbar
+    fetch("navbar.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+        // Carrega o JS da navbar após inserir o HTML
+        const script = document.createElement('script');
+        script.src = 'navbar.js';
+        document.body.appendChild(script);
+      })
+      .catch(error => {
+        console.error('Erro ao carregar navbar:', error);
+      });
+  </script>
 
 </body>
 </html>
