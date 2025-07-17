@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const userId = sessionData.user.id;
+            console.log('🔍 Buscando certificados para usuário ID:', userId);
+            
             const response = await fetch(`${API_BASE_URL}/certificados/usuario/${userId}`, {
                 credentials: 'include'
             });
@@ -37,7 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error('Erro ao buscar certificados');
             }
-            return await response.json();
+            
+            const certificados = await response.json();
+            console.log('📋 Certificados encontrados:', certificados);
+            return certificados;
         } catch (error) {
             console.error('Erro ao buscar certificados:', error);
             return [];
@@ -62,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataConclusao = new Date(cert.data_conclusao).toLocaleDateString('pt-BR');
                 
                 // Botão para visualizar PDF se existir
-                const pdfButton = cert.tem_pdf ? 
+                const temPdf = cert.pdf || cert.url_certificado;
+                const pdfButton = temPdf ? 
                     `<div class="pdf-actions">
                         <button class="btn btn-primary btn-sm" onclick="viewPdf('${cert.id}')" title="Visualizar PDF">
                             👁️ Visualizar
