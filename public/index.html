@@ -16,9 +16,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- CSS Global -->
-  <link href="assets/global-styles.css" rel="stylesheet">
+  <link href="../assets/global-styles.css" rel="stylesheet">
   <link href="index.css" rel="stylesheet">
-  <link href="navbar.css" rel="stylesheet">
   
   <title>Pearspective - Sistema de Cultura Organizacional</title>
 
@@ -26,29 +25,13 @@
     // Proteção de Rota: verifica se o usuário está logado
     if (!localStorage.getItem('userId')) {
       alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = 'login.html';
+      window.location.href = '../login.html';
     }
   </script>
 </head>
 <body>
-  <!-- Navbar simplificado -->
-  <nav class="navbar">
-    <div class="navbar-container">
-      <div class="navbar-brand">
-        <img src="assets/Pearspective-logo.png" alt="Pearspective" class="navbar-logo">
-        <span class="navbar-title">Pearspective</span>
-      </div>
-      
-      <div class="navbar-menu">
-        <a href="#" class="navbar-link">Início</a>
-        <a href="#" class="navbar-link">Recomendações</a>
-        <a href="#" class="navbar-link">Cursos</a>
-        <a href="#" class="navbar-link">Certificados</a>
-        <a href="#" class="navbar-link">Perfil</a>
-        <button onclick="logout()" class="navbar-link logout-btn">Logout</button>
-      </div>
-    </div>
-  </nav>
+  <!-- Navbar carregado dinamicamente -->
+  <div id="navbar"></div>
 
   <main class="main-content">
     <!-- Header -->
@@ -100,6 +83,9 @@
                   <a href="#" class="objective-link">Estreitar a cultura e os valores da empresa</a>
                 </li>
                 <li class="objective-item">
+      
+                </li>
+                <li class="objective-item">
                   <a href="#" class="objective-link">Facilitar o acesso a conteúdos relevantes</a>
                 </li>
               </ul>
@@ -110,16 +96,83 @@
     </section>
   </main>
 
+  <!-- Script para carregar o conteúdo da navbar -->
   <script>
-    // Função de logout
-    function logout() {
-      localStorage.clear();
-      window.location.href = 'login.html';
+    fetch("../navbar.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+        // Carrega o JS da navbar após inserir o HTML
+        const script = document.createElement('script');
+        script.src = '../navbar.js';
+        document.body.appendChild(script);
+      });
+  </script>
+  
+  <!-- Script de Dark Mode para página inicial -->
+  <script>
+    // Função global para dark mode
+    window.toggleDarkMode = function() {
+      console.log('[DARK MODE] Alternando tema...');
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      console.log('[DARK MODE] Tema atual:', currentTheme, 'Novo tema:', newTheme);
+      
+      // Aplicar o tema
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (newTheme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+      
+      console.log('[DARK MODE] Tema aplicado:', newTheme);
+    };
+    
+    // Inicializar tema
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (theme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
     }
     
-    // Mostrar nome do usuário logado
-    const userName = localStorage.getItem('userName') || 'Usuário';
-    console.log('Usuário logado:', userName);
+    // Inicializar quando a página carregar
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTheme);
+    } else {
+      initializeTheme();
+    }
   </script>
+  
+
 </body>
 </html>
