@@ -776,145 +776,41 @@ app.post('/api/cursos', async (req, res) => {
     console.log('📚 Criando curso - Dados recebidos:', JSON.stringify(req.body, null, 2));
     let { title, platform, url, area, level, duration, description } = req.body;
     
-    // Se area for um número (ID), buscar o nome da área
-    let categoria = area;
-    if (area && !isNaN(Number(area))) {
-      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
-      if (areaResult.rows.length > 0) {
-        categoria = areaResult.rows[0].nome;
-      } else {
-        categoria = 'Geral';
+    // Garantir valores padrão para todos os campos obrigatórios
+    const titulo = title || 'Curso sem título';
+    const plataforma = platform || 'Não especificado';
+    const url_externa = url || '';
+    const nivel = level || 'Intermediário';
+    const duracao = duration || '';
+    const descricao = description || '';
+    let categoria = 'Geral';
+    
+    // Converter area (ID) para nome
+    if (area) {
+      if (!isNaN(Number(area))) {
+        const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
+        if (areaResult.rows.length > 0) {
+          categoria = areaResult.rows[0].nome;
+        }
+      } else if (typeof area === 'string') {
+        categoria = area;
       }
     }
-    if (!categoria) categoria = 'Geral';
     
-    // Verificar estrutura da tabela cursos
-    const tableInfo = await pool.query(`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns 
-      WHERE table_name = 'cursos' 
-      ORDER BY ordinal_position
-    `);
-    console.log('🔍 Estrutura da tabela cursos:', tableInfo.rows);
+    // Valores padrão para campos obrigatórios do banco
+    const instrutor = 'Instrutor não especificado';
+    const preco = 0.00;
+    const avaliacao = 0.0;
+    const estudantes = 0;
     
-    // Mapear campos do frontend para colunas do banco
-    const hasTitulo = tableInfo.rows.some(row => row.column_name === 'titulo');
-    const hasPlataforma = tableInfo.rows.some(row => row.column_name === 'plataforma');
-    const hasUrlExterna = tableInfo.rows.some(row => row.column_name === 'url_externa');
-    const hasCategoria = tableInfo.rows.some(row => row.column_name === 'categoria');
-    const hasNivel = tableInfo.rows.some(row => row.column_name === 'nivel');
-    const hasDuracao = tableInfo.rows.some(row => row.column_name === 'duracao');
-    const hasDescricao = tableInfo.rows.some(row => row.column_name === 'descricao');
+    // Query direta com todos os campos obrigatórios
+    const query = `
+      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, ativo, data_cadastro)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *
+    `;
+    const values = [titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, true, new Date()];
     
-    console.log('🔍 Campos disponíveis:', { hasTitulo, hasPlataforma, hasUrlExterna, hasCategoria, hasNivel, hasDuracao, hasDescricao });
-    
-    // Construir query dinamicamente baseada nas colunas disponíveis
-    let columns = [];
-    let values = [];
-    let placeholders = [];
-    let paramIndex = 1;
-    
-    // Verificar quais campos são NOT NULL
-    const notNullColumns = tableInfo.rows
-      .filter(row => row.is_nullable === 'NO')
-      .map(row => row.column_name);
-    
-    console.log('🔍 Colunas NOT NULL:', notNullColumns);
-    
-    // Sempre incluir campos obrigatórios
-    if (hasTitulo) {
-      columns.push('titulo');
-      values.push(title || 'Curso sem título');
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    // Incluir outros campos obrigatórios se existirem
-    const hasInstrutor = tableInfo.rows.some(row => row.column_name === 'instrutor');
-    if (hasInstrutor) {
-      columns.push('instrutor');
-      values.push('Instrutor não especificado');
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    const hasPreco = tableInfo.rows.some(row => row.column_name === 'preco');
-    if (hasPreco) {
-      columns.push('preco');
-      values.push(0.00);
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    const hasAvaliacao = tableInfo.rows.some(row => row.column_name === 'avaliacao');
-    if (hasAvaliacao) {
-      columns.push('avaliacao');
-      values.push(0.0);
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    const hasEstudantes = tableInfo.rows.some(row => row.column_name === 'estudantes');
-    if (hasEstudantes) {
-      columns.push('estudantes');
-      values.push(0);
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    // Campos opcionais
-    if (hasPlataforma) {
-      columns.push('plataforma');
-      values.push(platform || 'Não especificado');
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    if (hasUrlExterna) {
-      columns.push('url_externa');
-      values.push(url || null);
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    if (hasCategoria) {
-      columns.push('categoria');
-      values.push(categoria);
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    if (hasNivel) {
-      columns.push('nivel');
-      values.push(level || 'Intermediário');
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    if (hasDuracao) {
-      columns.push('duracao');
-      values.push(duration || 'Não especificado');
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    if (hasDescricao) {
-      columns.push('descricao');
-      values.push(description || '');
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    // Campos padrão
-    const hasAtivo = tableInfo.rows.some(row => row.column_name === 'ativo');
-    if (hasAtivo) {
-      columns.push('ativo');
-      values.push(true);
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    const hasDataCadastro = tableInfo.rows.some(row => row.column_name === 'data_cadastro');
-    if (hasDataCadastro) {
-      columns.push('data_cadastro');
-      values.push(new Date());
-      placeholders.push(`$${paramIndex++}`);
-    }
-    
-    if (columns.length === 0) {
-      console.log('❌ Nenhuma coluna válida encontrada na tabela cursos');
-      return res.status(500).json({ error: 'Estrutura da tabela cursos não suportada' });
-    }
-    
-    const query = `INSERT INTO cursos (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
     console.log('🔍 Query final:', query);
     console.log('🔍 Valores:', values);
     
@@ -942,18 +838,6 @@ app.put('/api/cursos/:id', async (req, res) => {
     console.log(`📚 Atualizando curso ${id}:`, req.body);
     let { title, platform, url, area, level, duration, description } = req.body;
     
-    // Se area for um número (ID), buscar o nome da área
-    let categoria = area;
-    if (area && !isNaN(Number(area))) {
-      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
-      if (areaResult.rows.length > 0) {
-        categoria = areaResult.rows[0].nome;
-      } else {
-        categoria = 'Geral';
-      }
-    }
-    if (!categoria) categoria = 'Geral';
-    
     // Verificar se o curso existe
     const existingCourse = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
     if (existingCourse.rows.length === 0) {
@@ -961,71 +845,51 @@ app.put('/api/cursos/:id', async (req, res) => {
       return res.status(404).json({ error: 'Curso não encontrado' });
     }
     
-    // Verificar estrutura da tabela cursos
-    const tableInfo = await pool.query(`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns 
-      WHERE table_name = 'cursos' 
-      ORDER BY ordinal_position
-    `);
+    // Garantir valores padrão para todos os campos obrigatórios
+    const titulo = title || existingCourse.rows[0].titulo || 'Curso sem título';
+    const plataforma = platform || existingCourse.rows[0].plataforma || 'Não especificado';
+    const url_externa = url || existingCourse.rows[0].url_externa || '';
+    const nivel = level || existingCourse.rows[0].nivel || 'Intermediário';
+    const duracao = duration || existingCourse.rows[0].duracao || '';
+    const descricao = description || existingCourse.rows[0].descricao || '';
+    let categoria = existingCourse.rows[0].categoria || 'Geral';
     
-    // Mapear campos do frontend para colunas do banco
-    const hasTitulo = tableInfo.rows.some(row => row.column_name === 'titulo');
-    const hasPlataforma = tableInfo.rows.some(row => row.column_name === 'plataforma');
-    const hasUrlExterna = tableInfo.rows.some(row => row.column_name === 'url_externa');
-    const hasCategoria = tableInfo.rows.some(row => row.column_name === 'categoria');
-    const hasNivel = tableInfo.rows.some(row => row.column_name === 'nivel');
-    const hasDuracao = tableInfo.rows.some(row => row.column_name === 'duracao');
-    const hasDescricao = tableInfo.rows.some(row => row.column_name === 'descricao');
-    
-    // Construir query de atualização dinamicamente
-    let setClauses = [];
-    let values = [];
-    let paramIndex = 1;
-    
-    // Sempre incluir campos que existem, mesmo se vazios
-    if (hasTitulo) {
-      setClauses.push(`titulo = $${paramIndex++}`);
-      values.push(title || '');
+    // Converter area (ID) para nome se fornecido
+    if (area) {
+      if (!isNaN(Number(area))) {
+        const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
+        if (areaResult.rows.length > 0) {
+          categoria = areaResult.rows[0].nome;
+        }
+      } else if (typeof area === 'string') {
+        categoria = area;
+      }
     }
     
-    if (hasPlataforma) {
-      setClauses.push(`plataforma = $${paramIndex++}`);
-      values.push(platform || '');
-    }
+    // Valores padrão para campos obrigatórios do banco
+    const instrutor = existingCourse.rows[0].instrutor || 'Instrutor não especificado';
+    const preco = existingCourse.rows[0].preco || 0.00;
+    const avaliacao = existingCourse.rows[0].avaliacao || 0.0;
+    const estudantes = existingCourse.rows[0].estudantes || 0;
     
-    if (hasUrlExterna) {
-      setClauses.push(`url_externa = $${paramIndex++}`);
-      values.push(url || null);
-    }
-    
-    if (hasCategoria) {
-      setClauses.push(`categoria = $${paramIndex++}`);
-      values.push(categoria || 'Geral');
-    }
-    
-    if (hasNivel) {
-      setClauses.push(`nivel = $${paramIndex++}`);
-      values.push(level || '');
-    }
-    
-    if (hasDuracao) {
-      setClauses.push(`duracao = $${paramIndex++}`);
-      values.push(duration || '');
-    }
-    
-    if (hasDescricao) {
-      setClauses.push(`descricao = $${paramIndex++}`);
-      values.push(description || '');
-    }
-    
-    if (setClauses.length === 0) {
-      console.log('❌ Nenhum campo válido para atualizar');
-      return res.status(400).json({ error: 'Nenhum campo válido fornecido para atualização' });
-    }
-    
-    values.push(id); // ID para WHERE
-    const query = `UPDATE cursos SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    // Query direta com todos os campos obrigatórios
+    const query = `
+      UPDATE cursos SET
+        titulo = $1,
+        plataforma = $2,
+        url_externa = $3,
+        categoria = $4,
+        nivel = $5,
+        duracao = $6,
+        descricao = $7,
+        instrutor = $8,
+        preco = $9,
+        avaliacao = $10,
+        estudantes = $11
+      WHERE id = $12
+      RETURNING *
+    `;
+    const values = [titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, id];
     
     console.log('🔍 Query de atualização:', query);
     console.log('🔍 Valores:', values);
