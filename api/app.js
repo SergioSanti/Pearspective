@@ -350,75 +350,13 @@ app.get('/api/cargos/area/:areaId', async (req, res) => {
     const { areaId } = req.params;
     console.log(`📋 Buscando cargos da área ${areaId}...`);
     
-    // Primeiro, buscar o nome da área pelo ID
-    const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
+    // Simples: buscar cargos pelo area_id
+    const result = await pool.query('SELECT * FROM cargos WHERE area_id = $1 ORDER BY nome_cargo', [areaId]);
     
-    if (areaResult.rows.length === 0) {
-      console.log('❌ Área não encontrada:', areaId);
-      return res.json([]);
-    }
+    console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
+    console.log('📊 Cargos:', result.rows.map(c => c.nome_cargo));
     
-    const areaNome = areaResult.rows[0].nome;
-    console.log('✅ Nome da área encontrado:', areaNome);
-    
-    // Agora buscar cargos que pertencem a essa área
-    // Tentar diferentes possibilidades de coluna
-    let cargos = [];
-    
-    // Tentar area_id primeiro
-    try {
-      const result1 = await pool.query('SELECT * FROM cargos WHERE area_id = $1', [areaId]);
-      if (result1.rows.length > 0) {
-        cargos = result1.rows;
-        console.log('✅ Encontrados cargos por area_id');
-      }
-    } catch (e) {
-      console.log('❌ area_id não existe');
-    }
-    
-    // Se não encontrou por area_id, tentar por nome da área
-    if (cargos.length === 0) {
-      try {
-        const result2 = await pool.query('SELECT * FROM cargos WHERE area = $1', [areaNome]);
-        if (result2.rows.length > 0) {
-          cargos = result2.rows;
-          console.log('✅ Encontrados cargos por area (nome)');
-        }
-      } catch (e) {
-        console.log('❌ area (nome) não existe');
-      }
-    }
-    
-    // Se ainda não encontrou, tentar area_nome
-    if (cargos.length === 0) {
-      try {
-        const result3 = await pool.query('SELECT * FROM cargos WHERE area_nome = $1', [areaNome]);
-        if (result3.rows.length > 0) {
-          cargos = result3.rows;
-          console.log('✅ Encontrados cargos por area_nome');
-        }
-      } catch (e) {
-        console.log('❌ area_nome não existe');
-      }
-    }
-    
-    // Se ainda não encontrou, tentar departamento
-    if (cargos.length === 0) {
-      try {
-        const result4 = await pool.query('SELECT * FROM cargos WHERE departamento = $1', [areaNome]);
-        if (result4.rows.length > 0) {
-          cargos = result4.rows;
-          console.log('✅ Encontrados cargos por departamento');
-        }
-      } catch (e) {
-        console.log('❌ departamento não existe');
-      }
-    }
-    
-    console.log(`✅ Encontrados ${cargos.length} cargos para área "${areaNome}"`);
-    console.log('📊 Cargos:', cargos.map(c => c.nome_cargo || c.nome));
-    
-    res.json(cargos);
+    res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos por área:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
