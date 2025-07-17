@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             certGrid.innerHTML = ''; // Limpa a grade antes de renderizar
             
             if (certs.length === 0) {
-                certGrid.innerHTML = '<p class="text-center text-gray-500">Nenhum certificado adicionado ainda. Clique em "Adicionar Certificado" para começar!</p>';
+                certGrid.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 2rem;">Nenhum certificado adicionado ainda. Clique em "Adicionar Certificado" para começar!</p>';
                 return;
             }
 
@@ -63,11 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const certCard = document.createElement('div');
                 certCard.className = 'cert-card';
                 
-                // Formatar data
-                const dataConclusao = new Date(cert.data_conclusao).toLocaleDateString('pt-BR');
+                // Formatar data com verificação de null
+                const dataConclusao = cert.data_conclusao ? 
+                    new Date(cert.data_conclusao).toLocaleDateString('pt-BR') : 
+                    'Data não informada';
                 
                 // Botão para visualizar PDF se existir
-                const temPdf = cert.pdf || cert.url_certificado;
+                const temPdf = cert.pdf;
                 const pdfButton = temPdf ? 
                     `<div class="pdf-actions">
                         <button class="btn btn-primary btn-sm" onclick="viewPdf('${cert.id}')" title="Visualizar PDF">
@@ -96,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error('Erro ao renderizar certificados:', error);
-            certGrid.innerHTML = '<p class="error-message">Erro ao carregar certificados. Tente novamente mais tarde.</p>';
+            certGrid.innerHTML = '<p style="color: #dc2626; text-align: center; padding: 2rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">Erro ao carregar certificados. Tente novamente mais tarde.</p>';
         }
     };
 
@@ -107,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
             certIdInput.value = cert.id;
             document.getElementById('cert-name').value = cert.nome;
             document.getElementById('cert-issuer').value = cert.instituicao;
-            document.getElementById('cert-date-start').value = cert.data_inicio || cert.data_conclusao;
+            // Remover data_inicio por enquanto - backend não usa mais
+            // document.getElementById('cert-date-start').value = cert.data_inicio || cert.data_conclusao;
             document.getElementById('cert-date').value = cert.data_conclusao;
             document.getElementById('cert-description').value = cert.descricao || '';
         } else {
@@ -154,7 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('usuario_id', userId);
             formData.append('nome', document.getElementById('cert-name').value);
             formData.append('instituicao', document.getElementById('cert-issuer').value);
-            formData.append('data_inicio', document.getElementById('cert-date-start').value);
+            // Remover data_inicio por enquanto - backend não usa mais
+            // formData.append('data_inicio', document.getElementById('cert-date-start').value);
             formData.append('data_conclusao', document.getElementById('cert-date').value);
             formData.append('descricao', document.getElementById('cert-description').value);
             

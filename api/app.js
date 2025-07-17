@@ -1243,31 +1243,15 @@ app.get('/api/certificados', async (req, res) => {
   try {
     console.log('🏆 Buscando certificados...');
     
-    // Query adaptativa baseada no schema real
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name IN ('data_obtencao', 'data_conclusao')
-    `);
+    // Query simples com pdf
+    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados ORDER BY data_conclusao DESC';
     
-    const hasDataObtencao = checkSchema.rows.some(row => row.column_name === 'data_obtencao');
-    const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
-    
-    let query = '';
-    if (hasDataObtencao) {
-      query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao FROM certificados ORDER BY data_obtencao DESC';
-    } else if (hasDataConclusao) {
-      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados ORDER BY data_conclusao DESC';
-    } else {
-      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados ORDER BY id DESC';
-    }
+    console.log('🔍 Query:', query);
     
     const result = await pool.query(query);
     
     console.log(`✅ Encontrados ${result.rows.length} certificados`);
     console.log('📊 Primeiros 3 certificados:', result.rows.slice(0, 3));
-    
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar certificados:', error);
@@ -1282,8 +1266,8 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     const { userId } = req.params;
     console.log(`🏆 Buscando certificados do usuário ${userId}...`);
     
-    // Query simples e direta
-    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
+    // Query simples e direta com pdf
+    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
     const params = [userId];
     
     console.log('🔍 Query:', query, 'Params:', params);
@@ -1308,12 +1292,11 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     // Extrair dados do FormData ou JSON
     const nome = req.body.nome;
     const instituicao = req.body.instituicao;
-    const data_inicio = req.body.data_inicio;
     const data_conclusao = req.body.data_conclusao;
     const descricao = req.body.descricao;
     const usuario_id = req.body.usuario_id;
     
-    console.log('📋 Dados recebidos:', { nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id });
+    console.log('📋 Dados recebidos:', { nome, instituicao, data_conclusao, descricao, usuario_id });
     console.log('📄 Arquivo PDF recebido:', req.file ? 'Sim' : 'Não');
     if (req.file) {
       console.log('📄 Detalhes do arquivo:', {
@@ -1341,11 +1324,10 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
           id SERIAL PRIMARY KEY,
           nome VARCHAR(255) NOT NULL,
           instituicao VARCHAR(255) NOT NULL,
-          data_inicio DATE,
           data_conclusao DATE,
           descricao TEXT,
           usuario_id INTEGER,
-          url_certificado VARCHAR(500),
+          pdf BYTEA,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -1353,23 +1335,17 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
       console.log('✅ Tabela certificados criada');
     }
     
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'certificados' 
-      AND column_name IN ('usuario_id', 'user_id', 'data_inicio', 'data_conclusao', 'descricao')
-    `);
+    // Query com PDF se fornecido
+    let query = '';
+    let params = [];
     
-    const hasUsuarioId = checkSchema.rows.some(row => row.column_name === 'usuario_id');
-    const hasUserId = checkSchema.rows.some(row => row.column_name === 'user_id');
-    const hasDataInicio = checkSchema.rows.some(row => row.column_name === 'data_inicio');
-    const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
-    const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
-    
-    // Query simples sem PDF por enquanto
-    const query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-    const params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id];
+    if (req.file) {
+      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+      params = [nome, instituicao, data_conclusao, descricao || '', usuario_id, req.file.buffer];
+    } else {
+      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+      params = [nome, instituicao, data_conclusao, descricao || '', usuario_id];
+    }
     
     console.log('🔍 Query de inserção:', query, 'Params:', params);
     
@@ -1379,7 +1355,8 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao criar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -1389,15 +1366,22 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
     const { id } = req.params;
     const nome = req.body.nome;
     const instituicao = req.body.instituicao;
-    const data_inicio = req.body.data_inicio;
     const data_conclusao = req.body.data_conclusao;
     const descricao = req.body.descricao;
     
     console.log(`🏆 Atualizando certificado ID: ${id}`, req.body);
     
-    // Query simples
-    const query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5 WHERE id = $6 RETURNING *';
-    const params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', id];
+    // Query com PDF se fornecido
+    let query = '';
+    let params = [];
+    
+    if (req.file) {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING *';
+      params = [nome, instituicao, data_conclusao, descricao || '', req.file.buffer, id];
+    } else {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
+      params = [nome, instituicao, data_conclusao, descricao || '', id];
+    }
     
     console.log('🔍 Query de atualização:', query, 'Params:', params);
     
@@ -1423,8 +1407,8 @@ app.get('/api/certificados/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`🏆 Buscando certificado ID: ${id}`);
     
-    // Query simples
-    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE id = $1';
+    // Query simples com pdf
+    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE id = $1';
     const params = [id];
     
     console.log('🔍 Query de busca:', query, 'Params:', params);
