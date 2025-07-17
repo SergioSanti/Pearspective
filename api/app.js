@@ -407,13 +407,6 @@ app.post('/api/cargos', async (req, res) => {
       return res.status(400).json({ error: 'Área não encontrada' });
     }
     
-    console.log('🔍 Dados processados:', {
-      nome_cargo,
-      area_id: parseInt(area_id),
-      quantidade_vagas: parseInt(quantidade_vagas) || 1,
-      requisitos: requisitosJson
-    });
-    
     // Verificar estrutura da tabela cargos
     const tableInfo = await pool.query(`
       SELECT column_name, data_type 
@@ -423,10 +416,31 @@ app.post('/api/cargos', async (req, res) => {
     `);
     console.log('🔍 Estrutura da tabela cargos:', tableInfo.rows);
     
-    const result = await pool.query(
-      'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nome_cargo, parseInt(area_id), requisitosJson, parseInt(quantidade_vagas) || 1]
-    );
+    // Verificar se a coluna quantidade_vagas existe
+    const hasQuantidadeVagas = tableInfo.rows.some(row => row.column_name === 'quantidade_vagas');
+    
+    console.log('🔍 Dados processados:', {
+      nome_cargo,
+      area_id: parseInt(area_id),
+      quantidade_vagas: parseInt(quantidade_vagas) || 1,
+      requisitos: requisitosJson,
+      hasQuantidadeVagas
+    });
+    
+    let result;
+    if (hasQuantidadeVagas) {
+      // Se a coluna existe, usar ela
+      result = await pool.query(
+        'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING *',
+        [nome_cargo, parseInt(area_id), requisitosJson, parseInt(quantidade_vagas) || 1]
+      );
+    } else {
+      // Se não existe, usar apenas as colunas básicas
+      result = await pool.query(
+        'INSERT INTO cargos (nome_cargo, area_id, requisitos) VALUES ($1, $2, $3) RETURNING *',
+        [nome_cargo, parseInt(area_id), requisitosJson]
+      );
+    }
     
     console.log('✅ Cargo criado com sucesso:', result.rows[0]);
     res.status(201).json(result.rows[0]);
@@ -451,10 +465,37 @@ app.put('/api/cargos/:id', async (req, res) => {
     
     console.log(`📋 Atualizando cargo ${id}:`, req.body);
     
-    const result = await pool.query(
-      'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3, quantidade_vagas = $4 WHERE id = $5 RETURNING *',
-      [nome_cargo, area_id, requisitos, quantidade_vagas, id]
-    );
+    // Verificar estrutura da tabela cargos
+    const tableInfo = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'cargos' 
+      ORDER BY ordinal_position
+    `);
+    
+    // Verificar se a coluna quantidade_vagas existe
+    const hasQuantidadeVagas = tableInfo.rows.some(row => row.column_name === 'quantidade_vagas');
+    
+    // Converter requisitos para JSON se for objeto
+    let requisitosJson = requisitos;
+    if (typeof requisitos === 'object' && requisitos !== null) {
+      requisitosJson = JSON.stringify(requisitos);
+    }
+    
+    let result;
+    if (hasQuantidadeVagas) {
+      // Se a coluna existe, usar ela
+      result = await pool.query(
+        'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3, quantidade_vagas = $4 WHERE id = $5 RETURNING *',
+        [nome_cargo, area_id, requisitosJson, quantidade_vagas, id]
+      );
+    } else {
+      // Se não existe, usar apenas as colunas básicas
+      result = await pool.query(
+        'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3 WHERE id = $4 RETURNING *',
+        [nome_cargo, area_id, requisitosJson, id]
+      );
+    }
     
     if (result.rows.length > 0) {
       console.log('✅ Cargo atualizado:', result.rows[0]);
