@@ -24,6 +24,12 @@ async function updateUserCircle() {
           console.log('[NAVBAR] Dados do usuário recebidos:', user);
           
           // Foto
+          console.log('[NAVBAR] Verificando foto do usuário:', {
+            temFoto: !!user.foto_perfil,
+            fotoLength: user.foto_perfil ? user.foto_perfil.length : 0,
+            fotoPreview: user.foto_perfil ? user.foto_perfil.substring(0, 50) + '...' : 'null'
+          });
+          
           if (user.foto_perfil) {
             userCircle.innerHTML = `<img src="${user.foto_perfil}" alt="Foto do usuário">`;
             console.log('[NAVBAR] Foto carregada do banco de dados');

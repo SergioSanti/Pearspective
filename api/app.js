@@ -382,7 +382,35 @@ app.get('/api/me', async (req, res) => {
     
     // Buscar dados do usuário no banco Railway PostgreSQL
     try {
-      const userQuery = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1';
+      // Primeiro, verificar a estrutura da tabela usuarios
+      const tableInfo = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'usuarios' 
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('🔍 Estrutura da tabela usuarios para /api/me:', tableInfo.rows.map(row => row.column_name));
+      
+      // Construir query dinamicamente baseada nas colunas existentes
+      const availableColumns = tableInfo.rows.map(row => row.column_name);
+      const selectColumns = [];
+      
+      // Adicionar colunas básicas que devem existir
+      if (availableColumns.includes('id')) selectColumns.push('id');
+      if (availableColumns.includes('nome')) selectColumns.push('nome');
+      if (availableColumns.includes('email')) selectColumns.push('email');
+      if (availableColumns.includes('tipo_usuario')) selectColumns.push('tipo_usuario');
+      if (availableColumns.includes('foto_perfil')) selectColumns.push('foto_perfil');
+      
+      if (selectColumns.length === 0) {
+        console.error('❌ Nenhuma coluna válida encontrada na tabela usuarios');
+        throw new Error('Estrutura da tabela inválida');
+      }
+      
+      const userQuery = `SELECT ${selectColumns.join(', ')} FROM usuarios WHERE nome = $1`;
+      console.log('🔍 Query /api/me executada:', userQuery);
+      
       const userResult = await pool.query(userQuery, [userName]);
       
       if (userResult.rows.length > 0) {
@@ -392,11 +420,11 @@ app.get('/api/me', async (req, res) => {
         res.json({
           authenticated: true,
           user: {
-            id: user.id,
-            nome: user.nome,
-            email: user.email,
-            tipo_usuario: user.tipo_usuario,
-            foto_perfil: user.foto_perfil
+            id: user.id || null,
+            nome: user.nome || userName,
+            email: user.email || `${userName}@example.com`,
+            tipo_usuario: user.tipo_usuario || 'usuario',
+            foto_perfil: user.foto_perfil || null
           }
         });
       } else {
