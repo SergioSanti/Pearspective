@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil - Pearspective</title>
+    <link href="assets/global-styles.css" rel="stylesheet">
+    <link href="index.css" rel="stylesheet">
+    <link href="navbar.css" rel="stylesheet">
+    <style>
+        .perfil-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .perfil-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .foto-perfil {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary-color);
+        }
+        
+        .foto-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid var(--primary-color);
+            font-size: 2rem;
+            color: var(--text-muted);
+        }
+        
+        .perfil-info h1 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .perfil-info p {
+            color: var(--text-secondary);
+            margin: 0.25rem 0;
+        }
+        
+        .form-section {
+            margin-bottom: 2rem;
+        }
+        
+        .form-section h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .upload-section {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: border-color 0.3s;
+        }
+        
+        .upload-section:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .upload-section input[type="file"] {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        
+        .upload-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-save {
+            background: var(--success-color);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .btn-save:hover {
+            background: var(--success-dark);
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+        
+        .alert-success {
+            background: var(--success-bg);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+        
+        .alert-error {
+            background: var(--error-bg);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar simplificado -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <img src="assets/Pearspective-logo.png" alt="Pearspective" class="navbar-logo">
+                <span class="navbar-title">Pearspective</span>
+            </div>
+            
+            <div class="navbar-menu">
+                <a href="index.html" class="navbar-link">Início</a>
+                <a href="#" class="navbar-link">Recomendações</a>
+                <a href="#" class="navbar-link">Cursos</a>
+                <a href="#" class="navbar-link">Certificados</a>
+                <a href="perfil.html" class="navbar-link active">Perfil</a>
+                <button onclick="logout()" class="navbar-link logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="perfil-container">
+            <div id="alert-container"></div>
+            
+            <div class="perfil-header">
+                <div id="foto-container">
+                    <div class="foto-placeholder">👤</div>
+                </div>
+                <div class="perfil-info">
+                    <h1 id="user-name">Carregando...</h1>
+                    <p id="user-email">carregando@email.com</p>
+                    <p id="user-department">Departamento: Carregando...</p>
+                    <p id="user-role">Cargo: Carregando...</p>
+                </div>
+            </div>
+
+            <form id="perfil-form">
+                <div class="form-section">
+                    <h2>Informações Pessoais</h2>
+                    
+                    <div class="form-group">
+                        <label for="nome">Nome Completo</label>
+                        <input type="text" id="nome" name="nome" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="departamento">Departamento</label>
+                        <select id="departamento" name="departamento">
+                            <option value="">Selecione um departamento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cargo_atual">Cargo Atual</label>
+                        <select id="cargo_atual" name="cargo_atual">
+                            <option value="">Selecione um cargo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Foto de Perfil</h2>
+                    <div class="upload-section">
+                        <input type="file" id="foto-input" accept="image/*">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('foto-input').click()">
+                            Escolher Foto
+                        </button>
+                        <p style="margin-top: 1rem; color: var(--text-secondary);">
+                            Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 2MB
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Currículo</h2>
+                    <div class="upload-section">
+                        <input type="file" id="curriculo-input" accept=".pdf,.doc,.docx">
+                        <button type="button" class="upload-btn" onclick="document.getElementById('curriculo-input').click()">
+                            Enviar Currículo
+                        </button>
+                        <p style="margin-top: 1rem; color: var(--text-secondary);">
+                            Formatos aceitos: PDF, DOC, DOCX. Tamanho máximo: 10MB
+                        </p>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-save">Salvar Alterações</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // Verificar se está logado
+        if (!localStorage.getItem('userId')) {
+            window.location.href = 'login.html';
+        }
+
+        // Carregar dados do usuário
+        async function carregarPerfil() {
+            try {
+                const userId = localStorage.getItem('userId');
+                const response = await fetch(`/api/usuarios/${userId}`);
+                const user = await response.json();
+                
+                document.getElementById('user-name').textContent = user.nome;
+                document.getElementById('user-email').textContent = user.email;
+                document.getElementById('user-department').textContent = `Departamento: ${user.departamento || 'Não informado'}`;
+                document.getElementById('user-role').textContent = `Cargo: ${user.cargo_atual || 'Não informado'}`;
+                
+                document.getElementById('nome').value = user.nome;
+                document.getElementById('email').value = user.email;
+                document.getElementById('departamento').value = user.departamento || '';
+                document.getElementById('cargo_atual').value = user.cargo_atual || '';
+                
+                // Carregar foto se existir
+                if (user.foto_perfil) {
+                    const fotoContainer = document.getElementById('foto-container');
+                    fotoContainer.innerHTML = `<img src="${user.foto_perfil}" alt="Foto de perfil" class="foto-perfil">`;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar perfil:', error);
+                mostrarAlerta('Erro ao carregar dados do perfil', 'error');
+            }
+        }
+
+        // Carregar áreas e cargos
+        async function carregarAreasCargos() {
+            try {
+                const areasResponse = await fetch('/api/areas');
+                const areas = await areasResponse.json();
+                
+                const cargosResponse = await fetch('/api/cargos');
+                const cargos = await cargosResponse.json();
+                
+                const departamentoSelect = document.getElementById('departamento');
+                const cargoSelect = document.getElementById('cargo_atual');
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.nome;
+                    option.textContent = area.nome;
+                    departamentoSelect.appendChild(option);
+                });
+                
+                cargos.forEach(cargo => {
+                    const option = document.createElement('option');
+                    option.value = cargo.nome_cargo;
+                    option.textContent = cargo.nome_cargo;
+                    cargoSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Erro ao carregar áreas/cargos:', error);
+            }
+        }
+
+        // Upload de foto
+        document.getElementById('foto-input').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('foto', file);
+            formData.append('userId', localStorage.getItem('userId'));
+            
+            try {
+                const response = await fetch('/api/upload-foto', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const fotoContainer = document.getElementById('foto-container');
+                    fotoContainer.innerHTML = `<img src="${result.foto_perfil}" alt="Foto de perfil" class="foto-perfil">`;
+                    mostrarAlerta('Foto atualizada com sucesso!', 'success');
+                } else {
+                    mostrarAlerta('Erro ao atualizar foto', 'error');
+                }
+            } catch (error) {
+                console.error('Erro no upload:', error);
+                mostrarAlerta('Erro ao fazer upload da foto', 'error');
+            }
+        });
+
+        // Upload de currículo
+        document.getElementById('curriculo-input').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('curriculo', file);
+            formData.append('userId', localStorage.getItem('userId'));
+            
+            try {
+                const response = await fetch('/api/upload-curriculo', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarAlerta('Currículo enviado com sucesso!', 'success');
+                } else {
+                    mostrarAlerta('Erro ao enviar currículo', 'error');
+                }
+            } catch (error) {
+                console.error('Erro no upload:', error);
+                mostrarAlerta('Erro ao fazer upload do currículo', 'error');
+            }
+        });
+
+        // Salvar perfil
+        document.getElementById('perfil-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                nome: document.getElementById('nome').value,
+                email: document.getElementById('email').value,
+                departamento: document.getElementById('departamento').value,
+                cargo_atual: document.getElementById('cargo_atual').value
+            };
+            
+            try {
+                const userId = localStorage.getItem('userId');
+                const response = await fetch(`/api/usuarios/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    mostrarAlerta('Perfil atualizado com sucesso!', 'success');
+                    carregarPerfil(); // Recarregar dados
+                } else {
+                    mostrarAlerta('Erro ao atualizar perfil', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                mostrarAlerta('Erro ao salvar alterações', 'error');
+            }
+        });
+
+        // Funções auxiliares
+        function mostrarAlerta(mensagem, tipo) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo}`;
+            alert.textContent = mensagem;
+            
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        // Inicializar
+        carregarPerfil();
+        carregarAreasCargos();
+    </script>
+</body>
+</html> 
