@@ -982,12 +982,19 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
     const { username } = req.params;
     console.log(`📄 Buscando status do currículo para: ${username}`);
     
+    if (!username) {
+      console.log('❌ Username não fornecido');
+      return res.status(400).json({ error: 'Username não fornecido' });
+    }
+    
     // Verificar se o usuário existe primeiro
     const userCheck = await pool.query('SELECT nome FROM usuarios WHERE nome = $1', [username]);
     if (userCheck.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', username);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
+    
+    console.log('✅ Usuário encontrado, buscando currículos...');
     
     // Buscar currículo no banco de dados
     const result = await pool.query(
@@ -1021,7 +1028,12 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao buscar status do currículo:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor',
+      details: error.message,
+      stack: error.stack
+    });
   }
 });
 
@@ -1070,6 +1082,11 @@ app.post('/api/users/curriculum/:username', upload.single('curriculum'), async (
       size: file?.size,
       buffer: file?.buffer ? 'Presente' : 'Ausente'
     });
+    
+    if (!username) {
+      console.log('❌ Username não fornecido');
+      return res.status(400).json({ error: 'Username não fornecido' });
+    }
     
     if (!file) {
       console.log('❌ Nenhum arquivo recebido');
@@ -1126,7 +1143,12 @@ app.post('/api/users/curriculum/:username', upload.single('curriculum'), async (
     });
   } catch (error) {
     console.error('❌ Erro ao fazer upload do currículo:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor',
+      details: error.message,
+      stack: error.stack
+    });
   }
 });
 
@@ -1209,6 +1231,45 @@ app.get('/api/test-curriculum', async (req, res) => {
     console.error('❌ Erro no teste de currículo:', error);
     res.status(500).json({ 
       error: 'Erro no teste de currículo', 
+      details: error.message 
+    });
+  }
+});
+
+// Rota de debug para verificar usuário específico
+app.get('/api/debug-user/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`🔍 Debug do usuário: ${username}`);
+    
+    // Verificar se o usuário existe
+    const userResult = await pool.query('SELECT id, nome, email, tipo_usuario FROM usuarios WHERE nome = $1', [username]);
+    
+    if (userResult.rows.length === 0) {
+      return res.json({
+        error: 'Usuário não encontrado',
+        username: username,
+        status: 'user_not_found'
+      });
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Verificar currículos do usuário
+    const curriculumResult = await pool.query('SELECT id, nome_arquivo, tamanho, data_upload FROM curriculos WHERE usuario_nome = $1', [username]);
+    
+    res.json({
+      status: 'ok',
+      user: user,
+      curriculums: curriculumResult.rows,
+      totalCurriculums: curriculumResult.rows.length,
+      message: 'Debug do usuário concluído'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no debug do usuário:', error);
+    res.status(500).json({ 
+      error: 'Erro no debug do usuário', 
       details: error.message 
     });
   }
