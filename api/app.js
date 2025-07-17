@@ -1312,34 +1312,35 @@ app.post('/api/certificados', async (req, res) => {
   try {
     console.log('🏆 Criando certificado...', req.body);
     
-    const { nome, instituicao, data_obtencao, usuario_id, url_certificado } = req.body;
+    const { nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id } = req.body;
     
     // Query adaptativa
     const checkSchema = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'certificados' 
-      AND column_name IN ('usuario_id', 'user_id', 'data_obtencao', 'data_conclusao')
+      AND column_name IN ('usuario_id', 'user_id', 'data_inicio', 'data_conclusao', 'descricao')
     `);
     
     const hasUsuarioId = checkSchema.rows.some(row => row.column_name === 'usuario_id');
     const hasUserId = checkSchema.rows.some(row => row.column_name === 'user_id');
-    const hasDataObtencao = checkSchema.rows.some(row => row.column_name === 'data_obtencao');
+    const hasDataInicio = checkSchema.rows.some(row => row.column_name === 'data_inicio');
     const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
+    const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
     
     let query = '';
     let params = [];
     
-    if (hasUsuarioId && hasDataObtencao) {
-      query = 'INSERT INTO certificados (nome, instituicao, data_obtencao, usuario_id, url_certificado) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-      params = [nome, instituicao, data_obtencao, usuario_id, url_certificado];
+    if (hasUsuarioId && hasDataInicio && hasDataConclusao && hasDescricao) {
+      query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+      params = [nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id];
     } else if (hasUserId && hasDataConclusao) {
-      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, user_id, url_certificado) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-      params = [nome, instituicao, data_obtencao, usuario_id, url_certificado];
+      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+      params = [nome, instituicao, data_conclusao, descricao, usuario_id];
     } else {
       // Fallback simples
-      query = 'INSERT INTO certificados (nome, instituicao) VALUES ($1, $2) RETURNING *';
-      params = [nome, instituicao];
+      query = 'INSERT INTO certificados (nome, instituicao, descricao) VALUES ($1, $2, $3) RETURNING *';
+      params = [nome, instituicao, descricao || ''];
     }
     
     const result = await pool.query(query, params);
@@ -1356,20 +1357,124 @@ app.post('/api/certificados', async (req, res) => {
 app.put('/api/certificados/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, instituicao, data_obtencao, url_certificado } = req.body;
+    const { nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
     
-    const result = await pool.query(
-      'UPDATE certificados SET nome = $1, instituicao = $2, data_obtencao = $3, url_certificado = $4 WHERE id = $5 RETURNING *',
-      [nome, instituicao, data_obtencao, url_certificado, id]
-    );
+    console.log(`🏆 Atualizando certificado ID: ${id}`, req.body);
+    
+    // Query adaptativa
+    const checkSchema = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'certificados' 
+      AND column_name IN ('data_inicio', 'data_conclusao', 'descricao')
+    `);
+    
+    const hasDataInicio = checkSchema.rows.some(row => row.column_name === 'data_inicio');
+    const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
+    const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
+    
+    let query = '';
+    let params = [];
+    
+    if (hasDataInicio && hasDataConclusao && hasDescricao) {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5 WHERE id = $6 RETURNING *';
+      params = [nome, instituicao, data_inicio, data_conclusao, descricao, id];
+    } else if (hasDataConclusao && hasDescricao) {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
+      params = [nome, instituicao, data_conclusao, descricao, id];
+    } else {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2 WHERE id = $3 RETURNING *';
+      params = [nome, instituicao, id];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length > 0) {
+      console.log('✅ Certificado atualizado:', result.rows[0]);
       res.json(result.rows[0]);
     } else {
+      console.log('❌ Certificado não encontrado para atualização:', id);
       res.status(404).json({ error: 'Certificado não encontrado' });
     }
   } catch (error) {
-    console.error('Erro ao atualizar certificado:', error);
+    console.error('❌ Erro ao atualizar certificado:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar certificado por ID
+app.get('/api/certificados/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🏆 Buscando certificado ID: ${id}`);
+    
+    // Query adaptativa
+    const checkSchema = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'certificados' 
+      AND column_name IN ('data_obtencao', 'data_conclusao')
+    `);
+    
+    const hasDataObtencao = checkSchema.rows.some(row => row.column_name === 'data_obtencao');
+    const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
+    
+    let query = '';
+    if (hasDataObtencao) {
+      query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao, url_certificado FROM certificados WHERE id = $1';
+    } else if (hasDataConclusao) {
+      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, url_certificado FROM certificados WHERE id = $1';
+    } else {
+      query = 'SELECT id, usuario_id, nome, instituicao, descricao, url_certificado FROM certificados WHERE id = $1';
+    }
+    
+    const result = await pool.query(query, [id]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Certificado encontrado:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Certificado não encontrado:', id);
+      res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar certificado:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar PDF do certificado
+app.get('/api/certificados/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📄 Buscando PDF do certificado ID: ${id}`);
+    
+    // Buscar informações do certificado
+    const certResult = await pool.query('SELECT nome, url_certificado FROM certificados WHERE id = $1', [id]);
+    
+    if (certResult.rows.length === 0) {
+      console.log('❌ Certificado não encontrado:', id);
+      return res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+    
+    const certificado = certResult.rows[0];
+    
+    if (!certificado.url_certificado) {
+      console.log('❌ Certificado não tem PDF anexado:', id);
+      return res.status(404).json({ error: 'PDF não encontrado' });
+    }
+    
+    // Por enquanto, retornar uma resposta de exemplo
+    // Em produção, você implementaria o download do arquivo real
+    console.log('✅ PDF encontrado para certificado:', certificado.nome);
+    res.json({ 
+      message: 'PDF encontrado',
+      certificado: certificado.nome,
+      url: certificado.url_certificado
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao buscar PDF:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
