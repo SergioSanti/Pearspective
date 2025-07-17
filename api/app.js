@@ -1329,11 +1329,29 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     let query = '';
     let params = [];
     
+    // Verificar se existe campo pdf na tabela
+    const checkPdfColumn = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'certificados' 
+      AND column_name = 'pdf'
+    `);
+    
+    const hasPdfColumn = checkPdfColumn.rows.length > 0;
+    
     if (hasUsuarioId) {
-      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
+      if (hasPdfColumn) {
+        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
+      } else {
+        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
+      }
       params = [userId];
     } else if (hasUserId) {
-      query = 'SELECT id, user_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE user_id = $1 ORDER BY data_conclusao DESC';
+      if (hasPdfColumn) {
+        query = 'SELECT id, user_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE user_id = $1 ORDER BY data_conclusao DESC';
+      } else {
+        query = 'SELECT id, user_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE user_id = $1 ORDER BY data_conclusao DESC';
+      }
       params = [userId];
     } else {
       // Se não encontrar, retornar vazio
@@ -1418,9 +1436,35 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
     const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
     
-    // Query simples usando a estrutura que criamos
-    const query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-    const params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id];
+    // Verificar se existe campo pdf na tabela
+    const checkPdfColumn = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'certificados' 
+      AND column_name = 'pdf'
+    `);
+    
+    const hasPdfColumn = checkPdfColumn.rows.length > 0;
+    
+    let query = '';
+    let params = [];
+    
+    if (hasPdfColumn) {
+      // Se tem campo pdf, incluir o arquivo
+      const pdfData = req.file ? req.file.buffer : null;
+      const pdfName = req.file ? req.file.originalname : null;
+      
+      query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *';
+      params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id, pdfData];
+      
+      console.log('📄 Salvando PDF:', { hasFile: !!req.file, fileName: pdfName, dataSize: pdfData ? pdfData.length : 0 });
+    } else {
+      // Se não tem campo pdf, salvar sem
+      query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+      params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id];
+      
+      console.log('📄 Campo PDF não encontrado na tabela, salvando sem arquivo');
+    }
     
     const result = await pool.query(query, params);
     
@@ -1498,13 +1542,35 @@ app.get('/api/certificados/:id', async (req, res) => {
     const hasDataObtencao = checkSchema.rows.some(row => row.column_name === 'data_obtencao');
     const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
     
+    // Verificar se existe campo pdf na tabela
+    const checkPdfColumn = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'certificados' 
+      AND column_name = 'pdf'
+    `);
+    
+    const hasPdfColumn = checkPdfColumn.rows.length > 0;
+    
     let query = '';
     if (hasDataObtencao) {
-      query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao, url_certificado FROM certificados WHERE id = $1';
+      if (hasPdfColumn) {
+        query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao, url_certificado, pdf FROM certificados WHERE id = $1';
+      } else {
+        query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao, url_certificado FROM certificados WHERE id = $1';
+      }
     } else if (hasDataConclusao) {
-      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, url_certificado FROM certificados WHERE id = $1';
+      if (hasPdfColumn) {
+        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, url_certificado, pdf FROM certificados WHERE id = $1';
+      } else {
+        query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, url_certificado FROM certificados WHERE id = $1';
+      }
     } else {
-      query = 'SELECT id, usuario_id, nome, instituicao, descricao, url_certificado FROM certificados WHERE id = $1';
+      if (hasPdfColumn) {
+        query = 'SELECT id, usuario_id, nome, instituicao, descricao, url_certificado, pdf FROM certificados WHERE id = $1';
+      } else {
+        query = 'SELECT id, usuario_id, nome, instituicao, descricao, url_certificado FROM certificados WHERE id = $1';
+      }
     }
     
     const result = await pool.query(query, [id]);
