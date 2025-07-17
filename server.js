@@ -88,39 +88,21 @@ app.post('/api/login', async (req, res) => {
     
     console.log('🔐 Tentativa de login:', { usuario, senha });
     
-    // Primeiro, vamos verificar a estrutura da tabela
-    const tableInfo = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'usuarios'
-    `);
-    console.log('📋 Estrutura da tabela usuarios:', tableInfo.rows);
-    
-    // Query adaptativa baseada na estrutura
-    let query, params;
-    if (tableInfo.rows.some(col => col.column_name === 'username')) {
-      query = 'SELECT id, username, nome, tipo_usuario, foto_perfil FROM usuarios WHERE username = $1 AND senha = $2';
-      params = [usuario, senha];
-    } else if (tableInfo.rows.some(col => col.column_name === 'usuario')) {
-      query = 'SELECT id, usuario, nome, tipo_usuario, foto_perfil FROM usuarios WHERE usuario = $1 AND senha = $2';
-      params = [usuario, senha];
-    } else {
-      // Fallback para estrutura básica
-      query = 'SELECT id, nome, foto_perfil FROM usuarios WHERE nome = $1 AND senha = $2';
-      params = [usuario, senha];
-    }
-    
-    const result = await pool.query(query, params);
+    // Query baseada na estrutura real do banco (nome, senha, tipo_usuario)
+    const result = await pool.query(
+      'SELECT id, nome, senha, tipo_usuario FROM usuarios WHERE nome = $1 AND senha = $2',
+      [usuario, senha]
+    );
     
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      console.log('✅ Login bem-sucedido:', user.nome || user.username || user.usuario);
+      console.log('✅ Login bem-sucedido:', user.nome);
       res.json({ 
         success: true, 
         id: user.id,
         nome: user.nome,
-        tipo_usuario: user.tipo_usuario || 'usuario',
-        foto_perfil: user.foto_perfil
+        tipo_usuario: user.tipo_usuario,
+        foto_perfil: null
       });
     } else {
       console.log('❌ Credenciais inválidas');
@@ -137,26 +119,14 @@ app.get('/api/users/photo/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    // Verificar estrutura da tabela
-    const tableInfo = await pool.query(`
-      SELECT column_name FROM information_schema.columns 
-      WHERE table_name = 'usuarios'
-    `);
-    
-    let query, params;
-    if (tableInfo.rows.some(col => col.column_name === 'username')) {
-      query = 'SELECT foto_perfil FROM usuarios WHERE username = $1';
-    } else if (tableInfo.rows.some(col => col.column_name === 'usuario')) {
-      query = 'SELECT foto_perfil FROM usuarios WHERE usuario = $1';
-    } else {
-      query = 'SELECT foto_perfil FROM usuarios WHERE nome = $1';
-    }
-    params = [username];
-    
-    const result = await pool.query(query, params);
+    // Query baseada na estrutura real (nome)
+    const result = await pool.query(
+      'SELECT foto_perfil FROM usuarios WHERE nome = $1',
+      [username]
+    );
 
     if (result.rows.length > 0) {
-      res.json({ foto_perfil: result.rows[0].foto_perfil });
+      res.json({ foto_perfil: result.rows[0].foto_perfil || null });
     } else {
       res.status(404).json({ error: 'Usuário não encontrado' });
     }
@@ -171,26 +141,22 @@ app.get('/api/users/profile/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    // Verificar estrutura da tabela
-    const tableInfo = await pool.query(`
-      SELECT column_name FROM information_schema.columns 
-      WHERE table_name = 'usuarios'
-    `);
-    
-    let query, params;
-    if (tableInfo.rows.some(col => col.column_name === 'username')) {
-      query = 'SELECT id, username, nome, nome_exibicao, foto_perfil, departamento, cargo_atual FROM usuarios WHERE username = $1';
-    } else if (tableInfo.rows.some(col => col.column_name === 'usuario')) {
-      query = 'SELECT id, usuario, nome, nome_exibicao, foto_perfil, departamento, cargo_atual FROM usuarios WHERE usuario = $1';
-    } else {
-      query = 'SELECT id, nome, foto_perfil, departamento, cargo_atual FROM usuarios WHERE nome = $1';
-    }
-    params = [username];
-    
-    const result = await pool.query(query, params);
+    // Query baseada na estrutura real (nome)
+    const result = await pool.query(
+      'SELECT id, nome, tipo_usuario FROM usuarios WHERE nome = $1',
+      [username]
+    );
     
     if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+      const user = result.rows[0];
+      res.json({
+        id: user.id,
+        nome: user.nome,
+        tipo_usuario: user.tipo_usuario,
+        foto_perfil: null,
+        departamento: null,
+        cargo_atual: null
+      });
     } else {
       res.status(404).json({ error: 'Usuário não encontrado' });
     }
