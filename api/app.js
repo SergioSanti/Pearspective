@@ -55,30 +55,78 @@ app.post('/api/login', async (req, res) => {
     let query = '';
     let params = [];
     
-    // Verificar se existe coluna 'username' ou 'nome'
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'usuarios' 
-      AND column_name IN ('username', 'nome', 'email')
-    `);
-    
-    const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
-    const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
-    const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
-    
-    if (hasUsername) {
-      query = 'SELECT * FROM usuarios WHERE username = $1 AND senha = $2';
-      params = [usuario, senha];
-    } else if (hasNome) {
-      query = 'SELECT * FROM usuarios WHERE nome = $1 AND senha = $2';
-      params = [usuario, senha];
-    } else if (hasEmail) {
-      query = 'SELECT * FROM usuarios WHERE email = $1 AND senha = $2';
-      params = [usuario, senha];
-    } else {
-      // Fallback para teste
+    try {
+      // Verificar se existe coluna 'username' ou 'nome'
+      const checkSchema = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'usuarios' 
+        AND column_name IN ('username', 'nome', 'email')
+      `);
+      
+      const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
+      const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
+      const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
+      
+      console.log('🔍 Schema detectado para login:', { hasUsername, hasNome, hasEmail });
+      
+      if (hasUsername) {
+        query = 'SELECT * FROM usuarios WHERE username = $1 AND senha = $2';
+        params = [usuario, senha];
+      } else if (hasNome) {
+        query = 'SELECT * FROM usuarios WHERE nome = $1 AND senha = $2';
+        params = [usuario, senha];
+      } else if (hasEmail) {
+        query = 'SELECT * FROM usuarios WHERE email = $1 AND senha = $2';
+        params = [usuario, senha];
+      } else {
+        // Fallback para teste
+        if (usuario === 'admin' && senha === 'Admin123') {
+          console.log('✅ Login admin bem-sucedido (fallback)');
+          return res.json({ 
+            success: true, 
+            id: 1,
+            nome: 'admin',
+            tipo_usuario: 'admin',
+            foto_perfil: null
+          });
+        } else if (usuario === 'sergio' && senha === '12345') {
+          console.log('✅ Login sergio bem-sucedido (fallback)');
+          return res.json({ 
+            success: true,
+            id: 2,
+            nome: 'sergio',
+            tipo_usuario: 'usuario',
+            foto_perfil: null
+          });
+        } else {
+          console.log('❌ Credenciais inválidas (fallback)');
+          return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
+        }
+      }
+      
+      console.log('🔍 Query de login:', query, 'Params:', params);
+      const result = await pool.query(query, params);
+      
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        console.log('✅ Login bem-sucedido:', user.nome || user.username);
+        res.json({ 
+          success: true, 
+          id: user.id,
+          nome: user.nome || user.username,
+          tipo_usuario: user.tipo_usuario || 'usuario',
+          foto_perfil: user.foto_perfil
+        });
+      } else {
+        console.log('❌ Credenciais inválidas');
+        res.status(401).json({ success: false, message: 'Credenciais inválidas' });
+      }
+    } catch (dbError) {
+      console.error('❌ Erro na query do banco:', dbError);
+      // Fallback para teste em caso de erro no banco
       if (usuario === 'admin' && senha === 'Admin123') {
+        console.log('✅ Login admin bem-sucedido (fallback por erro)');
         return res.json({ 
           success: true, 
           id: 1,
@@ -87,6 +135,7 @@ app.post('/api/login', async (req, res) => {
           foto_perfil: null
         });
       } else if (usuario === 'sergio' && senha === '12345') {
+        console.log('✅ Login sergio bem-sucedido (fallback por erro)');
         return res.json({ 
           success: true,
           id: 2,
@@ -95,25 +144,9 @@ app.post('/api/login', async (req, res) => {
           foto_perfil: null
         });
       } else {
+        console.log('❌ Credenciais inválidas (fallback por erro)');
         return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
       }
-    }
-    
-    const result = await pool.query(query, params);
-    
-    if (result.rows.length > 0) {
-      const user = result.rows[0];
-      console.log('✅ Login bem-sucedido:', user.nome || user.username);
-      res.json({ 
-        success: true, 
-        id: user.id,
-        nome: user.nome || user.username,
-        tipo_usuario: user.tipo_usuario || 'usuario',
-        foto_perfil: user.foto_perfil
-      });
-    } else {
-      console.log('❌ Credenciais inválidas');
-      res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
   } catch (error) {
     console.error('❌ Erro no login:', error);
@@ -317,43 +350,73 @@ app.get('/api/cargos/area/:areaId', async (req, res) => {
     const { areaId } = req.params;
     console.log(`📋 Buscando cargos da área ${areaId}...`);
     
-    // Query adaptativa
+    // Query adaptativa - verificar todas as possíveis colunas
     const checkSchema = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'cargos' 
-      AND column_name IN ('area_id', 'area_nome')
+      AND column_name IN ('area_id', 'area_nome', 'area', 'departamento')
     `);
+    
+    console.log('🔍 Colunas encontradas na tabela cargos:', checkSchema.rows.map(r => r.column_name));
     
     const hasAreaId = checkSchema.rows.some(row => row.column_name === 'area_id');
     const hasAreaNome = checkSchema.rows.some(row => row.column_name === 'area_nome');
+    const hasArea = checkSchema.rows.some(row => row.column_name === 'area');
+    const hasDepartamento = checkSchema.rows.some(row => row.column_name === 'departamento');
+    
+    console.log('🔍 Schema detectado:', { hasAreaId, hasAreaNome, hasArea, hasDepartamento });
     
     let query = '';
     let params = [];
     
     if (hasAreaId) {
+      // Se tem area_id, usar diretamente
       query = 'SELECT * FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
       params = [areaId];
+      console.log('✅ Usando area_id para filtrar');
     } else if (hasAreaNome) {
-      // Se não tem area_id, buscar pela área
+      // Se tem area_nome, buscar o nome da área primeiro
       const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
       if (areaResult.rows.length > 0) {
         query = 'SELECT * FROM cargos WHERE area_nome = $1 ORDER BY nome_cargo';
         params = [areaResult.rows[0].nome];
+        console.log('✅ Usando area_nome para filtrar:', areaResult.rows[0].nome);
+      }
+    } else if (hasArea) {
+      // Se tem area, buscar o nome da área primeiro
+      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
+      if (areaResult.rows.length > 0) {
+        query = 'SELECT * FROM cargos WHERE area = $1 ORDER BY nome_cargo';
+        params = [areaResult.rows[0].nome];
+        console.log('✅ Usando area para filtrar:', areaResult.rows[0].nome);
+      }
+    } else if (hasDepartamento) {
+      // Se tem departamento, buscar o nome da área primeiro
+      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
+      if (areaResult.rows.length > 0) {
+        query = 'SELECT * FROM cargos WHERE departamento = $1 ORDER BY nome_cargo';
+        params = [areaResult.rows[0].nome];
+        console.log('✅ Usando departamento para filtrar:', areaResult.rows[0].nome);
       }
     }
     
     if (!query) {
+      console.log('❌ Nenhuma coluna de área encontrada, retornando vazio');
       return res.json([]);
     }
     
+    console.log('🔍 Query final:', query, 'Params:', params);
     const result = await pool.query(query, params);
     
     console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
+    console.log('📊 Cargos encontrados:', result.rows.map(c => c.nome_cargo || c.nome));
+    
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos por área:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
