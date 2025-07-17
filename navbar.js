@@ -10,7 +10,18 @@ async function updateUserCircle() {
   
   if (userCircle) {
     try {
-      // Verificar sessão atual via API
+      // Primeiro, verificar se há foto no localStorage (funciona localmente)
+      const userPhoto = localStorage.getItem('userPhoto');
+      const userName = localStorage.getItem('userName');
+      
+      if (userPhoto) {
+        userCircle.innerHTML = `<img src="${userPhoto}" alt="Foto do usuário">`;
+        console.log('[NAVBAR] Foto carregada do localStorage');
+        if (userNameDisplay) userNameDisplay.textContent = userName || '';
+        return;
+      }
+      
+      // Se não há foto no localStorage, tentar buscar do banco
       const response = await fetch('/api/me', {
         credentials: 'include' // Incluir cookies
       });
@@ -71,42 +82,41 @@ if (photoUpload) {
   photoUpload.addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (file) {
+      console.log('[NAVBAR] Arquivo selecionado:', file.name, file.size, file.type);
+      
       const reader = new FileReader();
       reader.onload = async function(e) {
         const photoData = e.target.result;
+        console.log('[NAVBAR] Arquivo convertido, tamanho:', photoData.length);
         
         try {
-          // Primeiro, obter dados da sessão atual
-          const sessionResponse = await fetch('/api/me', {
-            credentials: 'include'
+          // Usar localStorage para obter o nome do usuário
+          const userName = localStorage.getItem('userName');
+          
+          if (!userName) {
+            console.error('[NAVBAR] Nenhum usuário logado');
+            return;
+          }
+          
+          // Atualizar foto usando a rota específica
+          const updateResponse = await fetch(`/api/users/photo/${encodeURIComponent(userName)}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              foto_perfil: photoData
+            })
           });
           
-          if (sessionResponse.ok) {
-            const sessionData = await sessionResponse.json();
-            
-            if (sessionData.authenticated && sessionData.user) {
-              // Atualizar foto no banco de dados
-              const updateResponse = await fetch(`/api/users/profile/${sessionData.user.id}`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                  foto_perfil: photoData
-                })
-              });
-              
-              if (updateResponse.ok) {
-                console.log('[NAVBAR] Foto atualizada com sucesso');
-                // Recarregar sessão para mostrar nova foto
-                updateUserCircle();
-              } else {
-                console.error('[NAVBAR] Erro ao atualizar foto no banco');
-              }
-            }
+          if (updateResponse.ok) {
+            console.log('[NAVBAR] Foto atualizada com sucesso');
+            // Atualizar localStorage e interface
+            localStorage.setItem('userPhoto', photoData);
+            updateUserCircle();
           } else {
-            console.error('[NAVBAR] Sessão inválida para upload de foto');
+            const errorData = await updateResponse.json();
+            console.error('[NAVBAR] Erro ao atualizar foto:', errorData);
           }
         } catch (error) {
           console.error('[NAVBAR] Erro ao processar upload de foto:', error);

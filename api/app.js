@@ -60,10 +60,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-// Configuração do banco de dados com SSL forçado para Railway
+// Configuração do banco de dados para Railway
+console.log('🚂 Configurando banco para Railway...');
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pearspective',
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -83,11 +84,11 @@ pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('❌ Erro ao conectar com o banco:', err);
     console.error('❌ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurada' : 'Não configurada');
-        } else {
+  } else {
     console.log('✅ Conectado ao banco de dados PostgreSQL');
     console.log('🔍 Configuração do banco:', {
       hasDatabaseUrl: !!process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL ? 'Habilitado' : 'Desabilitado'
+      ssl: 'Habilitado'
     });
   }
 });
@@ -99,6 +100,13 @@ app.get('/api/test', (req, res) => {
 
 // Rota de teste de banco
 app.get('/api/test-db', async (req, res) => {
+  if (!pool) {
+    return res.json({ 
+      message: 'Modo local: sem conexão com banco',
+      mode: 'local'
+    });
+  }
+  
   try {
     console.log('🔍 Testando conexão com banco...');
     const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
@@ -106,7 +114,8 @@ app.get('/api/test-db', async (req, res) => {
     res.json({ 
       message: 'Conexão com banco OK!',
       current_time: result.rows[0].current_time,
-      db_version: result.rows[0].db_version
+      db_version: result.rows[0].db_version,
+      mode: 'railway'
     });
   } catch (error) {
     console.error('❌ Erro no teste de banco:', error);
@@ -127,7 +136,8 @@ app.get('/api/test-tables', async (req, res) => {
     console.log('✅ Tabelas encontradas:', result.rows);
     res.json({ 
       message: 'Tabelas listadas!',
-      tables: result.rows.map(row => row.table_name)
+      tables: result.rows.map(row => row.table_name),
+      mode: 'railway'
     });
   } catch (error) {
     console.error('❌ Erro ao listar tabelas:', error);
@@ -137,7 +147,11 @@ app.get('/api/test-tables', async (req, res) => {
 
 // Rota para verificar se o servidor está funcionando
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Servidor funcionando' });
+  res.json({ 
+    status: 'OK', 
+    message: 'Servidor funcionando',
+    mode: 'railway'
+  });
 });
 
 // Rota para verificar e corrigir estrutura da tabela cursos
@@ -172,7 +186,7 @@ app.get('/api/fix-cursos-table', async (req, res) => {
       `);
       
       console.log('✅ Tabela cursos criada com sucesso');
-      res.json({ message: 'Tabela cursos criada com sucesso' });
+      res.json({ message: 'Tabela cursos criada com sucesso', mode: 'railway' });
     } else {
       console.log('✅ Tabela cursos já existe');
       
@@ -188,7 +202,8 @@ app.get('/api/fix-cursos-table', async (req, res) => {
       console.log('📋 Colunas existentes:', columnsCheck.rows);
       res.json({ 
         message: 'Tabela cursos existe',
-        columns: columnsCheck.rows
+        columns: columnsCheck.rows,
+        mode: 'railway'
       });
     }
   } catch (error) {
@@ -340,59 +355,7 @@ app.post('/api/logout', (req, res) => {
   }
 });
 
-// Rota para buscar perfil do usuário
-app.get('/api/users/profile/:username', async (req, res) => {
-  try {
-    const { username } = req.params;
-    console.log(`👤 Buscando perfil do usuário: ${username}`);
-    
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'usuarios' 
-      AND column_name IN ('username', 'nome', 'email')
-    `);
-    
-    const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
-    const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
-    const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
-    
-    let query = '';
-    let params = [username];
-    
-    if (hasUsername) {
-      query = 'SELECT id, username, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE username = $1';
-    } else if (hasNome) {
-      query = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1';
-    } else if (hasEmail) {
-      query = 'SELECT id, email, nome, tipo_usuario, foto_perfil FROM usuarios WHERE email = $1';
-    } else {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-    
-    const result = await pool.query(query, params);
 
-    if (result.rows.length > 0) {
-      const user = result.rows[0];
-      console.log('✅ Perfil encontrado para usuário:', username);
-      res.json({
-        id: user.id,
-        nome: user.nome || user.username,
-        nome_exibicao: user.nome || user.username,
-        email: user.email,
-        tipo_usuario: user.tipo_usuario,
-        foto_perfil: user.foto_perfil
-      });
-    } else {
-      console.log('❌ Usuário não encontrado:', username);
-      res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-  } catch (error) {
-    console.error('❌ Erro ao buscar perfil:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
 
 // Rota para buscar foto do usuário
 app.get('/api/users/photo/:username', async (req, res) => {
@@ -446,183 +409,121 @@ app.get('/api/users/profile/:username', async (req, res) => {
     const { username } = req.params;
     console.log(`👤 Buscando perfil do usuário: ${username}`);
     
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'usuarios' 
-      AND column_name IN ('username', 'nome', 'email', 'nome_exibicao', 'departamento', 'cargo_atual')
-    `);
-    
-    const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
-    const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
-    const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
-    const hasNomeExibicao = checkSchema.rows.some(row => row.column_name === 'nome_exibicao');
-    const hasDepartamento = checkSchema.rows.some(row => row.column_name === 'departamento');
-    const hasCargoAtual = checkSchema.rows.some(row => row.column_name === 'cargo_atual');
-    
-    let query = '';
-    let params = [username];
-    
-    if (hasUsername && hasNomeExibicao && hasDepartamento && hasCargoAtual) {
-      query = 'SELECT id, username, nome, nome_exibicao, foto_perfil, departamento, cargo_atual FROM usuarios WHERE username = $1 OR nome = $1';
-    } else if (hasNome && hasDepartamento && hasCargoAtual) {
-      query = 'SELECT id, nome, foto_perfil, departamento, cargo_atual FROM usuarios WHERE nome = $1';
-    } else if (hasEmail) {
-      query = 'SELECT id, email, foto_perfil FROM usuarios WHERE email = $1';
-    } else {
-      // Fallback simples
-      query = 'SELECT * FROM usuarios WHERE username = $1 OR nome = $1 OR email = $1';
-    }
-    
-    const result = await pool.query(query, params);
+    // Query simples e direta
+    const query = 'SELECT id, nome, email, tipo_usuario, foto_perfil, departamento, cargo_atual FROM usuarios WHERE nome = $1';
+    const result = await pool.query(query, [username]);
     
     if (result.rows.length > 0) {
+      const user = result.rows[0];
       console.log('✅ Perfil encontrado para usuário:', username);
-      res.json(result.rows[0]);
+      res.json({
+        id: user.id,
+        nome: user.nome,
+        nome_exibicao: user.nome,
+        email: user.email,
+        tipo_usuario: user.tipo_usuario,
+        foto_perfil: user.foto_perfil,
+        departamento: user.departamento || '',
+        cargo_atual: user.cargo_atual || '',
+        data_cadastro: user.data_cadastro || new Date().toISOString()
+      });
     } else {
-      console.log('❌ Usuário não encontrado, retornando dados de teste:', username);
-      
-      // Retornar dados de teste para evitar erro 404
-      const testProfile = {
-        id: 1,
-        username: username,
-        nome: username === 'admin' ? 'Administrador' : username,
-        nome_exibicao: username === 'admin' ? 'Administrador do Sistema' : username,
-        foto_perfil: null,
-        departamento: username === 'admin' ? 'TI' : 'Tecnologia',
-        cargo_atual: username === 'admin' ? 'Administrador' : 'Usuário'
-      };
-      
-      res.json(testProfile);
+      console.log('❌ Usuário não encontrado:', username);
+      res.status(404).json({ error: 'Usuário não encontrado' });
     }
   } catch (error) {
     console.error('❌ Erro ao buscar perfil:', error);
-    
-    // Em caso de erro, retornar dados de teste
-    const testProfile = {
-      id: 1,
-      username: username,
-      nome: username === 'admin' ? 'Administrador' : username,
-      nome_exibicao: username === 'admin' ? 'Administrador do Sistema' : username,
-      foto_perfil: null,
-      departamento: username === 'admin' ? 'TI' : 'Tecnologia',
-      cargo_atual: username === 'admin' ? 'Administrador' : 'Usuário'
-    };
-    
-    res.json(testProfile);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
 // Rota para atualizar perfil do usuário
-app.put('/api/users/profile/:id', async (req, res) => {
+app.put('/api/users/profile/:username', async (req, res) => {
   try {
-  const { id } = req.params;
+    const { username } = req.params;
     const { departamento, cargo_atual, foto_perfil } = req.body;
     
-    console.log(`👤 Atualizando perfil do usuário ${id}:`, { 
+    console.log(`👤 Atualizando perfil do usuário ${username}:`, { 
       departamento, 
       cargo_atual, 
       foto_perfil: foto_perfil ? 'Foto fornecida' : 'Sem foto' 
     });
     
-    // Primeiro, verificar quais colunas existem na tabela usuarios
-    const columnsCheck = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'usuarios' 
-      AND column_name IN ('foto_perfil', 'departamento', 'cargo_atual')
-    `);
+    // Verificar se o usuário existe primeiro
+    const userCheck = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', [username]);
     
-    const hasFotoPerfil = columnsCheck.rows.some(row => row.column_name === 'foto_perfil');
-    const hasDepartamento = columnsCheck.rows.some(row => row.column_name === 'departamento');
-    const hasCargoAtual = columnsCheck.rows.some(row => row.column_name === 'cargo_atual');
-    
-    console.log('🔍 Colunas disponíveis na tabela usuarios:', { hasFotoPerfil, hasDepartamento, hasCargoAtual });
-    
-    // Se tentou atualizar foto mas a coluna não existe, criar a coluna
-    if (foto_perfil && !hasFotoPerfil) {
-      console.log('⚠️ Coluna foto_perfil não existe, criando...');
-      try {
-        await pool.query('ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT');
-        console.log('✅ Coluna foto_perfil criada com sucesso');
-        hasFotoPerfil = true;
-      } catch (error) {
-        console.error('❌ Erro ao criar coluna foto_perfil:', error);
-        // Se não conseguir criar, simular sucesso
-        const userResult = await pool.query('SELECT id, nome FROM usuarios WHERE id = $1', [id]);
-        if (userResult.rows.length > 0) {
-          return res.json({
-            ...userResult.rows[0],
-            message: 'Foto de perfil atualizada (simulado)'
-          });
-        } else {
-          return res.status(404).json({ error: 'Usuário não encontrado' });
-        }
-      }
+    if (userCheck.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', username);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
-    // Query adaptativa baseada nas colunas existentes
-    let query = '';
-    let params = [];
+    console.log('✅ Usuário encontrado:', userCheck.rows[0]);
     
-    if (foto_perfil && hasFotoPerfil) {
-      // Atualizar apenas a foto de perfil se a coluna existir
-      query = 'UPDATE usuarios SET foto_perfil = $1 WHERE id = $2 RETURNING id, nome, foto_perfil';
-      params = [foto_perfil, id];
-    } else if (departamento || cargo_atual) {
-      // Atualizar outros campos se fornecidos e existirem
-      let updateFields = [];
-      let valueIndex = 1;
-      
-      if (departamento && hasDepartamento) {
-        updateFields.push(`departamento = $${valueIndex++}`);
-        params.push(departamento);
-      }
-      
-      if (cargo_atual && hasCargoAtual) {
-        updateFields.push(`cargo_atual = $${valueIndex++}`);
-        params.push(cargo_atual);
-      }
-      
-      if (updateFields.length === 0) {
-        // Se nenhum campo pode ser atualizado, retornar usuário atual
-        const userResult = await pool.query('SELECT id, nome FROM usuarios WHERE id = $1', [id]);
-        if (userResult.rows.length > 0) {
-          return res.json(userResult.rows[0]);
-        } else {
-          return res.status(404).json({ error: 'Usuário não encontrado' });
-        }
-      }
-      
-      params.push(id);
-      query = `UPDATE usuarios SET ${updateFields.join(', ')} WHERE id = $${valueIndex} RETURNING id, nome, departamento, cargo_atual`;
-    } else {
-      // Se não há dados para atualizar, retornar usuário atual
-      const userResult = await pool.query('SELECT id, nome FROM usuarios WHERE id = $1', [id]);
-      if (userResult.rows.length > 0) {
-        return res.json(userResult.rows[0]);
-      } else {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
-      }
-    }
+    // Query simples para atualizar o perfil
+    const query = `
+      UPDATE usuarios 
+      SET departamento = COALESCE($1, departamento), 
+          cargo_atual = COALESCE($2, cargo_atual), 
+          foto_perfil = COALESCE($3, foto_perfil)
+      WHERE nome = $4 
+      RETURNING id, nome, email, tipo_usuario, foto_perfil, departamento, cargo_atual
+    `;
     
-    console.log('🔍 Query de atualização:', query);
-    console.log('📋 Parâmetros:', params);
+    console.log('🔍 Executando query:', query);
+    console.log('📋 Parâmetros:', [departamento, cargo_atual, foto_perfil ? 'Foto presente' : 'Sem foto', username]);
     
-    const result = await pool.query(query, params);
+    const result = await pool.query(query, [departamento, cargo_atual, foto_perfil, username]);
     
     if (result.rows.length > 0) {
-      console.log('✅ Perfil atualizado com sucesso');
+      console.log('✅ Perfil atualizado com sucesso:', result.rows[0]);
       res.json(result.rows[0]);
     } else {
-      console.log('❌ Usuário não encontrado para atualização');
-      res.status(404).json({ error: 'Usuário não encontrado' });
+      console.log('❌ Nenhuma linha atualizada');
+      res.status(500).json({ error: 'Erro ao atualizar perfil' });
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar perfil:', error);
     console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Rota específica para upload de foto
+app.put('/api/users/photo/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { foto_perfil } = req.body;
+    
+    console.log(`📸 Atualizando foto do usuário ${username}:`, { 
+      foto_perfil: foto_perfil ? 'Foto fornecida' : 'Sem foto' 
+    });
+    
+    if (!foto_perfil) {
+      return res.status(400).json({ error: 'Foto não fornecida' });
+    }
+    
+    // Verificar se o usuário existe
+    const userCheck = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', [username]);
+    
+    if (userCheck.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', username);
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    // Atualizar apenas a foto
+    const query = 'UPDATE usuarios SET foto_perfil = $1 WHERE nome = $2 RETURNING id, nome, foto_perfil';
+    const result = await pool.query(query, [foto_perfil, username]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Foto atualizada com sucesso');
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Erro ao atualizar foto');
+      res.status(500).json({ error: 'Erro ao atualizar foto' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar foto:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
@@ -877,45 +778,7 @@ app.delete('/api/areas/:id', async (req, res) => {
   }
 });
 
-// Rota para atualizar perfil do usuário
-app.put('/api/users/profile/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { foto_perfil, departamento, cargo_atual } = req.body;
-    
-    console.log(`👤 Atualizando perfil do usuário ${userId}:`, { foto_perfil: !!foto_perfil, departamento, cargo_atual });
-    
-    // Query adaptativa para atualizar apenas os campos fornecidos
-    let query = '';
-    let params = [];
-    
-    if (foto_perfil) {
-      query = 'UPDATE usuarios SET foto_perfil = $1 WHERE id = $2 RETURNING id, nome, foto_perfil';
-      params = [foto_perfil, userId];
-    } else {
-      // Se não há foto, retornar sucesso sem atualizar
-      const userResult = await pool.query('SELECT id, nome, foto_perfil FROM usuarios WHERE id = $1', [userId]);
-      if (userResult.rows.length > 0) {
-        return res.json(userResult.rows[0]);
-      } else {
-        return res.status(404).json({ error: 'Usuário não encontrado' });
-      }
-    }
-    
-    const result = await pool.query(query, params);
-    
-    if (result.rows.length > 0) {
-      console.log('✅ Perfil atualizado para usuário:', userId);
-      res.json(result.rows[0]);
-    } else {
-      console.log('❌ Usuário não encontrado para atualizar:', userId);
-      res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-  } catch (error) {
-    console.error('❌ Erro ao atualizar perfil:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
+
 
 // Rota para buscar status do currículo
 app.get('/api/users/curriculum/:username/status', async (req, res) => {
@@ -1174,42 +1037,10 @@ app.get('/api/cursos', async (req, res) => {
     
     console.log('📊 Primeiros 3 cursos:', result.rows.slice(0, 3));
     
-    // Se não há cursos, retornar dados de teste
+    // Se não há cursos, retornar array vazio
     if (result.rows.length === 0) {
-      console.log('📚 Nenhum curso encontrado, retornando dados de teste');
-      const testCursos = [
-        {
-          id: 1,
-          title: 'JavaScript Completo',
-          platform: 'Udemy',
-          url: 'https://www.udemy.com/javascript-completo',
-          area: 'Programação',
-          level: 'intermediario',
-          duration: 'medio',
-          description: 'Curso completo de JavaScript do básico ao avançado'
-        },
-        {
-          id: 2,
-          title: 'React para Iniciantes',
-          platform: 'Coursera',
-          url: 'https://www.coursera.org/react-iniciantes',
-          area: 'Desenvolvimento Web',
-          level: 'basico',
-          duration: 'medio',
-          description: 'Aprenda React do zero com projetos práticos'
-        },
-        {
-          id: 3,
-          title: 'Node.js Backend',
-          platform: 'Alura',
-          url: 'https://www.alura.com.br/nodejs-backend',
-          area: 'Backend',
-          level: 'avancado',
-          duration: 'longo',
-          description: 'Desenvolvimento de APIs com Node.js e Express'
-        }
-      ];
-      res.json(testCursos);
+      console.log('📚 Nenhum curso encontrado no banco');
+      res.json([]);
     } else {
       res.json(result.rows);
     }

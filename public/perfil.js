@@ -323,21 +323,10 @@ class ProfileManager {
     }
 
     async checkCurriculumStatus() {
-        try {
-            // Buscar nome do usuário da sessão atual
-            const sessionResponse = await fetch('/api/me', {
-                credentials: 'include'
-            });
-            
-            if (!sessionResponse.ok) {
-                return;
-            }
-            
-            const sessionData = await sessionResponse.json();
-            const userName = sessionData.user.nome;
-            
-            if (!userName) return;
+        const userName = localStorage.getItem('userName');
+        if (!userName) return;
 
+        try {
             const response = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}/status`);
             const data = await response.json();
 

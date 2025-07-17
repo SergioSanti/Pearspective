@@ -181,44 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
     userNameDisplay.textContent = userName;
   }
 
-  // Função para lidar com o upload de foto
-  document.getElementById('photoUpload').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const photoData = e.target.result;
-        localStorage.setItem('userPhoto', photoData);
-        updateUserCircle();
-        
-        // Sincronizar com o banco de dados
-        const userName = localStorage.getItem('userName');
-        const userId = localStorage.getItem('userId');
-        
-        if (userName && userId) {
-          fetch(`/api/users/profile/${userId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              departamento: localStorage.getItem('userDepartment') || '',
-              cargo_atual: localStorage.getItem('userPosition') || '',
-              foto_perfil: photoData
-            })
-          })
-          .then(response => response.json())
-          .then(updatedUser => {
-            console.log('[NAVBAR] Foto sincronizada com o banco:', updatedUser.foto_perfil ? 'Salva' : 'Não salva');
-          })
-          .catch(error => {
-            console.error('[NAVBAR] Erro ao sincronizar foto:', error);
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  });
+
 
   // Função para lidar com o logout
   document.getElementById('logoutButton').addEventListener('click', function(e) {
