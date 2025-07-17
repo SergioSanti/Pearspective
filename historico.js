@@ -13,13 +13,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // Função para buscar certificados do usuário logado
     const fetchUserCertificates = async () => {
         try {
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                console.error('Usuário não logado');
+            // Primeiro, verificar sessão do usuário
+            const sessionResponse = await fetch('/api/me', {
+                credentials: 'include'
+            });
+            
+            if (!sessionResponse.ok) {
+                console.error('Usuário não autenticado');
                 return [];
             }
-
-            const response = await fetch(`${API_BASE_URL}/certificados/usuario/${userId}`);
+            
+            const sessionData = await sessionResponse.json();
+            if (!sessionData.authenticated || !sessionData.user) {
+                console.error('Sessão inválida');
+                return [];
+            }
+            
+            const userId = sessionData.user.id;
+            const response = await fetch(`${API_BASE_URL}/certificados/usuario/${userId}`, {
+                credentials: 'include'
+            });
+            
             if (!response.ok) {
                 throw new Error('Erro ao buscar certificados');
             }
@@ -113,12 +127,23 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         
         try {
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                alert('Usuário não logado');
+            // Verificar sessão do usuário
+            const sessionResponse = await fetch('/api/me', {
+                credentials: 'include'
+            });
+            
+            if (!sessionResponse.ok) {
+                alert('Usuário não autenticado');
                 return;
             }
-
+            
+            const sessionData = await sessionResponse.json();
+            if (!sessionData.authenticated || !sessionData.user) {
+                alert('Sessão inválida');
+                return;
+            }
+            
+            const userId = sessionData.user.id;
             const formData = new FormData();
             formData.append('usuario_id', userId);
             formData.append('nome', document.getElementById('cert-name').value);
@@ -141,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const response = await fetch(url, {
                 method: method,
+                credentials: 'include',
                 body: formData
             });
 
@@ -160,7 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.editCert = async (id) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/certificados/${id}`);
+            const response = await fetch(`${API_BASE_URL}/certificados/${id}`, {
+                credentials: 'include'
+            });
             if (!response.ok) {
                 throw new Error('Erro ao buscar certificado');
             }
@@ -176,7 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirm('Tem certeza que deseja excluir este certificado?')) {
             try {
                 const response = await fetch(`${API_BASE_URL}/certificados/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'include'
                 });
                 
                 if (!response.ok) {
@@ -194,7 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.viewPdf = async (id) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/certificados/${id}/pdf`);
+            const response = await fetch(`${API_BASE_URL}/certificados/${id}/pdf`, {
+                credentials: 'include'
+            });
             if (!response.ok) {
                 throw new Error('Erro ao buscar PDF');
             }
@@ -216,14 +247,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.downloadPdf = async (id) => {
         try {
             // Primeiro buscar informações do certificado para obter o nome
-            const certResponse = await fetch(`${API_BASE_URL}/certificados/${id}`);
+            const certResponse = await fetch(`${API_BASE_URL}/certificados/${id}`, {
+                credentials: 'include'
+            });
             if (!certResponse.ok) {
                 throw new Error('Erro ao buscar informações do certificado');
             }
             const cert = await certResponse.json();
             
             // Buscar o PDF
-            const response = await fetch(`${API_BASE_URL}/certificados/${id}/pdf`);
+            const response = await fetch(`${API_BASE_URL}/certificados/${id}/pdf`, {
+                credentials: 'include'
+            });
             if (!response.ok) {
                 throw new Error('Erro ao buscar PDF');
             }

@@ -170,11 +170,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== LÓGICA DE ADMINISTRAÇÃO =====
 
-  function setupAdminFeatures() {
-    const userType = localStorage.getItem('tipo_usuario');
-    if (userType !== 'admin') {
-      return; // Se não for admin, não faz nada
-    }
+  async function setupAdminFeatures() {
+    try {
+      // Verificar sessão atual
+      const response = await fetch('/api/me', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        console.log('[SIMULADOR] Usuário não autenticado');
+        return;
+      }
+      
+      const sessionData = await response.json();
+      if (!sessionData.authenticated || sessionData.user.tipo_usuario !== 'admin') {
+        console.log('[SIMULADOR] Usuário não é admin');
+        return; // Se não for admin, não faz nada
+      }
+      
+      console.log('[SIMULADOR] Configurando recursos de admin para:', sessionData.user.nome);
 
     const adminContainer = document.getElementById('admin-container');
     adminContainer.style.display = 'block';
@@ -446,6 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cargoForm.reset();
         cargoIdInput.value = '';
     });
+    } catch (error) {
+      console.error('[SIMULADOR] Erro ao configurar recursos de admin:', error);
+    }
   }
 
   // Inicia as funcionalidades de admin

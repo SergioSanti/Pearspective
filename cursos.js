@@ -6,16 +6,16 @@ class CourseManager {
     this.areas = [];
     this.currentEditId = null;
     this.isAdminMode = false;
-    this.userType = localStorage.getItem('tipo_usuario') || 'usuario';
+    this.userType = 'usuario'; // Será definido após verificar sessão
     
     // Detectar automaticamente se está local ou no Railway
     this.apiBaseUrl = window.location.origin + '/api';
 
     this.initializeElements();
     this.bindEvents();
+    this.checkUserSession(); // Verificar sessão do usuário
     this.loadAreas(); // Carregar áreas do banco
     this.loadCourses(); // Carregar cursos da API na inicialização
-    this.setupAdminAccess(); // Configurar acesso de admin
   }
 
   // Inicializar elementos do DOM
@@ -64,6 +64,35 @@ class CourseManager {
   }
 
   // --- Funções de API ---
+  
+  // Verificar sessão do usuário
+  async checkUserSession() {
+    try {
+      const response = await fetch('/api/me', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const sessionData = await response.json();
+        if (sessionData.authenticated && sessionData.user) {
+          this.userType = sessionData.user.tipo_usuario || 'usuario';
+          console.log('[CURSOS] Usuário autenticado:', sessionData.user.nome, 'Tipo:', this.userType);
+        } else {
+          this.userType = 'usuario';
+          console.log('[CURSOS] Usuário não autenticado');
+        }
+      } else {
+        this.userType = 'usuario';
+        console.log('[CURSOS] Erro ao verificar sessão');
+      }
+    } catch (error) {
+      this.userType = 'usuario';
+      console.error('[CURSOS] Erro ao verificar sessão:', error);
+    }
+    
+    // Configurar acesso de admin após verificar sessão
+    this.setupAdminAccess();
+  }
   
   // Carregar áreas do banco de dados
   async loadAreas() {
