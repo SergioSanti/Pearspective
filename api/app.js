@@ -1337,6 +1337,10 @@ app.get('/api/certificados', async (req, res) => {
     // Construir query adaptativa baseada nas colunas existentes
     let selectColumns = ['id', 'usuario_id', 'nome', 'instituicao'];
     
+    if (existingColumns.includes('data_inicio')) {
+      selectColumns.push('data_inicio');
+    }
+    
     if (existingColumns.includes('data_conclusao')) {
       selectColumns.push('data_conclusao');
     }
@@ -1428,6 +1432,10 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     
     // Construir query adaptativa baseada nas colunas existentes
     let selectColumns = ['id', 'usuario_id', 'nome', 'instituicao'];
+    
+    if (existingColumns.includes('data_inicio')) {
+      selectColumns.push('data_inicio');
+    }
     
     if (existingColumns.includes('data_conclusao')) {
       selectColumns.push('data_conclusao');
@@ -1541,12 +1549,12 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     
     if (req.file && existingColumns.includes('pdf')) {
       // Query com PDF
-      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
-        query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-        params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id), req.file.buffer];
-      } else if (existingColumns.includes('descricao')) {
-        query = 'INSERT INTO certificados (nome, instituicao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-        params = [nome, instituicao, descricao || '', parseInt(usuario_id), req.file.buffer];
+      if (existingColumns.includes('data_inicio') && existingColumns.includes('data_conclusao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+        params = [nome, instituicao, data_conclusao, data_conclusao, parseInt(usuario_id), req.file.buffer];
+      } else if (existingColumns.includes('data_inicio')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_inicio, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+        params = [nome, instituicao, data_conclusao, parseInt(usuario_id), req.file.buffer];
       } else if (existingColumns.includes('data_conclusao')) {
         query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5) RETURNING *';
         params = [nome, instituicao, data_conclusao, parseInt(usuario_id), req.file.buffer];
@@ -1556,12 +1564,12 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
       }
     } else {
       // Query sem PDF
-      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
-        query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-        params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id)];
-      } else if (existingColumns.includes('descricao')) {
-        query = 'INSERT INTO certificados (nome, instituicao, descricao, usuario_id) VALUES ($1, $2, $3, $4) RETURNING *';
-        params = [nome, instituicao, descricao || '', parseInt(usuario_id)];
+      if (existingColumns.includes('data_inicio') && existingColumns.includes('data_conclusao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+        params = [nome, instituicao, data_conclusao, data_conclusao, parseInt(usuario_id)];
+      } else if (existingColumns.includes('data_inicio')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_inicio, usuario_id) VALUES ($1, $2, $3, $4) RETURNING *';
+        params = [nome, instituicao, data_conclusao, parseInt(usuario_id)];
       } else if (existingColumns.includes('data_conclusao')) {
         query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, usuario_id) VALUES ($1, $2, $3, $4) RETURNING *';
         params = [nome, instituicao, data_conclusao, parseInt(usuario_id)];
@@ -1623,12 +1631,12 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
     
     if (req.file && existingColumns.includes('pdf')) {
       // Query com PDF
-      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
-        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING *';
-        params = [nome, instituicao, data_conclusao, descricao || '', req.file.buffer, parseInt(id)];
-      } else if (existingColumns.includes('descricao')) {
-        query = 'UPDATE certificados SET nome = $1, instituicao = $2, descricao = $3, pdf = $4 WHERE id = $5 RETURNING *';
-        params = [nome, instituicao, descricao || '', req.file.buffer, parseInt(id)];
+      if (existingColumns.includes('data_inicio') && existingColumns.includes('data_conclusao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, pdf = $5 WHERE id = $6 RETURNING *';
+        params = [nome, instituicao, data_conclusao, data_conclusao, req.file.buffer, parseInt(id)];
+      } else if (existingColumns.includes('data_inicio')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, pdf = $4 WHERE id = $5 RETURNING *';
+        params = [nome, instituicao, data_conclusao, req.file.buffer, parseInt(id)];
       } else if (existingColumns.includes('data_conclusao')) {
         query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, pdf = $4 WHERE id = $5 RETURNING *';
         params = [nome, instituicao, data_conclusao, req.file.buffer, parseInt(id)];
@@ -1638,12 +1646,12 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
       }
     } else {
       // Query sem PDF
-      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
-        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
-        params = [nome, instituicao, data_conclusao, descricao || '', parseInt(id)];
-      } else if (existingColumns.includes('descricao')) {
-        query = 'UPDATE certificados SET nome = $1, instituicao = $2, descricao = $3 WHERE id = $4 RETURNING *';
-        params = [nome, instituicao, descricao || '', parseInt(id)];
+      if (existingColumns.includes('data_inicio') && existingColumns.includes('data_conclusao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4 WHERE id = $5 RETURNING *';
+        params = [nome, instituicao, data_conclusao, data_conclusao, parseInt(id)];
+      } else if (existingColumns.includes('data_inicio')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3 WHERE id = $4 RETURNING *';
+        params = [nome, instituicao, data_conclusao, parseInt(id)];
       } else if (existingColumns.includes('data_conclusao')) {
         query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3 WHERE id = $4 RETURNING *';
         params = [nome, instituicao, data_conclusao, parseInt(id)];
@@ -1701,6 +1709,10 @@ app.get('/api/certificados/:id', async (req, res) => {
     
     // Construir query adaptativa baseada nas colunas existentes
     let selectColumns = ['id', 'usuario_id', 'nome', 'instituicao'];
+    
+    if (existingColumns.includes('data_inicio')) {
+      selectColumns.push('data_inicio');
+    }
     
     if (existingColumns.includes('data_conclusao')) {
       selectColumns.push('data_conclusao');
