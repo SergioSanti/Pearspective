@@ -1367,22 +1367,30 @@ app.post('/api/cursos', async (req, res) => {
   try {
     let { title, platform, url, area, level, duration, description } = req.body;
     
+    console.log('📝 Criando novo curso:', { title, platform, url, area, level, duration, description });
+    
     // Converter area (ID) para nome
     let categoria = 'Geral';
     if (area) {
       if (!isNaN(Number(area))) {
+        console.log('🔍 Buscando nome da área por ID:', area);
         const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
         if (areaResult.rows.length > 0) {
           categoria = areaResult.rows[0].nome;
+          console.log('✅ Nome da área encontrado:', categoria);
+        } else {
+          console.log('⚠️ Área não encontrada, usando padrão');
         }
       } else if (typeof area === 'string') {
         categoria = area;
+        console.log('✅ Usando nome da área diretamente:', categoria);
       }
     }
     
     // Verificar quais colunas existem na tabela cursos
+    console.log('🔍 Verificando estrutura da tabela cursos...');
     const columnsCheck = await pool.query(`
-      SELECT column_name 
+      SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_schema = 'public' 
       AND table_name = 'cursos'
@@ -1390,6 +1398,7 @@ app.post('/api/cursos', async (req, res) => {
     `);
     
     const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes na tabela cursos:', existingColumns);
     
     // Construir query adaptativa baseada nas colunas existentes
     let insertColumns = [];
@@ -1472,11 +1481,16 @@ app.post('/api/cursos', async (req, res) => {
       RETURNING ${returningColumns.join(', ')}
     `;
     
+    console.log('🔍 Query de inserção adaptativa:', query);
+    console.log('📋 Valores:', values);
+    
     const result = await pool.query(query, values);
+    console.log('✅ Curso criado com sucesso:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao criar curso:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -1488,55 +1502,108 @@ app.put('/api/cursos/:id', async (req, res) => {
     
     console.log(`📝 Atualizando curso ${id}:`, { title, platform, url, area, level, duration, description });
     
+    // Primeiro, verificar se o curso existe
+    console.log('🔍 Verificando se o curso existe...');
+    const checkResult = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      console.log('❌ Curso não encontrado:', id);
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+    
+    console.log('✅ Curso encontrado:', checkResult.rows[0]);
+    
+    // Verificar estrutura da tabela cursos
+    console.log('🔍 Verificando estrutura da tabela cursos...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'cursos'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes na tabela cursos:', existingColumns);
+    
     // Converter area (ID) para nome se fornecido
     let categoria = 'Geral';
     if (area) {
       if (!isNaN(Number(area))) {
+        console.log('🔍 Buscando nome da área por ID:', area);
         const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
         if (areaResult.rows.length > 0) {
           categoria = areaResult.rows[0].nome;
+          console.log('✅ Nome da área encontrado:', categoria);
+        } else {
+          console.log('⚠️ Área não encontrada, usando padrão');
         }
       } else if (typeof area === 'string') {
         categoria = area;
+        console.log('✅ Usando nome da área diretamente:', categoria);
       }
     }
     
-    // Query direta e simples - usar os campos que existem no banco
+    // Construir query adaptativa baseada nas colunas existentes
+    let updateFields = [];
+    let values = [];
+    let paramIndex = 1;
+    
+    if (existingColumns.includes('titulo')) {
+      updateFields.push(`titulo = $${paramIndex++}`);
+      values.push(title || 'Curso sem título');
+    }
+    
+    if (existingColumns.includes('plataforma')) {
+      updateFields.push(`plataforma = $${paramIndex++}`);
+      values.push(platform || 'Não especificado');
+    }
+    
+    if (existingColumns.includes('url_externa')) {
+      updateFields.push(`url_externa = $${paramIndex++}`);
+      values.push(url || '');
+    }
+    
+    if (existingColumns.includes('categoria')) {
+      updateFields.push(`categoria = $${paramIndex++}`);
+      values.push(categoria);
+    }
+    
+    if (existingColumns.includes('nivel')) {
+      updateFields.push(`nivel = $${paramIndex++}`);
+      values.push(level || 'Intermediário');
+    }
+    
+    if (existingColumns.includes('duracao')) {
+      updateFields.push(`duracao = $${paramIndex++}`);
+      values.push(duration || '');
+    }
+    
+    if (existingColumns.includes('descricao')) {
+      updateFields.push(`descricao = $${paramIndex++}`);
+      values.push(description || '');
+    }
+    
+    // Adicionar ID no final
+    values.push(id);
+    
     const query = `
       UPDATE cursos SET
-        titulo = $1,
-        plataforma = $2,
-        url_externa = $3,
-        categoria = $4,
-        nivel = $5,
-        duracao = $6,
-        descricao = $7
-      WHERE id = $8
-      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
+        ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
     `;
     
-    const values = [
-      title || 'Curso sem título',
-      platform || 'Não especificado',
-      url || '',
-      categoria,
-      level || 'Intermediário',
-      duration || '',
-      description || '',
-      id
-    ];
-    
-    console.log('🔍 Query de atualização:', query);
+    console.log('🔍 Query de atualização adaptativa:', query);
     console.log('📋 Valores:', values);
     
     const result = await pool.query(query, values);
     
     if (result.rows.length > 0) {
-      console.log('✅ Curso atualizado:', result.rows[0]);
+      console.log('✅ Curso atualizado com sucesso:', result.rows[0]);
       res.json(result.rows[0]);
     } else {
-      console.log('❌ Curso não encontrado para atualização:', id);
-      res.status(404).json({ error: 'Curso não encontrado' });
+      console.log('❌ Erro: Nenhuma linha foi atualizada');
+      res.status(500).json({ error: 'Falha na atualização' });
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar curso:', error);
