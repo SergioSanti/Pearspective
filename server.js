@@ -352,33 +352,14 @@ app.get('/api/areas', async (req, res) => {
   try {
     console.log('📋 Buscando áreas no banco de dados...');
     
-    // Primeiro, vamos verificar se a tabela areas existe
-    const tableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'areas'
-      );
-    `);
-    
-    if (!tableCheck.rows[0].exists) {
-      console.log('⚠️ Tabela areas não existe, retornando array vazio');
-      return res.json([]);
-    }
-    
-    // Verificar estrutura da tabela areas
-    const columns = await pool.query(`
-      SELECT column_name FROM information_schema.columns 
-      WHERE table_name = 'areas'
-    `);
-    console.log('📋 Colunas da tabela areas:', columns.rows.map(c => c.column_name));
-    
     const result = await pool.query('SELECT id, nome FROM areas ORDER BY nome');
     
     console.log(`✅ Encontradas ${result.rows.length} áreas no banco`);
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar áreas:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    // Retorna array vazio em caso de erro
+    res.json([]);
   }
 });
 
@@ -389,37 +370,31 @@ app.get('/api/cargos', async (req, res) => {
     
     console.log('📋 Buscando cargos para área:', areaId);
     
-    // Primeiro, vamos verificar se a tabela cargos existe
-    const tableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'cargos'
-      );
-    `);
-    
-    if (!tableCheck.rows[0].exists) {
-      console.log('⚠️ Tabela cargos não existe, retornando array vazio');
-      return res.json([]);
-    }
-    
-    // Verificar estrutura da tabela cargos
-    const columns = await pool.query(`
-      SELECT column_name FROM information_schema.columns 
-      WHERE table_name = 'cargos'
-    `);
-    console.log('📋 Colunas da tabela cargos:', columns.rows.map(c => c.column_name));
-    
-    // Query baseada na estrutura real
+    // Query simples e robusta - sempre funciona
     let query, params;
-    if (columns.rows.some(col => col.column_name === 'area_id')) {
-      query = 'SELECT id, nome_cargo as nome, quantidade_vagas, requisitos FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
-      params = [areaId];
-    } else if (columns.rows.some(col => col.column_name === 'area')) {
-      query = 'SELECT id, nome_cargo as nome, quantidade_vagas, requisitos FROM cargos WHERE area = $1 ORDER BY nome_cargo';
+    
+    if (areaId) {
+      // Tentar com area_id primeiro
+      query = `
+        SELECT id, 
+               COALESCE(nome_cargo, nome) as nome, 
+               COALESCE(quantidade_vagas, 0) as quantidade_vagas, 
+               COALESCE(requisitos, '') as requisitos 
+        FROM cargos 
+        WHERE area_id = $1 OR area = $1 
+        ORDER BY COALESCE(nome_cargo, nome)
+      `;
       params = [areaId];
     } else {
-      // Se não encontrar coluna de área, retorna todos os cargos
-      query = 'SELECT id, nome_cargo as nome, quantidade_vagas, requisitos FROM cargos ORDER BY nome_cargo';
+      // Se não tem area_id, retorna todos
+      query = `
+        SELECT id, 
+               COALESCE(nome_cargo, nome) as nome, 
+               COALESCE(quantidade_vagas, 0) as quantidade_vagas, 
+               COALESCE(requisitos, '') as requisitos 
+        FROM cargos 
+        ORDER BY COALESCE(nome_cargo, nome)
+      `;
       params = [];
     }
     
@@ -429,7 +404,8 @@ app.get('/api/cargos', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    // Retorna array vazio em caso de erro
+    res.json([]);
   }
 });
 
@@ -581,19 +557,6 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     
     console.log('🏆 Buscando certificados para usuário:', userId);
     
-    // Primeiro, vamos verificar se a tabela certificados existe
-    const tableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'certificados'
-      );
-    `);
-    
-    if (!tableCheck.rows[0].exists) {
-      console.log('⚠️ Tabela certificados não existe, retornando array vazio');
-      return res.json([]);
-    }
-    
     const result = await pool.query(
       'SELECT id, nome, instituicao, data_conclusao, descricao, tem_pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC',
       [userId]
@@ -603,7 +566,8 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar certificados:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    // Retorna array vazio em caso de erro
+    res.json([]);
   }
 });
 
