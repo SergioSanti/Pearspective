@@ -350,73 +350,78 @@ app.get('/api/cargos/area/:areaId', async (req, res) => {
     const { areaId } = req.params;
     console.log(`📋 Buscando cargos da área ${areaId}...`);
     
-    // Query adaptativa - verificar todas as possíveis colunas
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'cargos' 
-      AND column_name IN ('area_id', 'area_nome', 'area', 'departamento')
-    `);
+    // Primeiro, buscar o nome da área pelo ID
+    const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
     
-    console.log('🔍 Colunas encontradas na tabela cargos:', checkSchema.rows.map(r => r.column_name));
-    
-    const hasAreaId = checkSchema.rows.some(row => row.column_name === 'area_id');
-    const hasAreaNome = checkSchema.rows.some(row => row.column_name === 'area_nome');
-    const hasArea = checkSchema.rows.some(row => row.column_name === 'area');
-    const hasDepartamento = checkSchema.rows.some(row => row.column_name === 'departamento');
-    
-    console.log('🔍 Schema detectado:', { hasAreaId, hasAreaNome, hasArea, hasDepartamento });
-    
-    let query = '';
-    let params = [];
-    
-    if (hasAreaId) {
-      // Se tem area_id, usar diretamente
-      query = 'SELECT * FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
-      params = [areaId];
-      console.log('✅ Usando area_id para filtrar');
-    } else if (hasAreaNome) {
-      // Se tem area_nome, buscar o nome da área primeiro
-      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
-      if (areaResult.rows.length > 0) {
-        query = 'SELECT * FROM cargos WHERE area_nome = $1 ORDER BY nome_cargo';
-        params = [areaResult.rows[0].nome];
-        console.log('✅ Usando area_nome para filtrar:', areaResult.rows[0].nome);
-      }
-    } else if (hasArea) {
-      // Se tem area, buscar o nome da área primeiro
-      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
-      if (areaResult.rows.length > 0) {
-        query = 'SELECT * FROM cargos WHERE area = $1 ORDER BY nome_cargo';
-        params = [areaResult.rows[0].nome];
-        console.log('✅ Usando area para filtrar:', areaResult.rows[0].nome);
-      }
-    } else if (hasDepartamento) {
-      // Se tem departamento, buscar o nome da área primeiro
-      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [areaId]);
-      if (areaResult.rows.length > 0) {
-        query = 'SELECT * FROM cargos WHERE departamento = $1 ORDER BY nome_cargo';
-        params = [areaResult.rows[0].nome];
-        console.log('✅ Usando departamento para filtrar:', areaResult.rows[0].nome);
-      }
-    }
-    
-    if (!query) {
-      console.log('❌ Nenhuma coluna de área encontrada, retornando vazio');
+    if (areaResult.rows.length === 0) {
+      console.log('❌ Área não encontrada:', areaId);
       return res.json([]);
     }
     
-    console.log('🔍 Query final:', query, 'Params:', params);
-    const result = await pool.query(query, params);
+    const areaNome = areaResult.rows[0].nome;
+    console.log('✅ Nome da área encontrado:', areaNome);
     
-    console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
-    console.log('📊 Cargos encontrados:', result.rows.map(c => c.nome_cargo || c.nome));
+    // Agora buscar cargos que pertencem a essa área
+    // Tentar diferentes possibilidades de coluna
+    let cargos = [];
     
-    res.json(result.rows);
+    // Tentar area_id primeiro
+    try {
+      const result1 = await pool.query('SELECT * FROM cargos WHERE area_id = $1', [areaId]);
+      if (result1.rows.length > 0) {
+        cargos = result1.rows;
+        console.log('✅ Encontrados cargos por area_id');
+      }
+    } catch (e) {
+      console.log('❌ area_id não existe');
+    }
+    
+    // Se não encontrou por area_id, tentar por nome da área
+    if (cargos.length === 0) {
+      try {
+        const result2 = await pool.query('SELECT * FROM cargos WHERE area = $1', [areaNome]);
+        if (result2.rows.length > 0) {
+          cargos = result2.rows;
+          console.log('✅ Encontrados cargos por area (nome)');
+        }
+      } catch (e) {
+        console.log('❌ area (nome) não existe');
+      }
+    }
+    
+    // Se ainda não encontrou, tentar area_nome
+    if (cargos.length === 0) {
+      try {
+        const result3 = await pool.query('SELECT * FROM cargos WHERE area_nome = $1', [areaNome]);
+        if (result3.rows.length > 0) {
+          cargos = result3.rows;
+          console.log('✅ Encontrados cargos por area_nome');
+        }
+      } catch (e) {
+        console.log('❌ area_nome não existe');
+      }
+    }
+    
+    // Se ainda não encontrou, tentar departamento
+    if (cargos.length === 0) {
+      try {
+        const result4 = await pool.query('SELECT * FROM cargos WHERE departamento = $1', [areaNome]);
+        if (result4.rows.length > 0) {
+          cargos = result4.rows;
+          console.log('✅ Encontrados cargos por departamento');
+        }
+      } catch (e) {
+        console.log('❌ departamento não existe');
+      }
+    }
+    
+    console.log(`✅ Encontrados ${cargos.length} cargos para área "${areaNome}"`);
+    console.log('📊 Cargos:', cargos.map(c => c.nome_cargo || c.nome));
+    
+    res.json(cargos);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos por área:', error);
-    console.error('❌ Stack trace:', error.stack);
-    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
