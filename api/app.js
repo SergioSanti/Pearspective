@@ -189,6 +189,35 @@ app.get('/api/ensure-users', async (req, res) => {
       console.log('✅ Tabela usuarios criada');
     }
     
+    // Verificar se a tabela curriculos existe
+    const curriculumTableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'curriculos'
+      );
+    `);
+    
+    if (!curriculumTableExists.rows[0].exists) {
+      console.log('❌ Tabela curriculos não existe, criando...');
+      
+      // Criar tabela curriculos
+      await pool.query(`
+        CREATE TABLE curriculos (
+          id SERIAL PRIMARY KEY,
+          usuario_nome VARCHAR(100) NOT NULL,
+          nome_arquivo VARCHAR(255) NOT NULL,
+          tipo_mime VARCHAR(100) NOT NULL,
+          tamanho BIGINT NOT NULL,
+          dados BYTEA NOT NULL,
+          data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (usuario_nome) REFERENCES usuarios(nome) ON DELETE CASCADE
+        );
+      `);
+      
+      console.log('✅ Tabela curriculos criada');
+    }
+    
     // Verificar se os usuários padrão existem
     const adminExists = await pool.query('SELECT id FROM usuarios WHERE nome = $1', ['admin']);
     const sergioExists = await pool.query('SELECT id FROM usuarios WHERE nome = $1', ['sergio']);
@@ -953,12 +982,30 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
     const { username } = req.params;
     console.log(`📄 Buscando status do currículo para: ${username}`);
     
-    // Simular status do currículo
-    res.json({ 
-      hasCurriculum: false, 
-      lastUpdated: null,
-      status: 'not_uploaded'
-    });
+    // Buscar currículo no banco de dados
+    const result = await pool.query(
+      'SELECT nome_arquivo, tamanho, data_upload FROM curriculos WHERE usuario_nome = $1 ORDER BY data_upload DESC LIMIT 1',
+      [username]
+    );
+    
+    if (result.rows.length > 0) {
+      const curriculum = result.rows[0];
+      console.log('✅ Currículo encontrado:', curriculum);
+      res.json({
+        hasCurriculum: true,
+        fileName: curriculum.nome_arquivo,
+        fileSize: curriculum.tamanho,
+        lastUpdated: curriculum.data_upload,
+        status: 'uploaded'
+      });
+    } else {
+      console.log('❌ Nenhum currículo encontrado para:', username);
+      res.json({
+        hasCurriculum: false,
+        lastUpdated: null,
+        status: 'not_uploaded'
+      });
+    }
   } catch (error) {
     console.error('❌ Erro ao buscar status do currículo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -971,7 +1018,26 @@ app.get('/api/users/curriculum/:username', async (req, res) => {
     const { username } = req.params;
     console.log(`📄 Buscando currículo para: ${username}`);
     
-    res.status(404).json({ error: 'Currículo não encontrado' });
+    // Buscar currículo no banco de dados
+    const result = await pool.query(
+      'SELECT nome_arquivo, tipo_mime, dados FROM curriculos WHERE usuario_nome = $1 ORDER BY data_upload DESC LIMIT 1',
+      [username]
+    );
+    
+    if (result.rows.length > 0) {
+      const curriculum = result.rows[0];
+      console.log('✅ Currículo encontrado, enviando arquivo:', curriculum.nome_arquivo);
+      
+      // Configurar headers para download
+      res.setHeader('Content-Type', curriculum.tipo_mime);
+      res.setHeader('Content-Disposition', `inline; filename="${curriculum.nome_arquivo}"`);
+      
+      // Enviar dados do arquivo
+      res.send(curriculum.dados);
+    } else {
+      console.log('❌ Currículo não encontrado para:', username);
+      res.status(404).json({ error: 'Currículo não encontrado' });
+    }
   } catch (error) {
     console.error('❌ Erro ao buscar currículo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -1006,15 +1072,28 @@ app.post('/api/users/curriculum/:username', upload.single('curriculum'), async (
       return res.status(400).json({ error: 'Arquivo muito grande. Máximo 10MB permitido' });
     }
     
-    // Aqui você pode salvar o arquivo no banco de dados ou sistema de arquivos
-    // Por enquanto, vamos simular o sucesso
+    // Verificar se o usuário existe
+    const userCheck = await pool.query('SELECT nome FROM usuarios WHERE nome = $1', [username]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
     
-    console.log('✅ Currículo processado com sucesso');
+    // Deletar currículo anterior se existir
+    await pool.query('DELETE FROM curriculos WHERE usuario_nome = $1', [username]);
+    console.log('🗑️ Currículo anterior removido');
+    
+    // Salvar novo currículo no banco de dados
+    const result = await pool.query(
+      'INSERT INTO curriculos (usuario_nome, nome_arquivo, tipo_mime, tamanho, dados) VALUES ($1, $2, $3, $4, $5) RETURNING id, data_upload',
+      [username, file.originalname, file.mimetype, file.size, file.buffer]
+    );
+    
+    console.log('✅ Currículo salvo no banco de dados:', result.rows[0]);
     res.json({
       message: 'Currículo enviado com sucesso',
       fileName: file.originalname,
       fileSize: file.size,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: result.rows[0].data_upload
     });
   } catch (error) {
     console.error('❌ Erro ao fazer upload do currículo:', error);
@@ -1041,7 +1120,16 @@ app.delete('/api/users/curriculum/:username', async (req, res) => {
     const { username } = req.params;
     console.log(`📄 Deletando currículo para: ${username}`);
     
-    res.json({ message: 'Currículo deletado com sucesso' });
+    // Deletar currículo do banco de dados
+    const result = await pool.query('DELETE FROM curriculos WHERE usuario_nome = $1 RETURNING id', [username]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Currículo deletado com sucesso');
+      res.json({ message: 'Currículo deletado com sucesso' });
+    } else {
+      console.log('❌ Nenhum currículo encontrado para deletar');
+      res.status(404).json({ error: 'Currículo não encontrado' });
+    }
   } catch (error) {
     console.error('❌ Erro ao deletar currículo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
