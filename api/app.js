@@ -987,14 +987,39 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
       return res.status(400).json({ error: 'Username não fornecido' });
     }
     
+    console.log('🔍 Passo 1: Verificando se o usuário existe...');
+    
     // Verificar se o usuário existe primeiro
     const userCheck = await pool.query('SELECT nome FROM usuarios WHERE nome = $1', [username]);
+    console.log('👤 Resultado da verificação do usuário:', userCheck.rows);
+    
     if (userCheck.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', username);
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
-    console.log('✅ Usuário encontrado, buscando currículos...');
+    console.log('✅ Usuário encontrado, verificando tabela curriculos...');
+    
+    // Verificar se a tabela curriculos existe
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'curriculos'
+      );
+    `);
+    console.log('📋 Tabela curriculos existe:', tableCheck.rows[0].exists);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('❌ Tabela curriculos não existe');
+      return res.json({
+        hasCurriculum: false,
+        lastUpdated: null,
+        status: 'table_missing'
+      });
+    }
+    
+    console.log('✅ Tabela curriculos existe, buscando currículos...');
     
     // Buscar currículo no banco de dados
     const result = await pool.query(
@@ -1271,6 +1296,137 @@ app.get('/api/debug-user/:username', async (req, res) => {
     res.status(500).json({ 
       error: 'Erro no debug do usuário', 
       details: error.message 
+    });
+  }
+});
+
+// Rota de teste específica para currículo do admin
+app.get('/api/test-admin-curriculum', async (req, res) => {
+  try {
+    console.log('🧪 Testando currículo do admin especificamente...');
+    
+    // 1. Verificar se o usuário admin existe
+    const adminCheck = await pool.query('SELECT id, nome FROM usuarios WHERE nome = $1', ['admin']);
+    console.log('👤 Verificação do admin:', adminCheck.rows);
+    
+    if (adminCheck.rows.length === 0) {
+      return res.json({
+        error: 'Usuário admin não encontrado',
+        status: 'admin_not_found'
+      });
+    }
+    
+    // 2. Verificar se a tabela curriculos existe
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'curriculos'
+      );
+    `);
+    console.log('📋 Tabela curriculos existe:', tableCheck.rows[0].exists);
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        error: 'Tabela curriculos não existe',
+        status: 'table_missing'
+      });
+    }
+    
+    // 3. Verificar estrutura da tabela curriculos
+    const columnsCheck = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'curriculos' 
+      ORDER BY ordinal_position
+    `);
+    console.log('📊 Colunas da tabela curriculos:', columnsCheck.rows);
+    
+    // 4. Tentar buscar currículos do admin
+    const curriculumCheck = await pool.query(
+      'SELECT id, nome_arquivo, tamanho, data_upload FROM curriculos WHERE usuario_nome = $1',
+      ['admin']
+    );
+    console.log('📄 Currículos do admin:', curriculumCheck.rows);
+    
+    res.json({
+      status: 'ok',
+      admin: adminCheck.rows[0],
+      tableExists: tableCheck.rows[0].exists,
+      columns: columnsCheck.rows,
+      curriculums: curriculumCheck.rows,
+      totalCurriculums: curriculumCheck.rows.length,
+      message: 'Teste do admin concluído'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no teste do admin:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro no teste do admin', 
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Rota para recriar tabela curriculos se necessário
+app.post('/api/fix-curriculum-table', async (req, res) => {
+  try {
+    console.log('🔧 Recriando tabela curriculos...');
+    
+    // 1. Verificar se a tabela existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'curriculos'
+      );
+    `);
+    
+    if (tableExists.rows[0].exists) {
+      console.log('🗑️ Tabela curriculos existe, removendo...');
+      await pool.query('DROP TABLE curriculos CASCADE');
+    }
+    
+    // 2. Criar tabela curriculos
+    console.log('📋 Criando tabela curriculos...');
+    await pool.query(`
+      CREATE TABLE curriculos (
+        id SERIAL PRIMARY KEY,
+        usuario_nome VARCHAR(100) NOT NULL,
+        nome_arquivo VARCHAR(255) NOT NULL,
+        tipo_mime VARCHAR(100) NOT NULL,
+        tamanho BIGINT NOT NULL,
+        dados BYTEA NOT NULL,
+        data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_nome) REFERENCES usuarios(nome) ON DELETE CASCADE
+      );
+    `);
+    
+    // 3. Verificar estrutura
+    const columns = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'curriculos' 
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('✅ Tabela curriculos recriada com sucesso');
+    
+    res.json({
+      status: 'ok',
+      message: 'Tabela curriculos recriada com sucesso',
+      columns: columns.rows
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao recriar tabela curriculos:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro ao recriar tabela', 
+      details: error.message,
+      stack: error.stack
     });
   }
 });
