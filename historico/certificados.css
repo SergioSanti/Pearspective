@@ -1,33 +1,6 @@
-/* ===== BOTÃO DE VOLTAR PADRÃO ===== */
-.back-btn-container {
-    max-width: 1200px;
-    margin: 2rem auto 0 auto;
-    display: flex;
-    justify-content: flex-start;
-}
 
-.back-btn {
-    margin-bottom: 1.5rem;
-    font-size: 1rem;
-    padding: 0.75rem 2rem;
-    border-radius: 10px;
-    box-shadow: var(--shadow-sm);
-    gap: 0.5rem;
-    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-    color: white;
-    box-shadow: 0 4px 15px rgba(107, 142, 78, 0.3);
-    transition: all 0.3s ease;
-}
 
-.back-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(107, 142, 78, 0.4);
-}
 
-.back-btn .btn-icon {
-    font-size: 1.2rem;
-    margin-right: 0.5rem;
-}
 
 /* ===== BOTÕES PADRÃO ===== */
 .btn-primary {
@@ -89,7 +62,9 @@
 /* Estilos para a página de Certificados e Modal */
 
 body {
-  background-color: var(--gray-100);
+  background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%);
+  padding-top: 70px; /* Espaço para navbar fixa */
+  min-height: 100vh;
 }
 
 .page-container {
@@ -99,16 +74,34 @@ body {
 }
 
 .page-header {
-  background-color: var(--brand-primary);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
   color: white;
   padding: var(--spacing-8) 0;
   text-align: center;
   box-shadow: var(--shadow-md);
   position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .page-header .container {
   position: relative;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.header-left,
+.header-right {
+  flex: 0 0 auto;
+}
+
+.header-center {
+  text-align: center;
 }
 
 .page-header .btn {
@@ -118,21 +111,26 @@ body {
   transform: translateY(-50%);
 }
 
-.header-content {
-  display: inline-block;
-}
-
 .page-title {
   font-size: var(--font-size-4xl);
   font-weight: 700;
   margin: 0;
   color: white;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: color var(--transition-fast);
+}
+
+.page-title:hover {
+  color: #2d5019;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 .page-subtitle {
   font-size: var(--font-size-lg);
-  color: var(--gray-300);
+  color: rgba(255, 255, 255, 0.95);
   margin: var(--spacing-2) 0 0 0;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .content-panel {
@@ -140,7 +138,7 @@ body {
   border-radius: var(--border-radius-2xl);
   box-shadow: var(--shadow-lg);
   padding: var(--spacing-8);
-  margin-top: calc(-1 * var(--spacing-8));
+  margin: var(--spacing-6) auto 0 auto;
   position: relative;
   z-index: 10;
 }
@@ -214,6 +212,36 @@ body {
   border: 1px solid var(--gray-200);
 }
 
+.pdf-actions {
+  display: flex;
+  gap: var(--spacing-2);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pdf-actions .btn {
+  flex: 1;
+  min-width: 120px;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  padding: 0.5rem 0.75rem;
+}
+
+.pdf-actions .btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+}
+
+.pdf-actions .btn-secondary {
+  background: var(--gray-200);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.pdf-actions .btn-secondary:hover {
+  background: var(--gray-300);
+  color: var(--gray-800);
+}
+
 .pdf-section .btn {
   margin-right: var(--spacing-2);
 }
@@ -222,6 +250,10 @@ body {
   color: var(--gray-500);
   font-style: italic;
   font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .cert-actions {
@@ -343,4 +375,117 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ===== DARK MODE PARA HISTÓRICO ===== */
+[data-theme="dark"] body {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: var(--text-primary);
+  padding-top: 70px; /* Manter espaço para navbar fixa */
+}
+
+[data-theme="dark"] .page-header {
+  background: rgba(31, 41, 55, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .content-panel {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .panel-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .panel-header h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .cert-card {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .cert-card:hover {
+  border-color: var(--brand-primary);
+}
+
+[data-theme="dark"] .cert-card h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .cert-card p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .cert-card .dates {
+  color: var(--brand-primary);
+}
+
+[data-theme="dark"] .cert-card .description {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .pdf-section {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .pdf-actions .btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .pdf-actions .btn-secondary:hover {
+  background: var(--gray-700);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .no-pdf {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .modal-content {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-header h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .close-btn {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .close-btn:hover {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-group label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .form-help {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .input,
+[data-theme="dark"] .textarea {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .input:focus,
+[data-theme="dark"] .textarea:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(168, 198, 108, 0.1);
 }

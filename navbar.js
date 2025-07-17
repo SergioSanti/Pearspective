@@ -10,29 +10,30 @@ function updateUserCircle() {
   
   if (userCircle) {
     if (userName) {
-      // SEMPRE buscar foto do banco de dados primeiro
-      fetch(`/api/users/photo/${encodeURIComponent(userName)}`)
+      // Buscar foto e nome de exibição do banco de dados
+      fetch(`/api/users/profile/${encodeURIComponent(userName)}`)
         .then(response => {
-          if (!response.ok) {
-            throw new Error('Usuário não encontrado');
-          }
+          if (!response.ok) throw new Error('Usuário não encontrado');
           return response.json();
         })
         .then(userData => {
+          // Foto
           if (userData.foto_perfil) {
-            // Atualizar localStorage e exibir foto
             localStorage.setItem('userPhoto', userData.foto_perfil);
             userCircle.innerHTML = `<img src="${userData.foto_perfil}" alt="Foto do usuário">`;
             console.log('[NAVBAR] Foto carregada do banco de dados');
           } else {
-            // Se não há foto no banco, usar inicial
             localStorage.removeItem('userPhoto');
             userCircle.textContent = getUserInitial();
             console.log('[NAVBAR] Nenhuma foto no banco, usando inicial');
           }
+          // Nome de exibição
+          if (userNameDisplay) {
+            userNameDisplay.textContent = userData.nome_exibicao || userData.nome || userName;
+          }
         })
         .catch(error => {
-          console.error('[NAVBAR] Erro ao buscar foto do usuário:', error);
+          console.error('[NAVBAR] Erro ao buscar perfil do usuário:', error);
           // Fallback para localStorage se disponível
           const userPhoto = localStorage.getItem('userPhoto');
           if (userPhoto) {
@@ -42,17 +43,16 @@ function updateUserCircle() {
             userCircle.textContent = getUserInitial();
             console.log('[NAVBAR] Usando inicial como fallback');
           }
+          if (userNameDisplay) {
+            userNameDisplay.textContent = userName;
+          }
         });
     } else {
-      // Se não há userName, limpar tudo
       localStorage.removeItem('userPhoto');
       userCircle.textContent = getUserInitial();
       console.log('[NAVBAR] Nenhum usuário logado');
+      if (userNameDisplay) userNameDisplay.textContent = '';
     }
-  }
-  
-  if (userNameDisplay) {
-    userNameDisplay.textContent = userName;
   }
 }
 const photoUpload = document.getElementById('photoUpload');
@@ -77,7 +77,6 @@ if (photoUpload) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              nome: userName,
               departamento: localStorage.getItem('userDepartment') || '',
               cargo_atual: localStorage.getItem('userPosition') || '',
               foto_perfil: photoData

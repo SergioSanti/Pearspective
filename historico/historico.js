@@ -48,9 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dataConclusao = new Date(cert.data_conclusao).toLocaleDateString('pt-BR');
                 
                 // Botão para visualizar PDF se existir
-                const pdfButton = cert.pdf ? 
-                    `<button class="btn btn-primary btn-sm" onclick="viewPdf('${cert.id}')">📄 Ver PDF</button>` : 
-                    '<span class="no-pdf">Sem PDF anexado</span>';
+                const pdfButton = cert.tem_pdf ? 
+                    `<div class="pdf-actions">
+                        <button class="btn btn-primary btn-sm" onclick="viewPdf('${cert.id}')" title="Visualizar PDF">
+                            👁️ Visualizar
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadPdf('${cert.id}')" title="Baixar PDF">
+                            📥 Baixar
+                        </button>
+                    </div>` : 
+                    '<span class="no-pdf">📄 Sem PDF anexado</span>';
                 
                 certCard.innerHTML = `
                     <h3>${cert.nome}</h3>
@@ -80,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             certIdInput.value = cert.id;
             document.getElementById('cert-name').value = cert.nome;
             document.getElementById('cert-issuer').value = cert.instituicao;
+            document.getElementById('cert-date-start').value = cert.data_inicio || cert.data_conclusao;
             document.getElementById('cert-date').value = cert.data_conclusao;
             document.getElementById('cert-description').value = cert.descricao || '';
         } else {
@@ -115,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('usuario_id', userId);
             formData.append('nome', document.getElementById('cert-name').value);
             formData.append('instituicao', document.getElementById('cert-issuer').value);
+            formData.append('data_inicio', document.getElementById('cert-date-start').value);
             formData.append('data_conclusao', document.getElementById('cert-date').value);
             formData.append('descricao', document.getElementById('cert-description').value);
             
@@ -192,10 +201,52 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
+            
+            // Abrir PDF em nova aba
+            const newWindow = window.open(url, '_blank');
+            if (!newWindow) {
+                alert('Por favor, permita pop-ups para visualizar o PDF');
+            }
         } catch (error) {
             console.error('Erro ao visualizar PDF:', error);
             alert('Erro ao visualizar PDF. Tente novamente.');
+        }
+    };
+
+    window.downloadPdf = async (id) => {
+        try {
+            // Primeiro buscar informações do certificado para obter o nome
+            const certResponse = await fetch(`${API_BASE_URL}/certificados/${id}`);
+            if (!certResponse.ok) {
+                throw new Error('Erro ao buscar informações do certificado');
+            }
+            const cert = await certResponse.json();
+            
+            // Buscar o PDF
+            const response = await fetch(`${API_BASE_URL}/certificados/${id}/pdf`);
+            if (!response.ok) {
+                throw new Error('Erro ao buscar PDF');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            // Criar nome do arquivo baseado no nome do certificado
+            const filename = `${cert.nome.replace(/[^a-zA-Z0-9]/g, '_')}_certificado.pdf`;
+            
+            // Criar link de download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Limpar URL
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Erro ao baixar PDF:', error);
+            alert('Erro ao baixar PDF. Tente novamente.');
         }
     };
 

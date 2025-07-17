@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Visualização de PDF - Pearspective</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+        }
+        button:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #545b62; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .pdf-viewer {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste de Visualização de PDF</h1>
+        
+        <div class="test-section">
+            <h3>1. Listar Certificados do Usuário</h3>
+            <button onclick="listCertificates()">Listar Certificados</button>
+            <div id="certificatesList"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Testar Visualização de PDF</h3>
+            <label>ID do Certificado:</label>
+            <input type="number" id="certId" value="1" min="1">
+            <button onclick="viewPdf()">👁️ Visualizar PDF</button>
+            <button onclick="downloadPdf()" class="btn-secondary">📥 Baixar PDF</button>
+            <div id="pdfResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Visualizador de PDF Inline</h3>
+            <button onclick="showPdfViewer()">Mostrar Visualizador</button>
+            <div id="pdfViewerContainer" style="display: none;">
+                <iframe id="pdfViewer" class="pdf-viewer"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function listCertificates() {
+            const resultDiv = document.getElementById('certificatesList');
+            resultDiv.innerHTML = '<p>Carregando...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/certificados/usuario/2`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'test-section success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Certificados encontrados: ${data.length}</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'test-section error';
+                    resultDiv.innerHTML = `<h4>❌ Erro ${response.status}</h4><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `<h4>❌ Erro de conexão</h4><p>${error.message}</p>`;
+            }
+        }
+
+        async function viewPdf() {
+            const certId = document.getElementById('certId').value;
+            const resultDiv = document.getElementById('pdfResult');
+            resultDiv.innerHTML = '<p>Abrindo PDF...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/certificados/${certId}/pdf`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const newWindow = window.open(url, '_blank');
+                    if (newWindow) {
+                        resultDiv.innerHTML = '<p class="success">✅ PDF aberto em nova aba!</p>';
+                    } else {
+                        resultDiv.innerHTML = '<p class="error">❌ Pop-up bloqueado. Permita pop-ups para visualizar o PDF.</p>';
+                    }
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<p class="error">❌ Erro ${response.status}: ${errorData.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+            }
+        }
+
+        async function downloadPdf() {
+            const certId = document.getElementById('certId').value;
+            const resultDiv = document.getElementById('pdfResult');
+            resultDiv.innerHTML = '<p>Baixando PDF...</p>';
+            
+            try {
+                // Primeiro buscar informações do certificado
+                const certResponse = await fetch(`${API_BASE}/certificados/${certId}`);
+                if (!certResponse.ok) {
+                    throw new Error('Erro ao buscar informações do certificado');
+                }
+                const cert = await certResponse.json();
+                
+                // Buscar o PDF
+                const response = await fetch(`${API_BASE}/certificados/${certId}/pdf`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const filename = `${cert.nome.replace(/[^a-zA-Z0-9]/g, '_')}_certificado.pdf`;
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    window.URL.revokeObjectURL(url);
+                    resultDiv.innerHTML = '<p class="success">✅ Download iniciado!</p>';
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<p class="error">❌ Erro ${response.status}: ${errorData.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+            }
+        }
+
+        async function showPdfViewer() {
+            const certId = document.getElementById('certId').value;
+            const container = document.getElementById('pdfViewerContainer');
+            const iframe = document.getElementById('pdfViewer');
+            
+            try {
+                const response = await fetch(`${API_BASE}/certificados/${certId}/pdf`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    iframe.src = url;
+                    container.style.display = 'block';
+                } else {
+                    alert('Erro ao carregar PDF para visualização');
+                }
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        // Teste automático ao carregar a página
+        window.onload = function() {
+            console.log('🧪 Página de teste de PDF carregada');
+            console.log('📋 Execute os testes clicando nos botões acima');
+        };
+    </script>
+</body>
+</html> 

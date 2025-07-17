@@ -15,6 +15,64 @@ document.addEventListener('DOMContentLoaded', () => {
     return response.json();
   }
 
+  // Função para mostrar mensagem de sucesso
+  function showSuccessMessage(message) {
+    // Remove mensagens anteriores
+    const existingMessage = document.querySelector('.message-popup');
+    if (existingMessage) {
+      existingMessage.remove();
+    }
+
+    // Cria nova mensagem
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message-popup success';
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <span class="message-icon">✅</span>
+        <span class="message-text">${message}</span>
+        <button class="message-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    // Remove automaticamente após 5 segundos
+    setTimeout(() => {
+      if (messageDiv.parentElement) {
+        messageDiv.remove();
+      }
+    }, 5000);
+  }
+
+  // Função para mostrar mensagem de erro
+  function showErrorMessage(message) {
+    // Remove mensagens anteriores
+    const existingMessage = document.querySelector('.message-popup');
+    if (existingMessage) {
+      existingMessage.remove();
+    }
+
+    // Cria nova mensagem
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message-popup error';
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <span class="message-icon">❌</span>
+        <span class="message-text">${message}</span>
+        <button class="message-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    // Remove automaticamente após 5 segundos
+    setTimeout(() => {
+      if (messageDiv.parentElement) {
+        messageDiv.remove();
+      }
+    }, 5000);
+  }
+
   // Carregar áreas do backend
   async function carregarAreas() {
     try {
@@ -187,11 +245,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const method = id ? 'PUT' : 'POST';
       const url = id ? `/api/areas/${id}` : '/api/areas';
 
-      await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome })
-      });
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome })
+        });
+
+        if (response.ok) {
+          const message = id ? 'Área atualizada com sucesso!' : 'Área criada com sucesso!';
+          showSuccessMessage(message);
+        } else {
+          showErrorMessage('Erro ao salvar área. Tente novamente.');
+        }
+      } catch (error) {
+        showErrorMessage('Erro ao conectar com o servidor.');
+      }
 
       areaForm.reset();
       areaIdInput.value = '';
@@ -230,7 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
             option.textContent = area.nome;
             cargoAreaSelect.appendChild(option);
         });
-        cargosList.innerHTML = '<p>Selecione uma área para ver os cargos.</p>';
+        // Limpa a lista de cargos sem mostrar mensagem duplicada
+        cargosList.innerHTML = '';
     }
 
     cargoAreaSelect.addEventListener('change', async () => {
@@ -277,11 +347,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const method = id ? 'PUT' : 'POST';
         const url = id ? `/api/cargos/${id}` : '/api/cargos';
         
-        await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (response.ok) {
+                const message = id ? 'Cargo atualizado com sucesso!' : 'Cargo criado com sucesso!';
+                showSuccessMessage(message);
+            } else {
+                showErrorMessage('Erro ao salvar cargo. Tente novamente.');
+            }
+        } catch (error) {
+            showErrorMessage('Erro ao conectar com o servidor.');
+        }
 
         cargoForm.reset();
         cargoIdInput.value = '';

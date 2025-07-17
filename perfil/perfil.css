@@ -7,6 +7,7 @@ body {
     min-height: 100vh;
     box-sizing: border-box;
     overflow-x: hidden;
+    padding-top: 70px; /* Espaço para navbar fixa */
 }
 
 .profile-container {
@@ -41,6 +42,12 @@ body {
     margin-bottom: 0.5rem;
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     color: white;
+    transition: color var(--transition-fast);
+}
+
+.profile-title:hover {
+    color: #2d5019;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .profile-subtitle {
@@ -169,6 +176,15 @@ body {
 
 .edit-icon {
     font-size: 1rem;
+}
+
+.photo-info {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    text-align: center;
+    margin: 0;
+    line-height: 1.4;
+    max-width: 200px;
 }
 
 .hidden {
@@ -506,43 +522,102 @@ body {
     }
 }
 
-/* Modo escuro (opcional) */
-@media (prefers-color-scheme: dark) {
-    .profile-section {
-        background: rgba(31, 41, 55, 0.95);
-        color: white;
-    }
-    
-    .form-input,
-    .form-select {
-        background: var(--gray-700);
-        color: white;
-        border-color: var(--gray-600);
-    }
-    
-
+/* ===== DARK MODE PARA PERFIL ===== */
+[data-theme="dark"] .profile-container {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  padding-top: 70px; /* Manter espaço para navbar fixa */
 }
 
-.back-btn-container {
-    max-width: 1200px;
-    margin: 2rem auto 0 auto;
-    display: flex;
-    justify-content: flex-start;
+[data-theme="dark"] .profile-section {
+  background: rgba(31, 41, 55, 0.95);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
-.back-btn {
-    margin-bottom: 1.5rem;
-    font-size: 1rem;
-    padding: 0.75rem 2rem;
-    border-radius: 10px;
-    box-shadow: var(--shadow-sm);
-    gap: 0.5rem;
+[data-theme="dark"] .profile-section:hover {
+  background: rgba(55, 65, 81, 0.95);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
-.back-btn .btn-icon {
-    font-size: 1.2rem;
-    margin-right: 0.5rem;
+[data-theme="dark"] .section-title {
+  color: var(--text-primary);
 }
+
+[data-theme="dark"] .form-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-select:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(168, 198, 108, 0.1);
+}
+
+[data-theme="dark"] .form-input[readonly] {
+  background: var(--gray-800);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .photo-info {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .modal-content {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .modal-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .upload-area {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .upload-text strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .upload-text span {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .file-info {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .file-preview {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .file-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .file-meta {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .controls-header {
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  border-color: var(--border-color);
+}
+
+
 
 /* ===== ESTILOS DA SEÇÃO DE CURRÍCULO ===== */
 

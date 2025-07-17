@@ -12,23 +12,21 @@
     }
   </script>
   <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="../navbar.css" rel="stylesheet">
   <link href="certificados.css" rel="stylesheet">
 </head>
 <body>
-  <!-- Botão de Voltar -->
-  <div class="back-btn-container">
-    <a href="../Page_inicial/index.html" class="btn btn-primary back-btn">
-      <span class="btn-icon">←</span>
-      Voltar à Página Inicial
-    </a>
-  </div>
+  <!-- Navbar carregado dinamicamente -->
+  <div id="navbar"></div>
 
   <div class="page-container">
     <header class="page-header">
       <div class="container">
         <div class="header-content">
-          <h1 class="page-title">Meus Certificados</h1>
-          <p class="page-subtitle">Gerencie e visualize suas conquistas profissionais.</p>
+          <div class="header-center">
+            <h1 class="page-title">Meus Certificados</h1>
+            <p class="page-subtitle">Gerencie e visualize suas conquistas profissionais.</p>
+          </div>
         </div>
       </div>
     </header>
@@ -67,6 +65,10 @@
           <input type="text" id="cert-issuer" class="input" required>
         </div>
         <div class="form-group">
+          <label for="cert-date-start">Data de Início</label>
+          <input type="date" id="cert-date-start" class="input" required>
+        </div>
+        <div class="form-group">
           <label for="cert-date">Data de Conclusão</label>
           <input type="date" id="cert-date" class="input" required>
         </div>
@@ -87,6 +89,81 @@
     </div>
   </div>
 
+  <!-- Script para carregar o conteúdo da navbar -->
+  <script>
+    fetch("../navbar.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+        // Carrega o JS da navbar após inserir o HTML
+        const script = document.createElement('script');
+        script.src = '../navbar.js';
+        document.body.appendChild(script);
+      });
+  </script>
+
   <script src="historico.js"></script>
+  <script>
+    // Função global para dark mode
+    window.toggleDarkMode = function() {
+      console.log('[DARK MODE] Alternando tema...');
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      console.log('[DARK MODE] Tema atual:', currentTheme, 'Novo tema:', newTheme);
+      
+      // Aplicar o tema
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (newTheme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+      
+      console.log('[DARK MODE] Tema aplicado:', newTheme);
+    };
+    
+    // Inicializar tema
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (theme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+    }
+    
+    // Inicializar quando a página carregar
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTheme);
+    } else {
+      initializeTheme();
+    }
+  </script>
 </body>
 </html>

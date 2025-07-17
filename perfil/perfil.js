@@ -6,12 +6,22 @@ class ProfileManager {
         this.originalData = {};
         this.hasChanges = false;
         this.fotoPerfil = null;
+        this.loginUserName = null; // Nome de login (não alterável)
         this.init();
     }
 
     async init() {
         try {
+            // Carregar dados do usuário primeiro
             await this.loadUserData();
+            
+            // Depois carregar as áreas
+            await this.loadAreas();
+            
+            // Preencher o formulário com os dados carregados
+            await this.populateForm();
+            
+            // Por último configurar os event listeners
             this.setupEventListeners();
         } catch (error) {
             console.error('Erro ao inicializar perfil:', error);
@@ -25,6 +35,9 @@ class ProfileManager {
             window.location.href = '/login.html';
             return;
         }
+
+        // Guardar o nome de login original
+        this.loginUserName = userName;
 
         try {
             // Buscar dados do usuário no banco
@@ -41,7 +54,6 @@ class ProfileManager {
             
             this.originalData = { ...this.currentUser };
             this.fotoPerfil = this.currentUser.foto_perfil || null;
-            this.populateForm();
             this.loadUserPhoto();
         } catch (error) {
             console.error('Erro ao carregar dados do usuário:', error);
@@ -57,18 +69,108 @@ class ProfileManager {
             };
             this.originalData = { ...this.currentUser };
             this.fotoPerfil = null;
-            this.populateForm();
             this.loadUserPhoto();
         }
     }
 
-    populateForm() {
+    async loadAreas() {
+        try {
+            const response = await fetch('/api/areas');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar áreas');
+            }
+            
+            const areas = await response.json();
+            const areaSelect = document.getElementById('userDepartment');
+            
+            // Limpar opções existentes, mantendo apenas a primeira
+            areaSelect.innerHTML = '<option value="">Selecione uma área</option>';
+            
+            // Remover duplicatas baseado no nome
+            const uniqueAreas = areas.filter((area, index, self) => 
+                index === self.findIndex(a => a.nome === area.nome)
+            );
+            
+            // Adicionar áreas únicas do banco de dados
+            uniqueAreas.forEach(area => {
+                const option = document.createElement('option');
+                option.value = area.nome; // Usar nome em vez de ID
+                option.textContent = area.nome;
+                areaSelect.appendChild(option);
+            });
+            
+            console.log(`✅ ${uniqueAreas.length} áreas únicas carregadas do banco de dados`);
+        } catch (error) {
+            console.error('Erro ao carregar áreas:', error);
+        }
+    }
+
+    async loadCargosByArea(areaName, selectedCargo = null) {
+        const cargoSelect = document.getElementById('userPosition');
+        
+        if (!areaName) {
+            cargoSelect.innerHTML = '<option value="">Escolha uma área primeiro</option>';
+            cargoSelect.disabled = true;
+            return;
+        }
+
+        try {
+            // Primeiro buscar o ID da área pelo nome
+            const areasResponse = await fetch('/api/areas');
+            if (!areasResponse.ok) {
+                throw new Error('Erro ao carregar áreas');
+            }
+            
+            const areas = await areasResponse.json();
+            const area = areas.find(a => a.nome === areaName);
+            
+            if (!area) {
+                cargoSelect.innerHTML = '<option value="">Área não encontrada</option>';
+                cargoSelect.disabled = true;
+                return;
+            }
+            
+            const response = await fetch(`/api/cargos?area_id=${area.id}`);
+            if (!response.ok) {
+                throw new Error('Erro ao carregar cargos');
+            }
+            
+            const cargos = await response.json();
+            
+            if (cargos.length === 0) {
+                cargoSelect.innerHTML = '<option value="">Nenhum cargo encontrado</option>';
+                cargoSelect.disabled = true;
+            } else {
+                cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
+                cargos.forEach(cargo => {
+                    const option = document.createElement('option');
+                    option.value = cargo.nome_cargo;
+                    option.textContent = cargo.nome_cargo;
+                    cargoSelect.appendChild(option);
+                });
+                cargoSelect.disabled = false;
+                
+                // Se há um cargo selecionado, definir o valor
+                if (selectedCargo) {
+                    cargoSelect.value = selectedCargo;
+                }
+            }
+            
+        } catch (error) {
+            console.error('Erro ao carregar cargos:', error);
+            cargoSelect.innerHTML = '<option value="">Erro ao carregar cargos</option>';
+            cargoSelect.disabled = true;
+        }
+    }
+
+
+
+    async populateForm() {
         // Preencher campos do formulário
-        document.getElementById('userName').value = this.currentUser.nome || '';
+        document.getElementById('userName').value = this.currentUser.nome_exibicao || this.currentUser.nome || '';
+        document.getElementById('userLogin').value = this.currentUser.nome || '';
         document.getElementById('userEmail').value = this.currentUser.email || '';
         document.getElementById('userType').value = this.currentUser.tipo_usuario || '';
-        document.getElementById('userDepartment').value = this.currentUser.departamento || '';
-        document.getElementById('userPosition').value = this.currentUser.cargo_atual || '';
         
         // Formatar data de cadastro
         const registrationDate = this.currentUser.data_cadastro ? 
@@ -79,9 +181,20 @@ class ProfileManager {
         // Configurar cargo baseado no tipo de usuário
         if (this.currentUser.tipo_usuario === 'admin') {
             document.getElementById('userPosition').value = 'Administrador do Sistema';
-            document.getElementById('userPosition').readOnly = true;
-            document.getElementById('userDepartment').value = 'TI';
+            document.getElementById('userPosition').disabled = true;
+            document.getElementById('userDepartment').value = 'Tecnologia'; // Nome da área
             document.getElementById('userDepartment').disabled = true;
+        } else {
+            // Definir a área diretamente pelo nome (áreas já foram carregadas)
+            const userDepartment = this.currentUser.departamento || '';
+            if (userDepartment) {
+                document.getElementById('userDepartment').value = userDepartment;
+                
+                // Aguardar um pouco e carregar cargos da área selecionada
+                await new Promise(resolve => setTimeout(resolve, 200));
+                const selectedCargo = this.currentUser.cargo_atual || '';
+                await this.loadCargosByArea(userDepartment, selectedCargo);
+            }
         }
     }
 
@@ -90,10 +203,11 @@ class ProfileManager {
         const photoPlaceholder = document.getElementById('photoPlaceholder');
 
         if (this.fotoPerfil) {
-            profilePhoto.innerHTML = `<img src="${this.fotoPerfil}" alt="Foto do perfil">`;
+            profilePhoto.innerHTML = `<img src=${this.fotoPerfil} alt="Foto do perfil">`;
         } else {
-            // Mostrar inicial do nome
-            const initial = this.currentUser.nome ? this.currentUser.nome.charAt(0).toUpperCase() : 'U';
+            // Mostrar inicial do nome de exibição
+            const displayName = this.currentUser.nome_exibicao || this.currentUser.nome;
+            const initial = displayName ? displayName.charAt(0).toUpperCase() : 'U';
             photoPlaceholder.textContent = initial;
             profilePhoto.innerHTML = '';
             profilePhoto.appendChild(photoPlaceholder);
@@ -111,6 +225,13 @@ class ProfileManager {
 
         photoInput.addEventListener('change', (e) => {
             this.handlePhotoUpload(e);
+        });
+
+        // Evento quando muda área - carregar cargos da área selecionada
+        const areaSelect = document.getElementById('userDepartment');
+        areaSelect.addEventListener('change', () => {
+            const areaName = areaSelect.value;
+            this.loadCargosByArea(areaName);
         });
 
         // Monitorar mudanças nos campos
@@ -398,16 +519,34 @@ class ProfileManager {
         const file = event.target.files[0];
         if (!file) return;
 
+        // Limpar input para permitir selecionar o mesmo arquivo novamente
+        event.target.value = '';
+
         // Validar tipo de arquivo
-        if (!file.type.startsWith('image/')) {
-            this.showError('Por favor, selecione apenas arquivos de imagem');
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            this.showError(`Formato não suportado. Use apenas: ${allowedTypes.map(t => t.replace('image/', '').toUpperCase()).join(', ')}`);
             return;
         }
 
-        // Validar tamanho (máximo 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            this.showError('A imagem deve ter no máximo 5MB');
+        // Validar tamanho (máximo 2MB)
+        const maxSize = 2 * 1024 * 1024; // 2MB
+        if (file.size > maxSize) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(1);
+            this.showError(`Arquivo muito grande: ${fileSizeMB}MB. Tamanho máximo permitido: ${maxSizeMB}MB`);
             return;
+        }
+
+        // Validar dimensões da imagem (opcional)
+        try {
+            const dimensions = await this.getImageDimensions(file);
+            if (dimensions.width > 2048 || dimensions.height > 2048) {
+                this.showError('Imagem muito grande. Dimensões máximas: 2048x2048 pixels');
+                return;
+            }
+        } catch (error) {
+            console.warn('Não foi possível verificar dimensões da imagem:', error);
         }
 
         try {
@@ -422,8 +561,24 @@ class ProfileManager {
             reader.readAsDataURL(file);
         } catch (error) {
             console.error('Erro ao processar foto:', error);
-            this.showError('Erro ao processar a foto');
+            this.showError('Erro ao processar a foto. Tente novamente.');
         }
+    }
+
+    getImageDimensions(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve({
+                    width: img.width,
+                    height: img.height
+                });
+            };
+            img.onerror = () => {
+                reject(new Error('Não foi possível carregar a imagem'));
+            };
+            img.src = URL.createObjectURL(file);
+        });
     }
 
     checkForChanges() {
@@ -435,7 +590,7 @@ class ProfileManager {
         };
 
         this.hasChanges = JSON.stringify(currentData) !== JSON.stringify({
-            nome: this.originalData.nome,
+            nome: this.originalData.nome_exibicao || this.originalData.nome,
             departamento: this.originalData.departamento,
             cargo_atual: this.originalData.cargo_atual,
             foto_perfil: this.originalData.foto_perfil
@@ -471,17 +626,43 @@ class ProfileManager {
                 throw new Error('Nome é obrigatório');
             }
 
-            // Atualizar no banco de dados
-            const response = await fetch(`/api/users/profile/${encodeURIComponent(this.currentUser.nome)}`, {
+            // Atualizar nome de exibição separadamente
+            if (updatedData.nome !== this.originalData.nome_exibicao) {
+                const displayNameResponse = await fetch(`/api/users/display-name/${encodeURIComponent(this.loginUserName)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ displayName: updatedData.nome })
+                });
+
+                if (!displayNameResponse.ok) {
+                    const errorData = await displayNameResponse.json().catch(() => ({}));
+                    const errorMessage = errorData.error || errorData.details || 'Erro ao atualizar nome de exibição';
+                    throw new Error(errorMessage);
+                }
+
+                const updatedUserDisplay = await displayNameResponse.json();
+                console.log('✅ Nome de exibição atualizado:', updatedUserDisplay.nome_exibicao);
+            }
+
+            // Atualizar perfil (departamento, cargo, foto) no banco de dados usando o nome de login original
+            const response = await fetch(`/api/users/profile/${encodeURIComponent(this.loginUserName)}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(updatedData)
+                body: JSON.stringify({
+                    departamento: updatedData.departamento || '',
+                    cargo_atual: updatedData.cargo_atual || '',
+                    foto_perfil: updatedData.foto_perfil
+                })
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao atualizar perfil');
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || errorData.details || 'Erro ao atualizar perfil';
+                throw new Error(errorMessage);
             }
 
             const updatedUser = await response.json();
@@ -491,8 +672,8 @@ class ProfileManager {
             this.originalData = { ...this.currentUser };
             this.fotoPerfil = updatedUser.foto_perfil || null;
             
-            // Atualizar localStorage (apenas nome, área, cargo)
-            localStorage.setItem('userName', updatedUser.nome);
+            // Atualizar localStorage (apenas área, cargo)
+            // NÃO alterar o userName do localStorage (nome de login)
             if (updatedUser.departamento) {
                 localStorage.setItem('userDepartment', updatedUser.departamento);
             }
@@ -540,17 +721,18 @@ class ProfileManager {
 
     async addAreaIfNotExists(areaName) {
         try {
-            const response = await fetch('/api/areas', {
+            if (!areaName || !areaName.trim()) return;
+            const cleanName = areaName.trim().toLowerCase();
+            const response = await fetch('/api/areas');
+            if (!response.ok) return;
+            const areas = await response.json();
+            const exists = areas.some(a => a.nome && a.nome.trim().toLowerCase() === cleanName);
+            if (exists) return;
+            await fetch('/api/areas', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ nome: areaName })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: areaName.trim() })
             });
-
-            if (response.ok) {
-                console.log(`Área "${areaName}" adicionada ao simulador`);
-            }
         } catch (error) {
             console.error('Erro ao adicionar área:', error);
         }
@@ -558,20 +740,26 @@ class ProfileManager {
 
     async addPositionIfNotExists(positionName, areaName) {
         try {
-            const response = await fetch('/api/positions', {
+            if (!positionName || !positionName.trim() || !areaName || !areaName.trim()) return;
+            const cleanPosition = positionName.trim().toLowerCase();
+            const cleanArea = areaName.trim().toLowerCase();
+            // Buscar áreas para pegar o ID correto
+            const areasResponse = await fetch('/api/areas');
+            if (!areasResponse.ok) return;
+            const areas = await areasResponse.json();
+            const area = areas.find(a => a.nome && a.nome.trim().toLowerCase() === cleanArea);
+            if (!area) return;
+            // Buscar cargos da área
+            const cargosResponse = await fetch(`/api/cargos?area_id=${area.id}`);
+            if (!cargosResponse.ok) return;
+            const cargos = await cargosResponse.json();
+            const exists = cargos.some(c => c.nome_cargo && c.nome_cargo.trim().toLowerCase() === cleanPosition);
+            if (exists) return;
+            await fetch('/api/positions', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    nome_cargo: positionName,
-                    area_nome: areaName 
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome_cargo: positionName.trim(), area_nome: areaName.trim() })
             });
-
-            if (response.ok) {
-                console.log(`Cargo "${positionName}" adicionado ao simulador`);
-            }
         } catch (error) {
             console.error('Erro ao adicionar cargo:', error);
         }

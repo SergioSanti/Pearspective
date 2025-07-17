@@ -16,19 +16,19 @@
   <ul class="navbar-menu" role="menubar">
     <li class="navbar-item" role="none">
       <a href="../Page_inicial/index.html" class="navbar-link" role="menuitem">
-        <span class="nav-icon">🏠</span>
+        <span class="nav-icon">🏡</span>
         <span class="nav-text">Início</span>
       </a>
     </li>
     <li class="navbar-item" role="none">
       <a href="../catalogo/catalogo.html" class="navbar-link" role="menuitem">
-        <span class="nav-icon">💡</span>
+        <span class="nav-icon">⭐</span>
         <span class="nav-text">Recomendações</span>
       </a>
     </li>
     <li class="navbar-item" role="none">
       <a href="../biblioteca/biblioteca.html" class="navbar-link" role="menuitem">
-        <span class="nav-icon">🔍</span>
+        <span class="nav-icon">🔎</span>
         <span class="nav-text">Pesquisar Cursos</span>
       </a>
     </li>
@@ -40,7 +40,7 @@
     </li>
     <li class="navbar-item" role="none">
       <a href="../historico/historico.html" class="navbar-link" role="menuitem">
-        <span class="nav-icon">📜</span>
+        <span class="nav-icon">🏆</span>
         <span class="nav-text">Certificados</span>
       </a>
     </li>
@@ -48,6 +48,11 @@
 
   <!-- Área do Usuário -->
   <div class="user-area">
+    <!-- Botão de Dark Mode -->
+    <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Alternar modo escuro" onclick="toggleDarkMode()">
+      <span class="icon sun-icon">☀️</span>
+      <span class="icon moon-icon" style="display: none;">🌙</span>
+    </button>
     <!-- Círculo do usuário e menu dropdown -->
     <div class="user-circle-container" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
       <div class="user-circle" id="userCircle" aria-label="Foto do usuário"></div>
@@ -70,7 +75,7 @@
           </li>
           <li class="user-menu-item" role="none">
             <a href="../recomendacoes.html" class="user-menu-link" role="menuitem">
-              <span class="menu-icon">💡</span>
+              <span class="menu-icon">⭐</span>
               Recomendações
             </a>
           </li>
@@ -80,7 +85,7 @@
           
           <li class="user-menu-item" role="none">
             <a href="../historico/historico.html" class="user-menu-link" role="menuitem">
-              <span class="menu-icon">📜</span>
+              <span class="menu-icon">🏆</span>
               Meus Certificados
             </a>
           </li>
@@ -95,7 +100,7 @@
           
           <li class="user-menu-item" role="none">
             <label class="photo-upload-label" role="menuitem">
-              <span class="menu-icon">📷</span>
+              <span class="menu-icon">📸</span>
               Alterar Foto
               <input type="file" id="photoUpload" accept="image/*" class="sr-only" aria-label="Selecionar foto">
             </label>
@@ -194,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              nome: userName,
               departamento: localStorage.getItem('userDepartment') || '',
               cargo_atual: localStorage.getItem('userPosition') || '',
               foto_perfil: photoData
@@ -231,5 +235,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Atualiza o círculo do usuário ao carregar a página
   updateUserCircle();
+
+  // ===== DARK MODE FUNCTIONALITY =====
+  
+  // Função para alternar o tema (global)
+  window.toggleDarkMode = function() {
+    console.log('[DARK MODE] Alternando tema...');
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    console.log('[DARK MODE] Tema atual:', currentTheme, 'Novo tema:', newTheme);
+    
+    // Aplicar o tema
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Atualizar ícones
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    
+    if (sunIcon && moonIcon) {
+      if (newTheme === 'dark') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      }
+    }
+    
+    console.log('[DARK MODE] Tema aplicado:', newTheme);
+  };
+  
+  // Função para inicializar o tema
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Usar tema salvo ou preferência do sistema
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    
+    console.log('[DARK MODE] Inicializando tema:', theme);
+    
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // Atualizar ícones
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    
+    if (sunIcon && moonIcon) {
+      if (theme === 'dark') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      }
+    }
+  }
+  
+  // Inicializar tema
+  initializeTheme();
 });
 </script>

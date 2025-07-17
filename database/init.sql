@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     cargo_atual VARCHAR(100),
     foto_perfil TEXT,
     curriculo BYTEA,
+    curriculo_nome VARCHAR(255),
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

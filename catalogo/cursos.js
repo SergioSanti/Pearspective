@@ -3,6 +3,7 @@
 class CourseManager {
   constructor() {
     this.courses = [];
+    this.areas = [];
     this.currentEditId = null;
     this.isAdminMode = false;
     this.userType = localStorage.getItem('tipo_usuario') || 'usuario';
@@ -11,6 +12,7 @@ class CourseManager {
 
     this.initializeElements();
     this.bindEvents();
+    this.loadAreas(); // Carregar áreas do banco
     this.loadCourses(); // Carregar cursos da API na inicialização
     this.setupAdminAccess(); // Configurar acesso de admin
   }
@@ -30,6 +32,7 @@ class CourseManager {
     this.formTitle = document.getElementById('form-title');
     this.deleteModal = document.getElementById('delete-modal');
     this.confirmDeleteBtn = document.getElementById('confirm-delete');
+    this.courseAreaSelect = document.getElementById('course-area'); // Select do formulário
   }
 
   // Vincular eventos
@@ -60,6 +63,54 @@ class CourseManager {
   }
 
   // --- Funções de API ---
+  
+  // Carregar áreas do banco de dados
+  async loadAreas() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/areas`);
+      if (!response.ok) throw new Error('Erro ao buscar áreas da API.');
+      
+      this.areas = await response.json();
+      
+      // Popular o select de filtro de área
+      this.populateAreaSelect(this.areaSelect);
+      
+      // Popular o select do formulário de curso
+      this.populateAreaSelect(this.courseAreaSelect);
+      
+    } catch (error) {
+      console.error('Erro ao carregar áreas:', error);
+      this.showNotification('Falha ao carregar áreas. Verifique o console.', 'danger');
+    }
+  }
+
+  // Popular select de áreas
+  populateAreaSelect(selectElement) {
+    if (!selectElement) return;
+    
+    // Manter a primeira opção (placeholder)
+    const placeholder = selectElement.querySelector('option[value=""]');
+    selectElement.innerHTML = '';
+    
+    if (placeholder) {
+      selectElement.appendChild(placeholder);
+    } else {
+      // Adicionar placeholder padrão
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = selectElement === this.areaSelect ? 'Todas as áreas' : 'Selecione a área';
+      selectElement.appendChild(defaultOption);
+    }
+    
+    // Adicionar opções das áreas
+    this.areas.forEach(area => {
+      const option = document.createElement('option');
+      option.value = area.nome; // Usar o nome da área como valor
+      option.textContent = area.nome;
+      selectElement.appendChild(option);
+    });
+  }
+
   async loadCourses() {
     try {
       const response = await fetch(`${this.apiBaseUrl}/cursos`);
@@ -186,11 +237,7 @@ class CourseManager {
     document.getElementById('course-area').value = course.area;
     document.getElementById('course-level').value = course.level;
     document.getElementById('course-duration').value = course.duration;
-    document.getElementById('course-badge').value = course.badge;
-    document.getElementById('course-badge-color').value = course.badgeColor;
     document.getElementById('course-description').value = course.description;
-    document.getElementById('course-featured').checked = course.featured || false;
-    document.getElementById('course-new').checked = course.new || false;
 
     this.courseForm.style.display = 'block';
     this.scrollToForm();
@@ -216,11 +263,7 @@ class CourseManager {
       area: formData.get('area'),
       level: formData.get('level'),
       duration: formData.get('duration'),
-      badge: formData.get('badge'),
-      badgeColor: formData.get('badgeColor'),
       description: formData.get('description'),
-      featured: formData.get('featured') === 'on',
-      "new": formData.get('new') === 'on'
     };
 
     if (this.currentEditId) {
@@ -267,8 +310,7 @@ class CourseManager {
       const matchesSearch = !searchTerm || 
         (course.title && course.title.toLowerCase().includes(searchTerm)) ||
         (course.description && course.description.toLowerCase().includes(searchTerm)) ||
-        (course.platform && course.platform.toLowerCase().includes(searchTerm)) ||
-        (course.badge && course.badge.toLowerCase().includes(searchTerm));
+        (course.platform && course.platform.toLowerCase().includes(searchTerm));
 
       const matchesArea = !selectedArea || course.area === selectedArea;
       const matchesLevel = !selectedLevel || course.level === selectedLevel;
@@ -292,29 +334,30 @@ class CourseManager {
     }
 
     this.coursesGrid.innerHTML = coursesToRender.map(course => `
-      <article class="course-card ${course.featured ? 'featured' : ''} ${course.new ? 'new' : ''}" data-course-id="${course.id}">
-        ${this.isAdminMode ? `
-          <div class="course-actions">
-            <button class="btn btn-secondary edit-course" data-course-id="${course.id}" title="Editar">✏️</button>
-            <button class="btn btn-danger delete-course" data-course-id="${course.id}" title="Excluir">🗑️</button>
-          </div>
-        ` : ''}
-        <div class="course-header">
-          <h3 class="course-title">${course.title}</h3>
-          <span class="course-badge badge badge-${course.badgeColor}">${course.badge}</span>
-        </div>
-        <div class="course-body">
-          <p class="course-platform">Plataforma: ${course.platform}</p>
-          <p class="course-description">${course.description || ''}</p>
-          <div class="course-meta">
-            <span class="course-level">Nível: ${this.getLevelText(course.level)}</span>
-            <span class="course-duration">Duração: ${this.getDurationText(course.duration)}</span>
-          </div>
-        </div>
-        <div class="course-footer">
-          <a href="${course.url}" class="btn btn-primary" target="_blank" rel="noopener">
-            Ver na ${course.platform}
+      <article class="course-card" data-course-id="${course.id}">
+        <div class="course-actions">
+          <a href="${course.url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" title="Acessar Curso">
+            🔗
           </a>
+          ${this.userType === 'admin' ? `
+            <button class="btn btn-secondary edit-course" data-course-id="${course.id}" title="Editar">
+              ✏️
+            </button>
+            <button class="btn btn-danger delete-course" data-course-id="${course.id}" title="Excluir">
+              🗑️
+            </button>
+          ` : ''}
+        </div>
+        <div class="course-info">
+          <h3 class="course-title">
+            <a href="${course.url}" target="_blank" rel="noopener noreferrer">
+              ${course.title}
+            </a>
+          </h3>
+          <div class="course-field"><strong>Plataforma:</strong> <span class="course-platform">${course.platform}</span></div>
+          <div class="course-field"><strong>Área:</strong> <span class="course-area">${course.area || 'Área não definida'}</span></div>
+          <div class="course-field"><strong>Duração:</strong> <span class="course-duration">${this.getDurationText(course.duration)}</span></div>
+          <div class="course-field"><strong>Descrição:</strong> <span class="course-description">${course.description}</span></div>
         </div>
       </article>
     `).join('');
@@ -374,3 +417,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.head.appendChild(style);
   window.courseManager = new CourseManager();
 });
+

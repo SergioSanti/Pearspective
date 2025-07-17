@@ -35,15 +35,43 @@ async function waitForDatabase() {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '2mb' })); // Aumentar limite para 2MB para fotos de perfil
 
 // Middleware de erro global para capturar erros do multer
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     console.error('❌ Erro do Multer:', err);
+    
+    let errorMessage = 'Erro no upload do arquivo';
+    let statusCode = 400;
+    
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      errorMessage = 'Arquivo muito grande. Tamanho máximo permitido: 2MB para fotos, 10MB para PDFs';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      errorMessage = 'Arquivo inesperado no upload';
+    } else {
+      errorMessage = err.message;
+    }
+    
+    return res.status(statusCode).json({ 
+      error: errorMessage,
+      details: err.message,
+      code: err.code
+    });
+  } else if (err.message && err.message.includes('Apenas')) {
+    // Erro de tipo de arquivo não permitido
+    console.error('❌ Erro de tipo de arquivo:', err.message);
     return res.status(400).json({ 
-      error: 'Erro no upload do arquivo',
-      details: err.message 
+      error: err.message,
+      details: 'Formato de arquivo não suportado'
+    });
+  } else if (err.type === 'entity.too.large') {
+    // Erro de payload muito grande
+    console.error('❌ Payload muito grande:', err);
+    return res.status(413).json({ 
+      error: 'Arquivo muito grande',
+      details: `Tamanho máximo permitido: 2MB. Arquivo enviado: ${Math.round(err.length / 1024)}KB`,
+      maxSize: '2MB'
     });
   } else if (err) {
     console.error('❌ Erro geral:', err);
@@ -57,6 +85,8 @@ app.use((err, req, res, next) => {
 
 // Configuração do multer para upload de arquivos
 const storage = multer.memoryStorage();
+
+// Configuração para PDFs (certificados)
 const upload = multer({ 
     storage: storage,
     limits: {
@@ -67,6 +97,23 @@ const upload = multer({
             cb(null, true);
         } else {
             cb(new Error('Apenas arquivos PDF são permitidos'), false);
+        }
+    }
+});
+
+// Configuração para fotos de perfil
+const uploadPhoto = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 2 * 1024 * 1024 // 2MB para fotos de perfil
+    },
+    fileFilter: (req, file, cb) => {
+        // Validar tipos de imagem permitidos
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (allowedMimeTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Apenas imagens são permitidas (JPEG, PNG, GIF, WebP)'), false);
         }
     }
 });
@@ -93,12 +140,21 @@ app.get('/api/areas', async (req, res) => {
 // API para listar cargos filtrando por área (query parameter)
 app.get('/api/cargos', async (req, res) => {
   const area_id = req.query.area_id;
-  if (!area_id) {
-    return res.status(400).json({ error: 'area_id não fornecido' });
-  }
+  
   try {
-    const query = 'SELECT id, nome_cargo FROM cargos WHERE area_id = $1';
-    const result = await pool.query(query, [area_id]);
+    let query, params;
+    
+    if (area_id) {
+      // Se area_id fornecido, filtrar por área
+      query = 'SELECT id, nome_cargo FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
+      params = [area_id];
+    } else {
+      // Se não fornecido, retornar todos os cargos
+      query = 'SELECT id, nome_cargo FROM cargos ORDER BY nome_cargo';
+      params = [];
+    }
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Erro ao buscar cargos:', err);
@@ -249,10 +305,18 @@ app.get('/api/users/profile/:userName', async (req, res) => {
   console.log('🔍 Buscando perfil do usuário:', userName);
   
   try {
-    const result = await pool.query(
-      'SELECT id, nome, email, tipo_usuario, departamento, cargo_atual, foto_perfil, data_cadastro FROM usuarios WHERE nome = $1',
-      [userName]
-    );
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID
+      query = 'SELECT id, nome, nome_exibicao, email, tipo_usuario, departamento, cargo_atual, foto_perfil, data_cadastro FROM usuarios WHERE id = $1';
+      params = [parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome
+      query = 'SELECT id, nome, nome_exibicao, email, tipo_usuario, departamento, cargo_atual, foto_perfil, data_cadastro FROM usuarios WHERE nome = $1';
+      params = [userName];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', userName);
@@ -262,6 +326,7 @@ app.get('/api/users/profile/:userName', async (req, res) => {
     console.log('✅ Perfil encontrado:', { 
       id: result.rows[0].id, 
       nome: result.rows[0].nome,
+      nome_exibicao: result.rows[0].nome_exibicao,
       foto_perfil: result.rows[0].foto_perfil ? 'Presente' : 'Não presente'
     });
     
@@ -275,15 +340,24 @@ app.get('/api/users/profile/:userName', async (req, res) => {
 // Atualizar perfil do usuário
 app.put('/api/users/profile/:userName', async (req, res) => {
   const { userName } = req.params;
-  const { nome, departamento, cargo_atual, foto_perfil } = req.body;
+  const { departamento, cargo_atual, foto_perfil } = req.body;
   
-  console.log('📸 Atualizando perfil do usuário:', { userName, nome, departamento, cargo_atual, foto_perfil: foto_perfil ? 'Foto presente' : 'Sem foto' });
+  console.log('📸 Atualizando perfil do usuário:', { userName, departamento, cargo_atual, foto_perfil: foto_perfil ? 'Foto presente' : 'Sem foto' });
   
   try {
-    const result = await pool.query(
-      'UPDATE usuarios SET nome = $1, departamento = $2, cargo_atual = $3, foto_perfil = $4 WHERE nome = $5 RETURNING *',
-      [nome, departamento, cargo_atual, foto_perfil, userName]
-    );
+    // Verificar se userName é um ID numérico ou nome
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID - NÃO alterar o nome (login)
+      query = 'UPDATE usuarios SET departamento = $1, cargo_atual = $2, foto_perfil = $3 WHERE id = $4 RETURNING *';
+      params = [departamento, cargo_atual, foto_perfil, parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome - NÃO alterar o nome (login)
+      query = 'UPDATE usuarios SET departamento = $1, cargo_atual = $2, foto_perfil = $3 WHERE nome = $4 RETURNING *';
+      params = [departamento, cargo_atual, foto_perfil, userName];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -299,6 +373,45 @@ app.put('/api/users/profile/:userName', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao atualizar perfil do usuário:', error);
     res.status(500).json({ error: 'Erro ao atualizar perfil do usuário' });
+  }
+});
+
+// Atualizar nome de exibição do usuário (separado do login)
+app.put('/api/users/display-name/:userName', async (req, res) => {
+  const { userName } = req.params;
+  const { displayName } = req.body;
+  
+  console.log('📝 Atualizando nome de exibição do usuário:', { userName, displayName });
+  
+  try {
+    // Verificar se userName é um ID numérico ou nome
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID
+      query = 'UPDATE usuarios SET nome_exibicao = $1 WHERE id = $2 RETURNING *';
+      params = [displayName, parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome
+      query = 'UPDATE usuarios SET nome_exibicao = $1 WHERE nome = $2 RETURNING *';
+      params = [displayName, userName];
+    }
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    console.log('✅ Nome de exibição atualizado com sucesso:', { 
+      id: result.rows[0].id, 
+      nome: result.rows[0].nome,
+      nome_exibicao: result.rows[0].nome_exibicao
+    });
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao atualizar nome de exibição:', error);
+    res.status(500).json({ error: 'Erro ao atualizar nome de exibição' });
   }
 });
 
@@ -333,10 +446,18 @@ app.post('/api/users/curriculum/:userName', upload.single('curriculum'), async (
   
   try {
     console.log('📄 Tentando salvar no banco de dados...');
-    const result = await pool.query(
-      'UPDATE usuarios SET curriculo = $1, curriculo_nome = $2 WHERE nome = $3 RETURNING id, nome, curriculo, curriculo_nome',
-      [file.buffer, file.originalname, userName]
-    );
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID
+      query = 'UPDATE usuarios SET curriculo = $1, curriculo_nome = $2 WHERE id = $3 RETURNING id, nome, curriculo, curriculo_nome';
+      params = [file.buffer, file.originalname, parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome
+      query = 'UPDATE usuarios SET curriculo = $1, curriculo_nome = $2 WHERE nome = $3 RETURNING id, nome, curriculo, curriculo_nome';
+      params = [file.buffer, file.originalname, userName];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', userName);
@@ -377,10 +498,18 @@ app.get('/api/users/curriculum/:userName', async (req, res) => {
   console.log('📄 Buscando currículo do usuário:', userName);
   
   try {
-    const result = await pool.query(
-      'SELECT curriculo, curriculo_nome FROM usuarios WHERE nome = $1',
-      [userName]
-    );
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID
+      query = 'SELECT curriculo, curriculo_nome FROM usuarios WHERE id = $1';
+      params = [parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome
+      query = 'SELECT curriculo, curriculo_nome FROM usuarios WHERE nome = $1';
+      params = [userName];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -414,10 +543,18 @@ app.get('/api/users/curriculum/:userName/status', async (req, res) => {
   console.log('📄 Verificando status do currículo para usuário:', userName);
   
   try {
-    const result = await pool.query(
-      'SELECT curriculo, curriculo_nome FROM usuarios WHERE nome = $1',
-      [userName]
-    );
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID
+      query = 'SELECT curriculo, curriculo_nome FROM usuarios WHERE id = $1';
+      params = [parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome
+      query = 'SELECT curriculo, curriculo_nome FROM usuarios WHERE nome = $1';
+      params = [userName];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -454,10 +591,18 @@ app.delete('/api/users/curriculum/:userName', async (req, res) => {
   console.log('🗑️ Excluindo currículo do usuário:', userName);
   
   try {
-    const result = await pool.query(
-      'UPDATE usuarios SET curriculo = NULL, curriculo_nome = NULL WHERE nome = $1 RETURNING id, nome',
-      [userName]
-    );
+    let query, params;
+    if (!isNaN(userName)) {
+      // Se é um ID, buscar por ID
+      query = 'UPDATE usuarios SET curriculo = NULL, curriculo_nome = NULL WHERE id = $1 RETURNING id, nome';
+      params = [parseInt(userName)];
+    } else {
+      // Se é um nome, buscar por nome
+      query = 'UPDATE usuarios SET curriculo = NULL, curriculo_nome = NULL WHERE nome = $1 RETURNING id, nome';
+      params = [userName];
+    }
+    
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -885,7 +1030,7 @@ app.get('/api/dashboard/stats/:usuario_id', async (req, res) => {
 app.get('/api/debug/users/:userName', async (req, res) => {
   const { userName } = req.params;
   
-  console.log('🔍 [DEBUG] Verificando usuário:', userName);
+  console.log('🔍 Verificando usuário:', userName);
   
   try {
     // Testar consulta exata
@@ -894,28 +1039,14 @@ app.get('/api/debug/users/:userName', async (req, res) => {
       [userName]
     );
     
-    console.log('🔍 [DEBUG] Consulta exata:', {
-      parametro: userName,
-      encontrou: exactQuery.rows.length > 0,
-      resultado: exactQuery.rows[0] || 'não encontrado'
-    });
-    
     // Testar consulta case-insensitive
     const caseInsensitiveQuery = await pool.query(
       'SELECT * FROM usuarios WHERE LOWER(nome) = LOWER($1)',
       [userName]
     );
     
-    console.log('🔍 [DEBUG] Consulta case-insensitive:', {
-      parametro: userName,
-      encontrou: caseInsensitiveQuery.rows.length > 0,
-      resultado: caseInsensitiveQuery.rows[0] || 'não encontrado'
-    });
-    
     // Listar todos os usuários para comparação
     const allUsers = await pool.query('SELECT id, nome, email FROM usuarios ORDER BY id');
-    
-    console.log('📋 [DEBUG] Todos os usuários:', allUsers.rows);
     
     res.json({
       searchedFor: userName,
@@ -935,7 +1066,7 @@ app.get('/api/debug/users/:userName', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [DEBUG] Erro na consulta:', error);
+    console.error('❌ Erro na consulta:', error);
     res.status(500).json({ 
       error: 'Erro na consulta',
       debug: {
@@ -950,8 +1081,6 @@ app.get('/api/debug/users/:userName', async (req, res) => {
 app.get('/api/users/photo/:userName', async (req, res) => {
   const { userName } = req.params;
   
-  console.log('🔍 [DEBUG] Buscando foto para usuário:', userName);
-  
   try {
     // Primeiro, vamos verificar se o usuário existe
     const checkUser = await pool.query(
@@ -959,18 +1088,11 @@ app.get('/api/users/photo/:userName', async (req, res) => {
       [userName]
     );
     
-    console.log('🔍 [DEBUG] Resultado da busca:', {
-      encontrou: checkUser.rows.length > 0,
-      total_usuarios: checkUser.rows.length,
-      usuario: checkUser.rows[0] || 'não encontrado'
-    });
-    
     if (checkUser.rows.length === 0) {
-      console.log('❌ [DEBUG] Usuário não encontrado:', userName);
+      console.log('❌ Usuário não encontrado:', userName);
       
       // Vamos listar todos os usuários para debug
       const allUsers = await pool.query('SELECT id, nome, email FROM usuarios');
-      console.log('📋 [DEBUG] Todos os usuários no banco:', allUsers.rows);
       
       return res.status(404).json({ 
         error: 'Usuário não encontrado',
@@ -988,15 +1110,11 @@ app.get('/api/users/photo/:userName', async (req, res) => {
       [userName]
     );
     
-    console.log('✅ [DEBUG] Foto encontrada:', {
-      usuario: userName,
-      foto_presente: result.rows[0].foto_perfil ? 'Sim' : 'Não',
-      tamanho_foto: result.rows[0].foto_perfil ? result.rows[0].foto_perfil.length : 0
-    });
+    console.log('✅ Foto encontrada para usuário:', userName);
     
     res.json({ foto_perfil: result.rows[0].foto_perfil });
   } catch (error) {
-    console.error('❌ [DEBUG] Erro ao buscar foto do usuário:', error);
+    console.error('❌ Erro ao buscar foto do usuário:', error);
     res.status(500).json({ 
       error: 'Erro ao buscar foto do usuário',
       debug: {
@@ -1090,7 +1208,7 @@ app.get('/api/test/user/:userName', async (req, res) => {
 app.get('/api/certificados/usuario/:userId', async (req, res) => {
   const { userId } = req.params;
   
-  console.log('🔍 [DEBUG] Buscando certificados para usuário:', userId);
+  console.log('🔍 Buscando certificados para usuário:', userId);
   
   try {
     const result = await pool.query(
@@ -1098,10 +1216,10 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
       [userId]
     );
     
-    console.log('✅ [DEBUG] Certificados encontrados:', result.rows.length);
+    console.log('✅ Certificados encontrados:', result.rows.length);
     res.json(result.rows);
   } catch (error) {
-    console.error('❌ [DEBUG] Erro ao buscar certificados:', error);
+    console.error('❌ Erro ao buscar certificados:', error);
     res.status(500).json({ error: 'Erro ao buscar certificados' });
   }
 });
@@ -1112,7 +1230,7 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
   
   try {
     const result = await pool.query(
-      'SELECT pdf FROM certificados WHERE id = $1',
+      'SELECT pdf, nome FROM certificados WHERE id = $1',
       [id]
     );
     
@@ -1120,9 +1238,12 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
       return res.status(404).json({ error: 'PDF não encontrado' });
     }
     
+    const { pdf, nome } = result.rows[0];
+    const filename = `${nome.replace(/[^a-zA-Z0-9]/g, '_')}_certificado.pdf`;
+    
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="certificado.pdf"');
-    res.send(result.rows[0].pdf);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.send(pdf);
   } catch (error) {
     console.error('Erro ao buscar PDF:', error);
     res.status(500).json({ error: 'Erro ao buscar PDF' });
@@ -1135,7 +1256,7 @@ app.get('/api/certificados/:id', async (req, res) => {
   
   try {
     const result = await pool.query(
-      'SELECT id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE id = $1',
+      'SELECT id, nome, instituicao, data_inicio, data_conclusao, descricao FROM certificados WHERE id = $1',
       [id]
     );
     
@@ -1152,29 +1273,32 @@ app.get('/api/certificados/:id', async (req, res) => {
 
 // Adicionar novo certificado
 app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
-  console.log('🔍 [DEBUG] Recebendo requisição POST para certificados');
-  console.log('📋 [DEBUG] Body:', req.body);
-  console.log('📁 [DEBUG] File:', req.file ? 'Presente' : 'Não presente');
+  console.log('🔍 Recebendo requisição POST para certificados');
+  console.log('📋 Body:', req.body);
+  console.log('📁 File:', req.file ? 'Presente' : 'Não presente');
   
-  const { usuario_id, nome, instituicao, data_conclusao, descricao } = req.body;
+  const { usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
   const pdfBuffer = req.file ? req.file.buffer : null;
   
   if (!usuario_id || !nome || !instituicao || !data_conclusao) {
-    console.log('❌ [DEBUG] Campos obrigatórios não fornecidos');
-    console.log('📋 [DEBUG] Campos recebidos:', { usuario_id, nome, instituicao, data_conclusao });
+    console.log('❌ Campos obrigatórios não fornecidos');
+    console.log('📋 Campos recebidos:', { usuario_id, nome, instituicao, data_inicio, data_conclusao });
     return res.status(400).json({ error: 'Campos obrigatórios não fornecidos' });
   }
   
+  // Se data_inicio não for fornecida, usar a data_conclusao
+  const dataInicio = data_inicio || data_conclusao;
+  
   try {
     const result = await pool.query(
-      'INSERT INTO certificados (usuario_id, nome, instituicao, data_conclusao, descricao, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-      [usuario_id, nome, instituicao, data_conclusao, descricao, pdfBuffer]
+      'INSERT INTO certificados (usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao, pdf) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [usuario_id, nome, instituicao, dataInicio, data_conclusao, descricao, pdfBuffer]
     );
     
-    console.log('✅ [DEBUG] Certificado adicionado com sucesso, ID:', result.rows[0].id);
+    console.log('✅ Certificado adicionado com sucesso, ID:', result.rows[0].id);
     res.status(201).json({ id: result.rows[0].id, message: 'Certificado adicionado com sucesso' });
   } catch (error) {
-    console.error('❌ [DEBUG] Erro ao adicionar certificado:', error);
+    console.error('❌ Erro ao adicionar certificado:', error);
     res.status(500).json({ error: 'Erro ao adicionar certificado' });
   }
 });
@@ -1182,24 +1306,27 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
 // Atualizar certificado
 app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
   const { id } = req.params;
-  const { nome, instituicao, data_conclusao, descricao } = req.body;
+  const { nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
   const pdfBuffer = req.file ? req.file.buffer : null;
   
   if (!nome || !instituicao || !data_conclusao) {
     return res.status(400).json({ error: 'Campos obrigatórios não fornecidos' });
   }
   
+  // Se data_inicio não for fornecida, usar a data_conclusao
+  const dataInicio = data_inicio || data_conclusao;
+  
   try {
     let query, params;
     
     if (pdfBuffer) {
       // Atualizar com novo PDF
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING id';
-      params = [nome, instituicao, data_conclusao, descricao, pdfBuffer, id];
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5, pdf = $6 WHERE id = $7 RETURNING id';
+      params = [nome, instituicao, dataInicio, data_conclusao, descricao, pdfBuffer, id];
     } else {
       // Atualizar sem alterar PDF
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING id';
-      params = [nome, instituicao, data_conclusao, descricao, id];
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5 WHERE id = $6 RETURNING id';
+      params = [nome, instituicao, dataInicio, data_conclusao, descricao, id];
     }
     
     const result = await pool.query(query, params);

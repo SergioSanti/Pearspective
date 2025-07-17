@@ -394,52 +394,157 @@
 }
 
 /* Modo escuro (se suportado) */
-@media (prefers-color-scheme: dark) {
-  .navbar {
-    background: rgba(31, 41, 55, 0.95);
-    border-color: var(--gray-700);
+/* ===== DARK MODE ===== */
+[data-theme="dark"] .navbar {
+  background: rgba(31, 41, 55, 0.95) !important;
+  border-color: var(--gray-700) !important;
+}
+
+[data-theme="dark"] .navbar:hover {
+  background: rgba(31, 41, 55, 0.98);
+}
+
+[data-theme="dark"] .navbar-link {
+  color: white !important;
+}
+
+[data-theme="dark"] .navbar-link:hover {
+  color: var(--brand-secondary) !important;
+  background: var(--gray-700) !important;
+}
+
+[data-theme="dark"] .user-circle-container:hover {
+  background: var(--gray-700) !important;
+}
+
+[data-theme="dark"] .user-name {
+  color: white !important;
+}
+
+[data-theme="dark"] .user-menu {
+  background: #1f2937 !important;
+  border-color: #4b5563 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .user-menu-link,
+[data-theme="dark"] .user-menu-button,
+[data-theme="dark"] .photo-upload-label {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+[data-theme="dark"] .user-menu-link:hover,
+[data-theme="dark"] .user-menu-button:hover,
+[data-theme="dark"] .photo-upload-label:hover {
+  background: #374151 !important;
+  color: #A8C66C !important;
+}
+
+[data-theme="dark"] .user-menu-divider {
+  background: #4b5563 !important;
+}
+
+/* Estilos específicos para garantir que o dark mode funcione */
+[data-theme="dark"] .user-menu-list {
+  background: #1f2937 !important;
+}
+
+[data-theme="dark"] .user-menu-item {
+  background: transparent !important;
+}
+
+[data-theme="dark"] .menu-icon {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .user-menu-link:hover .menu-icon,
+[data-theme="dark"] .user-menu-button:hover .menu-icon,
+[data-theme="dark"] .photo-upload-label:hover .menu-icon {
+  color: #A8C66C !important;
+}
+
+/* Botão de Dark Mode */
+.dark-mode-toggle {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: 2px solid var(--gray-200);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  margin-right: 15px;
+}
+
+.dark-mode-toggle:hover {
+  background: var(--gray-200);
+  transform: scale(1.05);
+}
+
+.dark-mode-toggle:active {
+  transform: scale(0.95);
+}
+
+.dark-mode-toggle:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.dark-mode-toggle .icon {
+  font-size: 1.2rem;
+  transition: transform var(--transition-fast);
+}
+
+.dark-mode-toggle .sun-icon {
+  color: #f59e0b;
+}
+
+.dark-mode-toggle .moon-icon {
+  color: #6b7280;
+}
+
+[data-theme="dark"] .dark-mode-toggle {
+  background: var(--gray-800);
+  border-color: var(--gray-600);
+}
+
+[data-theme="dark"] .dark-mode-toggle:hover {
+  background: var(--gray-700);
+}
+
+[data-theme="dark"] .dark-mode-toggle .sun-icon {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .dark-mode-toggle .moon-icon {
+  color: #d1d5db;
+}
+
+/* Responsividade do botão de dark mode */
+@media (max-width: 768px) {
+  .dark-mode-toggle {
+    width: 35px;
+    height: 35px;
+    margin-right: 10px;
   }
   
-  .navbar:hover {
-    background: rgba(31, 41, 55, 0.98);
+  .dark-mode-toggle .icon {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dark-mode-toggle {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
   }
   
-  .navbar-link {
-    color: var(--gray-300);
-  }
-  
-  .navbar-link:hover {
-    color: var(--brand-secondary);
-    background: var(--gray-700);
-  }
-  
-  .user-circle-container:hover {
-    background: var(--gray-700);
-  }
-  
-  .user-name {
-    color: var(--gray-300);
-  }
-  
-  .user-menu {
-    background: var(--gray-800);
-    border-color: var(--gray-600);
-  }
-  
-  .user-menu-link,
-  .user-menu-button,
-  .photo-upload-label {
-    color: var(--gray-300);
-  }
-  
-  .user-menu-link:hover,
-  .user-menu-button:hover,
-  .photo-upload-label:hover {
-    background: var(--gray-700);
-    color: var(--brand-secondary);
-  }
-  
-  .user-menu-divider {
-    background: var(--gray-600);
+  .dark-mode-toggle .icon {
+    font-size: 0.9rem;
   }
 }

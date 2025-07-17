@@ -16,6 +16,7 @@ services:
       - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
       - ./database/migration_cursos.sql:/docker-entrypoint-initdb.d/02-migration_cursos.sql
       - ./database/fix.sql:/docker-entrypoint-initdb.d/03-fix.sql
+      - ./database/fix_columns.sql:/docker-entrypoint-initdb.d/04-fix_columns.sql
       - ./database/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./database/pg_hba.conf:/etc/postgresql/pg_hba.conf
     command: >

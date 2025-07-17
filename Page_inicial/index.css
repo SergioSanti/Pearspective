@@ -149,7 +149,7 @@ ul.style1 a:hover {
 .main-content {
   min-height: 100vh;
   background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%);
-  padding-top: 80px; /* Espaço para navbar fixa */
+  padding-top: 90px; /* Espaço para navbar fixa */
 }
 
 /* Seção Hero */
@@ -171,7 +171,7 @@ ul.style1 a:hover {
   font-weight: 800;
   margin-bottom: var(--spacing-4);
   color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .brand-link {
@@ -181,16 +181,28 @@ ul.style1 a:hover {
 }
 
 .brand-link:hover {
-  color: var(--brand-accent);
+  color: #2d5019;
   text-decoration: none;
   transform: scale(1.05);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 .hero-subtitle {
   font-size: var(--font-size-xl);
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-slogan {
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  margin: var(--spacing-4) 0 0;
+  font-style: italic;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.5px;
 }
 
 /* Seção de Conteúdo */
@@ -231,6 +243,12 @@ ul.style1 a:hover {
   font-weight: 700;
   margin: 0;
   color: white;
+  transition: color var(--transition-fast);
+}
+
+.content-title:hover {
+  color: #2d5019;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .title-link {
@@ -240,8 +258,9 @@ ul.style1 a:hover {
 }
 
 .title-link:hover {
-  color: var(--brand-accent);
+  color: #2d5019;
   text-decoration: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .content-body {
@@ -420,22 +439,80 @@ ul.style1 a:hover {
   border-radius: var(--border-radius-md);
 }
 
-/* Modo escuro (se suportado) */
-@media (prefers-color-scheme: dark) {
-  .content-box {
-    background: var(--gray-800);
-    border-color: var(--gray-700);
-  }
-  
-  .content-body p {
-    color: var(--gray-300);
-  }
-  
-  .objective-link {
-    color: var(--gray-300);
-  }
-  
-  .objective-item:hover {
-    background: var(--gray-700);
-  }
+
+
+/* ===== DARK MODE PARA PÁGINA INICIAL ===== */
+[data-theme="dark"] .main-content {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  padding-top: 90px; /* Manter espaço para navbar fixa */
+}
+
+[data-theme="dark"] .hero-section {
+  background: rgba(31, 41, 55, 0.1);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .content-box {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .content-box:hover {
+  background: var(--bg-tertiary);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .content-header {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+}
+
+[data-theme="dark"] .content-title {
+  color: white;
+  transition: color var(--transition-fast);
+}
+
+[data-theme="dark"] .content-title:hover {
+  color: #2d5019;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .title-link {
+  color: white;
+  transition: color var(--transition-fast);
+}
+
+[data-theme="dark"] .title-link:hover {
+  color: #2d5019;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .brand-link:hover {
+  color: #a8c66c;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .hero-slogan {
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .content-body p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .objective-link {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .objective-link:hover {
+  color: var(--brand-primary);
+}
+
+[data-theme="dark"] .objective-item:hover {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .objective-item {
+  border-bottom-color: var(--border-color);
 }

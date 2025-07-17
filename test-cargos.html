@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset=UTF-8>
+    <meta name=viewport" content="width=device-width, initial-scale=1.0>
+    <title>Teste Cargos</title>
+</head>
+<body>
+    <h1>Teste de Cargos</h1
+    <div>
+        <label for="areaSelect">Área:</label>
+        <select id="areaSelect">
+            <option value="">Selecione uma área</option>
+        </select>
+    </div>
+    
+    <div>
+        <label for="cargoSelect">Cargo:</label>
+        <select id="cargoSelect">
+            <option value="">Selecione um cargo</option>
+        </select>
+    </div>
+    
+    <div id="debug"></div>
+
+    <script>
+        async function loadAreas() {
+            try {
+                const response = await fetch('/api/areas');
+                const areas = await response.json();
+                
+                const areaSelect = document.getElementById('areaSelect');
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.nome;
+                    areaSelect.appendChild(option);
+                });
+                
+                document.getElementById('debug').innerHTML += `<p>✅ ${areas.length} áreas carregadas</p>`;
+            } catch (error) {
+                document.getElementById('debug').innerHTML += `<p>❌ Erro ao carregar áreas: ${error.message}</p>`;
+            }
+        }
+
+        async function loadCargos(areaId) {
+            try {
+                const response = await fetch(`/api/cargos?area_id=${areaId}`);
+                const cargos = await response.json();
+                
+                const cargoSelect = document.getElementById('cargoSelect');
+                cargoSelect.innerHTML = '<option value="">Selecione um cargo</option>';
+                
+                cargos.forEach(cargo => {
+                    const option = document.createElement('option');
+                    option.value = cargo.nome_cargo;
+                    option.textContent = cargo.nome_cargo;
+                    cargoSelect.appendChild(option);
+                });
+                
+                document.getElementById('debug').innerHTML += `<p>✅ ${cargos.length} cargos carregados para área ${areaId}</p>`;
+            } catch (error) {
+                document.getElementById('debug').innerHTML += `<p>❌ Erro ao carregar cargos: ${error.message}</p>`;
+            }
+        }
+
+        document.getElementById('areaSelect').addEventListener('change', function() {
+            const areaId = this.value;
+            if (areaId) {
+              loadCargos(areaId);
+            }
+        });
+
+        // Carregar áreas ao iniciar
+        loadAreas();
+    </script>
+</body>
+</html> 

@@ -25,21 +25,17 @@
   
   <!-- CSS Global -->
   <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="../navbar.css" rel="stylesheet">
   <link href="catalogo.css" rel="stylesheet">
   
   <title>Recomendações de Cursos - Pearspective</title>
 </head>
 <body>
+  <!-- Navbar carregado dinamicamente -->
+  <div id="navbar"></div>
+
   <div class="catalog-page">
     <!-- Header com navegação -->
-    <!-- Botão de Voltar -->
-    <div class="back-btn-container">
-      <a href="../Page_inicial/index.html" class="btn btn-primary back-btn">
-        <span class="btn-icon">←</span>
-        Voltar à Página Inicial
-      </a>
-    </div>
-
     <header class="catalog-header">
       <div class="container">
         <div class="header-content">
@@ -80,13 +76,11 @@
                 <label for="course-platform">Plataforma *</label>
                 <select id="course-platform" name="platform" required class="select">
                   <option value="">Selecione a plataforma</option>
-                  <option value="Alura">Alura</option>
-                  <option value="Udemy">Udemy</option>
+                  <option value="Instituto Federal">Instituto Federal</option>
                   <option value="Coursera">Coursera</option>
-                  <option value="edX">edX</option>
-                  <option value="LinkedIn Learning">LinkedIn Learning</option>
-                  <option value="Pluralsight">Pluralsight</option>
-                  <option value="Outros">Outros</option>
+                  <option value="Senai EAD">Senai EAD</option>
+                  <option value="Udemy">Udemy</option>
+                  <option value="Alura">Alura</option>
                 </select>
               </div>
               
@@ -99,12 +93,6 @@
                 <label for="course-area">Área *</label>
                 <select id="course-area" name="area" required class="select">
                   <option value="">Selecione a área</option>
-                  <option value="ti">Tecnologia da Informação</option>
-                  <option value="gestao">Gestão e Liderança</option>
-                  <option value="marketing">Marketing e Vendas</option>
-                  <option value="financas">Finanças e Contabilidade</option>
-                  <option value="rh">Recursos Humanos</option>
-                  <option value="juridico">Jurídico</option>
                 </select>
               </div>
               
@@ -127,41 +115,11 @@
                   <option value="longo">Mais de 30h</option>
                 </select>
               </div>
-              
-              <div class="form-group">
-                <label for="course-badge">Categoria *</label>
-                <input type="text" id="course-badge" name="badge" required class="input" placeholder="Ex: Frontend, DevOps, Marketing...">
-              </div>
-              
-              <div class="form-group">
-                <label for="course-badge-color">Cor da Categoria</label>
-                <select id="course-badge-color" name="badgeColor" class="select">
-                  <option value="primary">Azul (Primary)</option>
-                  <option value="success">Verde (Success)</option>
-                  <option value="warning">Amarelo (Warning)</option>
-                  <option value="danger">Vermelho (Danger)</option>
-                  <option value="info">Ciano (Info)</option>
-                </select>
-              </div>
             </div>
             
             <div class="form-group full-width">
               <label for="course-description">Descrição *</label>
               <textarea id="course-description" name="description" required class="textarea" rows="4" placeholder="Descreva o curso, incluindo o que será aprendido e se oferece certificado..."></textarea>
-            </div>
-            
-            <div class="form-options">
-              <label class="checkbox-label">
-                <input type="checkbox" id="course-featured" name="featured">
-                <span class="checkmark"></span>
-                Curso em destaque
-              </label>
-              
-              <label class="checkbox-label">
-                <input type="checkbox" id="course-new" name="new">
-                <span class="checkmark"></span>
-                Curso novo
-              </label>
             </div>
             
             <div class="form-actions">
@@ -197,12 +155,6 @@
               <label for="area-select" class="filter-label">Área</label>
               <select id="area-select" class="select" aria-label="Filtrar por área">
                 <option value="">Todas as áreas</option>
-                <option value="ti">Tecnologia da Informação</option>
-                <option value="gestao">Gestão e Liderança</option>
-                <option value="marketing">Marketing e Vendas</option>
-                <option value="financas">Finanças e Contabilidade</option>
-                <option value="rh">Recursos Humanos</option>
-                <option value="juridico">Jurídico</option>
               </select>
             </div>
             
@@ -231,7 +183,7 @@
         <!-- Lista de Cursos -->
         <section class="courses-section">
           <div class="courses-grid" id="courses-grid">
-            <!-- Os cursos serão carregados dinamicamente via JavaScript -->
+            <!-- Cursos serão carregados aqui via JavaScript -->
           </div>
         </section>
       </div>
@@ -256,6 +208,81 @@
     </div>
   </div>
 
+  <!-- Script para carregar o conteúdo da navbar -->
+  <script>
+    fetch("../navbar.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+        // Carrega o JS da navbar após inserir o HTML
+        const script = document.createElement('script');
+        script.src = '../navbar.js';
+        document.body.appendChild(script);
+      });
+  </script>
+
   <script src="cursos.js"></script>
+  <script>
+    // Função global para dark mode
+    window.toggleDarkMode = function() {
+      console.log('[DARK MODE] Alternando tema...');
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      console.log('[DARK MODE] Tema atual:', currentTheme, 'Novo tema:', newTheme);
+      
+      // Aplicar o tema
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (newTheme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+      
+      console.log('[DARK MODE] Tema aplicado:', newTheme);
+    };
+    
+    // Inicializar tema
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (theme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+    }
+    
+    // Inicializar quando a página carregar
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTheme);
+    } else {
+      initializeTheme();
+    }
+  </script>
 </body>
 </html>

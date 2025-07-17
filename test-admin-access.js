@@ -8,7 +8,7 @@ function checkCurrentUser() {
   console.log('\n👤 Verificando usuário atual...');
   
   const userName = localStorage.getItem('userName');
-  const userType = localStorage.getItem('userType');
+  const userType = localStorage.getItem('tipo_usuario');
   const userId = localStorage.getItem('userId');
   
   console.log('📊 Dados do usuário:');
@@ -24,7 +24,7 @@ function simulateAdminLogin() {
   console.log('\n🔐 Simulando login como admin...');
   
   localStorage.setItem('userName', 'admin');
-  localStorage.setItem('userType', 'admin');
+  localStorage.setItem('tipo_usuario', 'admin');
   localStorage.setItem('userId', '1');
   
   console.log('✅ Login como admin simulado');
@@ -40,7 +40,7 @@ function simulateUserLogin() {
   console.log('\n👤 Simulando login como usuário comum...');
   
   localStorage.setItem('userName', 'sergio');
-  localStorage.setItem('userType', 'usuario');
+  localStorage.setItem('tipo_usuario', 'usuario');
   localStorage.setItem('userId', '2');
   
   console.log('✅ Login como usuário comum simulado');
@@ -55,7 +55,7 @@ function simulateUserLogin() {
 function testCatalogAccess() {
   console.log('\n📚 Testando acesso ao catálogo...');
   
-  const userType = localStorage.getItem('userType');
+  const userType = localStorage.getItem('tipo_usuario');
   
   if (userType === 'admin') {
     console.log('✅ Usuário admin - deve ter acesso completo');
@@ -74,7 +74,7 @@ function testCatalogAccess() {
 function testUnauthorizedAccess() {
   console.log('\n🚫 Testando tentativas de acesso não autorizado...');
   
-  const userType = localStorage.getItem('userType');
+  const userType = localStorage.getItem('tipo_usuario');
   
   if (userType !== 'admin') {
     console.log('🔒 Usuário não é admin - testando restrições...');
