@@ -87,21 +87,47 @@ app.post('/api/login', async (req, res) => {
         // Fallback para teste
         if (usuario === 'admin' && senha === 'Admin123') {
           console.log('✅ Login admin bem-sucedido (fallback)');
+          
+          // Gerar token de sessão
+          const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Configurar cookie de sessão
+          res.cookie('sessionToken', sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000 // 24 horas
+          });
+          
           return res.json({ 
             success: true, 
             id: 1,
             nome: 'admin',
             tipo_usuario: 'admin',
-            foto_perfil: null
+            foto_perfil: null,
+            sessionToken: sessionToken
           });
         } else if (usuario === 'sergio' && senha === '12345') {
           console.log('✅ Login sergio bem-sucedido (fallback)');
+          
+          // Gerar token de sessão
+          const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Configurar cookie de sessão
+          res.cookie('sessionToken', sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000 // 24 horas
+          });
+          
           return res.json({ 
             success: true,
             id: 2,
             nome: 'sergio',
             tipo_usuario: 'usuario',
-            foto_perfil: null
+            foto_perfil: null,
+            sessionToken: sessionToken
           });
         } else {
           console.log('❌ Credenciais inválidas (fallback)');
@@ -144,21 +170,47 @@ app.post('/api/login', async (req, res) => {
       // Fallback para teste em caso de erro no banco
       if (usuario === 'admin' && senha === 'Admin123') {
         console.log('✅ Login admin bem-sucedido (fallback por erro)');
+        
+        // Gerar token de sessão
+        const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Configurar cookie de sessão
+        res.cookie('sessionToken', sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        });
+        
         return res.json({ 
           success: true, 
           id: 1,
           nome: 'admin',
           tipo_usuario: 'admin',
-          foto_perfil: null
+          foto_perfil: null,
+          sessionToken: sessionToken
         });
       } else if (usuario === 'sergio' && senha === '12345') {
         console.log('✅ Login sergio bem-sucedido (fallback por erro)');
+        
+        // Gerar token de sessão
+        const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Configurar cookie de sessão
+        res.cookie('sessionToken', sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        });
+        
         return res.json({ 
           success: true,
           id: 2,
           nome: 'sergio',
           tipo_usuario: 'usuario',
-          foto_perfil: null
+          foto_perfil: null,
+          sessionToken: sessionToken
         });
       } else {
         console.log('❌ Credenciais inválidas (fallback por erro)');
@@ -192,9 +244,13 @@ app.get('/api/me', async (req, res) => {
       });
     }
     
-    // Por enquanto, vamos usar uma abordagem simples baseada no token
-    // Em produção, você deveria usar JWT ou sessions do Express
-    const userId = sessionToken; // Simplificado para demonstração
+    // Extrair o ID do usuário do token de sessão
+    // Formato do token: "userId-timestamp-random"
+    const tokenParts = sessionToken.split('-');
+    const userId = tokenParts[0];
+    
+    console.log('🔍 Token de sessão:', sessionToken);
+    console.log('🔍 ID extraído do token:', userId);
     
     // Buscar usuário no banco
     const checkSchema = await pool.query(`
@@ -212,11 +268,11 @@ app.get('/api/me', async (req, res) => {
     let params = [userId];
     
     if (hasUsername) {
-      query = 'SELECT id, username, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1 OR username = $1';
+      query = 'SELECT id, username, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1';
     } else if (hasNome) {
-      query = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1 OR nome = $1';
+      query = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1';
     } else if (hasEmail) {
-      query = 'SELECT id, email, nome, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1 OR email = $1';
+      query = 'SELECT id, email, nome, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1';
     } else {
       return res.status(404).json({ error: 'Schema não suportado' });
     }
@@ -226,6 +282,7 @@ app.get('/api/me', async (req, res) => {
     if (result.rows.length > 0) {
       const user = result.rows[0];
       console.log('✅ Usuário autenticado:', user.nome || user.username);
+      console.log('✅ Dados do usuário:', { id: user.id, nome: user.nome, tipo: user.tipo_usuario });
       res.json({
         authenticated: true,
         user: {
@@ -238,6 +295,9 @@ app.get('/api/me', async (req, res) => {
       });
     } else {
       console.log('❌ Usuário não encontrado para token:', sessionToken);
+      console.log('❌ ID extraído:', userId);
+      console.log('❌ Query executada:', query);
+      console.log('❌ Parâmetros:', params);
       res.status(401).json({ 
         authenticated: false, 
         message: 'Sessão inválida' 
