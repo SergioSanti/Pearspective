@@ -687,7 +687,7 @@ app.post('/api/positions', async (req, res) => {
 });
 
 // Endpoint de login
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { usuario, senha } = req.body;
 
   try {
