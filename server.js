@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { Pool } = require('pg');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,6 +10,14 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Configuração do multer para upload de arquivos
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
+});
 
 // Configuração do banco de dados
 const pool = new Pool({
@@ -190,6 +199,149 @@ app.put('/api/users/profile/:id', async (req, res) => {
   }
 });
 
+// Rota para curriculum do usuário - BUSCA DO BANCO
+app.get('/api/users/curriculum/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    console.log('📄 Buscando curriculum para:', username);
+    
+    // Query baseada na estrutura real (nome)
+    const result = await pool.query(
+      'SELECT id, nome, tipo_usuario, departamento, cargo_atual, foto_perfil FROM usuarios WHERE nome = $1',
+      [username]
+    );
+    
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      res.json({
+        id: user.id,
+        nome: user.nome,
+        tipo_usuario: user.tipo_usuario,
+        departamento: user.departamento || null,
+        cargo_atual: user.cargo_atual || null,
+        foto_perfil: user.foto_perfil || null,
+        // Campos adicionais que podem estar no curriculum
+        experiencia: null,
+        formacao: null,
+        habilidades: null
+      });
+    } else {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar curriculum:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para status do curriculum - BUSCA DO BANCO
+app.get('/api/users/curriculum/:username/status', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    console.log('📊 Buscando status do curriculum para:', username);
+    
+    // Query baseada na estrutura real (nome)
+    const result = await pool.query(
+      'SELECT id, nome, tipo_usuario, departamento, cargo_atual FROM usuarios WHERE nome = $1',
+      [username]
+    );
+    
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      res.json({
+        completo: !!(user.departamento && user.cargo_atual),
+        departamento: user.departamento || null,
+        cargo_atual: user.cargo_atual || null
+      });
+    } else {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar status do curriculum:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar curriculum - ATUALIZA NO BANCO
+app.put('/api/users/curriculum/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { departamento, cargo_atual, experiencia, formacao, habilidades } = req.body;
+    
+    console.log('📝 Atualizando curriculum para:', username, { departamento, cargo_atual });
+    
+    const result = await pool.query(
+      'UPDATE usuarios SET departamento = $1, cargo_atual = $2 WHERE nome = $3 RETURNING *',
+      [departamento, cargo_atual, username]
+    );
+    
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar curriculum:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para display name do usuário - BUSCA DO BANCO
+app.get('/api/users/display-name/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    console.log('👤 Buscando display name para:', username);
+    
+    // Query baseada na estrutura real (nome)
+    const result = await pool.query(
+      'SELECT id, nome, tipo_usuario FROM usuarios WHERE nome = $1',
+      [username]
+    );
+    
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      res.json({
+        id: user.id,
+        nome: user.nome,
+        tipo_usuario: user.tipo_usuario,
+        display_name: user.nome // Usando nome como display_name
+      });
+    } else {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar display name:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar display name - ATUALIZA NO BANCO
+app.put('/api/users/display-name/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { display_name } = req.body;
+    
+    console.log('📝 Atualizando display name para:', username, { display_name });
+    
+    const result = await pool.query(
+      'UPDATE usuarios SET nome = $1 WHERE nome = $2 RETURNING *',
+      [display_name, username]
+    );
+    
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar display name:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Rota para verificar se o servidor está funcionando
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
@@ -199,6 +351,26 @@ app.get('/api/health', (req, res) => {
 app.get('/api/areas', async (req, res) => {
   try {
     console.log('📋 Buscando áreas no banco de dados...');
+    
+    // Primeiro, vamos verificar se a tabela areas existe
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'areas'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('⚠️ Tabela areas não existe, retornando array vazio');
+      return res.json([]);
+    }
+    
+    // Verificar estrutura da tabela areas
+    const columns = await pool.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'areas'
+    `);
+    console.log('📋 Colunas da tabela areas:', columns.rows.map(c => c.column_name));
     
     const result = await pool.query('SELECT id, nome FROM areas ORDER BY nome');
     
@@ -213,14 +385,45 @@ app.get('/api/areas', async (req, res) => {
 // Rota para cargos - BUSCA DO BANCO
 app.get('/api/cargos', async (req, res) => {
   try {
-    const areaId = req.query.area;
+    const areaId = req.query.area_id || req.query.area;
     
     console.log('📋 Buscando cargos para área:', areaId);
     
-    const result = await pool.query(
-      'SELECT id, nome, descricao FROM cargos WHERE area_id = $1 ORDER BY nome',
-      [areaId]
-    );
+    // Primeiro, vamos verificar se a tabela cargos existe
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'cargos'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('⚠️ Tabela cargos não existe, retornando array vazio');
+      return res.json([]);
+    }
+    
+    // Verificar estrutura da tabela cargos
+    const columns = await pool.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'cargos'
+    `);
+    console.log('📋 Colunas da tabela cargos:', columns.rows.map(c => c.column_name));
+    
+    // Query baseada na estrutura real
+    let query, params;
+    if (columns.rows.some(col => col.column_name === 'area_id')) {
+      query = 'SELECT id, nome_cargo as nome, quantidade_vagas, requisitos FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
+      params = [areaId];
+    } else if (columns.rows.some(col => col.column_name === 'area')) {
+      query = 'SELECT id, nome_cargo as nome, quantidade_vagas, requisitos FROM cargos WHERE area = $1 ORDER BY nome_cargo';
+      params = [areaId];
+    } else {
+      // Se não encontrar coluna de área, retorna todos os cargos
+      query = 'SELECT id, nome_cargo as nome, quantidade_vagas, requisitos FROM cargos ORDER BY nome_cargo';
+      params = [];
+    }
+    
+    const result = await pool.query(query, params);
     
     console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
     res.json(result.rows);
@@ -250,22 +453,295 @@ app.post('/api/areas', async (req, res) => {
   }
 });
 
+// Rota para deletar área
+app.delete('/api/areas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🗑️ Deletando área:', id);
+    
+    const result = await pool.query(
+      'DELETE FROM areas WHERE id = $1 RETURNING id',
+      [id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Área deletada:', id);
+      res.json({ success: true });
+    } else {
+      console.log('❌ Área não encontrada');
+      res.status(404).json({ error: 'Área não encontrada' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar cargo específico
+app.get('/api/cargos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('📋 Buscando cargo específico:', id);
+    
+    const result = await pool.query(
+      'SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Cargo encontrado:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Cargo não encontrado');
+      res.status(404).json({ error: 'Cargo não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar cargo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Rota para adicionar cargo
 app.post('/api/cargos', async (req, res) => {
   try {
-    const { nome, descricao, area_id } = req.body;
+    const { nome_cargo, quantidade_vagas, requisitos, area_id } = req.body;
     
-    console.log('➕ Adicionando cargo:', { nome, descricao, area_id });
+    console.log('➕ Adicionando cargo:', { nome_cargo, quantidade_vagas, area_id });
     
     const result = await pool.query(
-      'INSERT INTO cargos (nome, descricao, area_id) VALUES ($1, $2, $3) RETURNING id, nome, descricao, area_id',
-      [nome, descricao, area_id]
+      'INSERT INTO cargos (nome_cargo, quantidade_vagas, requisitos, area_id) VALUES ($1, $2, $3, $4) RETURNING id, nome_cargo, quantidade_vagas, requisitos, area_id',
+      [nome_cargo, quantidade_vagas, JSON.stringify(requisitos), area_id]
     );
     
     console.log('✅ Cargo adicionado:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao adicionar cargo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar cargo
+app.put('/api/cargos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome_cargo, quantidade_vagas, requisitos, area_id } = req.body;
+    
+    console.log('📝 Atualizando cargo:', { id, nome_cargo, quantidade_vagas, area_id });
+    
+    const result = await pool.query(
+      'UPDATE cargos SET nome_cargo = $1, quantidade_vagas = $2, requisitos = $3, area_id = $4 WHERE id = $5 RETURNING id, nome_cargo, quantidade_vagas, requisitos, area_id',
+      [nome_cargo, quantidade_vagas, JSON.stringify(requisitos), area_id, id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Cargo atualizado:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Cargo não encontrado');
+      res.status(404).json({ error: 'Cargo não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar cargo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para deletar cargo
+app.delete('/api/cargos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🗑️ Deletando cargo:', id);
+    
+    const result = await pool.query(
+      'DELETE FROM cargos WHERE id = $1 RETURNING id',
+      [id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Cargo deletado:', id);
+      res.json({ success: true });
+    } else {
+      console.log('❌ Cargo não encontrado');
+      res.status(404).json({ error: 'Cargo não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar cargo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar certificados do usuário - BUSCA DO BANCO
+app.get('/api/certificados/usuario/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log('🏆 Buscando certificados para usuário:', userId);
+    
+    // Primeiro, vamos verificar se a tabela certificados existe
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'certificados'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('⚠️ Tabela certificados não existe, retornando array vazio');
+      return res.json([]);
+    }
+    
+    const result = await pool.query(
+      'SELECT id, nome, instituicao, data_conclusao, descricao, tem_pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC',
+      [userId]
+    );
+    
+    console.log(`✅ Encontrados ${result.rows.length} certificados para usuário ${userId}`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Erro ao buscar certificados:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar certificado específico - BUSCA DO BANCO
+app.get('/api/certificados/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🏆 Buscando certificado específico:', id);
+    
+    const result = await pool.query(
+      'SELECT id, nome, instituicao, data_inicio, data_conclusao, descricao, tem_pdf FROM certificados WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Certificado encontrado:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Certificado não encontrado');
+      res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar certificado:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para adicionar certificado - SALVA NO BANCO
+app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
+  try {
+    const { usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
+    const pdfFile = req.file;
+    
+    console.log('➕ Adicionando certificado:', { nome, instituicao, usuario_id });
+    
+    let query, params;
+    if (pdfFile) {
+      query = 'INSERT INTO certificados (usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao, tem_pdf, pdf_data, pdf_nome) VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8) RETURNING id, nome, instituicao, data_conclusao, descricao, tem_pdf';
+      params = [usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao, pdfFile.buffer, pdfFile.originalname];
+    } else {
+      query = 'INSERT INTO certificados (usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao, tem_pdf) VALUES ($1, $2, $3, $4, $5, $6, false) RETURNING id, nome, instituicao, data_conclusao, descricao, tem_pdf';
+      params = [usuario_id, nome, instituicao, data_inicio, data_conclusao, descricao];
+    }
+    
+    const result = await pool.query(query, params);
+    
+    console.log('✅ Certificado adicionado:', result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao adicionar certificado:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar certificado - ATUALIZA NO BANCO
+app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, instituicao, data_inicio, data_conclusao, descricao } = req.body;
+    const pdfFile = req.file;
+    
+    console.log('📝 Atualizando certificado:', { id, nome, instituicao });
+    
+    let query, params;
+    if (pdfFile) {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5, tem_pdf = true, pdf_data = $6, pdf_nome = $7 WHERE id = $8 RETURNING id, nome, instituicao, data_conclusao, descricao, tem_pdf';
+      params = [nome, instituicao, data_inicio, data_conclusao, descricao, pdfFile.buffer, pdfFile.originalname, id];
+    } else {
+      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_inicio = $3, data_conclusao = $4, descricao = $5 WHERE id = $6 RETURNING id, nome, instituicao, data_conclusao, descricao, tem_pdf';
+      params = [nome, instituicao, data_inicio, data_conclusao, descricao, id];
+    }
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Certificado atualizado:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Certificado não encontrado');
+      res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar certificado:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para deletar certificado - DELETA DO BANCO
+app.delete('/api/certificados/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🗑️ Deletando certificado:', id);
+    
+    const result = await pool.query(
+      'DELETE FROM certificados WHERE id = $1 RETURNING id',
+      [id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Certificado deletado:', id);
+      res.json({ success: true });
+    } else {
+      console.log('❌ Certificado não encontrado');
+      res.status(404).json({ error: 'Certificado não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar certificado:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar PDF do certificado - BUSCA DO BANCO
+app.get('/api/certificados/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('📄 Buscando PDF do certificado:', id);
+    
+    const result = await pool.query(
+      'SELECT pdf_data, pdf_nome FROM certificados WHERE id = $1 AND tem_pdf = true',
+      [id]
+    );
+    
+    if (result.rows.length > 0) {
+      const { pdf_data, pdf_nome } = result.rows[0];
+      console.log('✅ PDF encontrado:', pdf_nome);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${pdf_nome}"`);
+      res.send(Buffer.from(pdf_data, 'base64'));
+    } else {
+      console.log('❌ PDF não encontrado');
+      res.status(404).json({ error: 'PDF não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar PDF:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modal-title');
     const certIdInput = document.getElementById('cert-id');
 
-    // API base URL
-    const API_BASE_URL = 'http://localhost:3000/api';
+    // API base URL - funciona tanto local quanto no Railway
+    const API_BASE_URL = window.location.origin + '/api';
 
     // Função para buscar certificados do usuário logado
     const fetchUserCertificates = async () => {
