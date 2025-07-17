@@ -384,16 +384,18 @@ app.get('/api/cargos/:id', async (req, res) => {
 // Rota para criar cargo
 app.post('/api/cargos', async (req, res) => {
   try {
-    const { nome, descricao, area_id, nivel } = req.body;
+    console.log('📋 Criando cargo:', req.body);
+    const { nome_cargo, area_id, requisitos, quantidade_vagas } = req.body;
     
     const result = await pool.query(
-      'INSERT INTO cargos (nome, descricao, area_id, nivel) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nome, descricao, area_id, nivel]
+      'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nome_cargo, area_id, requisitos, quantidade_vagas]
     );
     
+    console.log('✅ Cargo criado:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Erro ao criar cargo:', error);
+    console.error('❌ Erro ao criar cargo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -402,20 +404,23 @@ app.post('/api/cargos', async (req, res) => {
 app.put('/api/cargos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, descricao, area_id, nivel } = req.body;
+    const { nome_cargo, area_id, requisitos, quantidade_vagas } = req.body;
+    
+    console.log(`📋 Atualizando cargo ${id}:`, req.body);
     
     const result = await pool.query(
-      'UPDATE cargos SET nome = $1, descricao = $2, area_id = $3, nivel = $4 WHERE id = $5 RETURNING *',
-      [nome, descricao, area_id, nivel, id]
+      'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3, quantidade_vagas = $4 WHERE id = $5 RETURNING *',
+      [nome_cargo, area_id, requisitos, quantidade_vagas, id]
     );
     
     if (result.rows.length > 0) {
+      console.log('✅ Cargo atualizado:', result.rows[0]);
       res.json(result.rows[0]);
     } else {
       res.status(404).json({ error: 'Cargo não encontrado' });
     }
   } catch (error) {
-    console.error('Erro ao atualizar cargo:', error);
+    console.error('❌ Erro ao atualizar cargo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -425,15 +430,18 @@ app.delete('/api/cargos/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
+    console.log(`🗑️ Deletando cargo ${id}...`);
+    
     const result = await pool.query('DELETE FROM cargos WHERE id = $1 RETURNING *', [id]);
     
     if (result.rows.length > 0) {
+      console.log('✅ Cargo deletado:', result.rows[0]);
       res.json({ message: 'Cargo deletado com sucesso' });
     } else {
       res.status(404).json({ error: 'Cargo não encontrado' });
     }
   } catch (error) {
-    console.error('Erro ao deletar cargo:', error);
+    console.error('❌ Erro ao deletar cargo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -453,6 +461,94 @@ app.get('/api/areas', async (req, res) => {
     console.error('❌ Erro ao buscar áreas:', error);
     console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Rota para buscar uma área específica
+app.get('/api/areas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query('SELECT * FROM areas WHERE id = $1', [id]);
+    
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Área não encontrada' });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para criar área
+app.post('/api/areas', async (req, res) => {
+  try {
+    console.log('🏢 Criando área:', req.body);
+    const { nome } = req.body;
+    
+    const result = await pool.query(
+      'INSERT INTO areas (nome) VALUES ($1) RETURNING *',
+      [nome]
+    );
+    
+    console.log('✅ Área criada:', result.rows[0]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao criar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar área
+app.put('/api/areas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome } = req.body;
+    
+    console.log(`🏢 Atualizando área ${id}:`, req.body);
+    
+    const result = await pool.query(
+      'UPDATE areas SET nome = $1 WHERE id = $2 RETURNING *',
+      [nome, id]
+    );
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Área atualizada:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Área não encontrada' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para deletar área
+app.delete('/api/areas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`🗑️ Deletando área ${id}...`);
+    
+    // Primeiro deletar todos os cargos da área
+    await pool.query('DELETE FROM cargos WHERE area_id = $1', [id]);
+    console.log('✅ Cargos da área deletados');
+    
+    // Depois deletar a área
+    const result = await pool.query('DELETE FROM areas WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Área deletada:', result.rows[0]);
+      res.json({ message: 'Área e cargos associados deletados com sucesso' });
+    } else {
+      res.status(404).json({ error: 'Área não encontrada' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
