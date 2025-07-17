@@ -553,34 +553,49 @@ app.put('/api/users/profile/:id', async (req, res) => {
     const { id } = req.params;
     const { departamento, cargo_atual, foto_perfil } = req.body;
     
-    console.log(`👤 Atualizando perfil do usuário ${id}:`, { departamento, cargo_atual, foto_perfil });
+    console.log(`👤 Atualizando perfil do usuário ${id}:`, { 
+      departamento, 
+      cargo_atual, 
+      foto_perfil: foto_perfil ? 'Foto fornecida' : 'Sem foto' 
+    });
     
-    // Query adaptativa
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'usuarios' 
-      AND column_name IN ('departamento', 'cargo_atual', 'foto_perfil')
-    `);
-    
-    const hasDepartamento = checkSchema.rows.some(row => row.column_name === 'departamento');
-    const hasCargoAtual = checkSchema.rows.some(row => row.column_name === 'cargo_atual');
-    const hasFotoPerfil = checkSchema.rows.some(row => row.column_name === 'foto_perfil');
-    
+    // Query simples e direta para atualizar foto de perfil
     let query = '';
     let params = [];
     
-    if (hasDepartamento && hasCargoAtual && hasFotoPerfil) {
-      query = 'UPDATE usuarios SET departamento = $1, cargo_atual = $2, foto_perfil = $3 WHERE id = $4 RETURNING *';
-      params = [departamento, cargo_atual, foto_perfil, id];
-    } else if (hasDepartamento && hasCargoAtual) {
-      query = 'UPDATE usuarios SET departamento = $1, cargo_atual = $2 WHERE id = $3 RETURNING *';
-      params = [departamento, cargo_atual, id];
-    } else {
-      // Fallback simples
-      query = 'UPDATE usuarios SET foto_perfil = $1 WHERE id = $2 RETURNING *';
+    if (foto_perfil) {
+      // Atualizar apenas a foto de perfil
+      query = 'UPDATE usuarios SET foto_perfil = $1 WHERE id = $2 RETURNING id, nome, foto_perfil';
       params = [foto_perfil, id];
+    } else if (departamento || cargo_atual) {
+      // Atualizar outros campos se fornecidos
+      let updateFields = [];
+      let valueIndex = 1;
+      
+      if (departamento) {
+        updateFields.push(`departamento = $${valueIndex++}`);
+        params.push(departamento);
+      }
+      
+      if (cargo_atual) {
+        updateFields.push(`cargo_atual = $${valueIndex++}`);
+        params.push(cargo_atual);
+      }
+      
+      params.push(id);
+      query = `UPDATE usuarios SET ${updateFields.join(', ')} WHERE id = $${valueIndex} RETURNING id, nome, departamento, cargo_atual`;
+    } else {
+      // Se não há dados para atualizar, retornar usuário atual
+      const userResult = await pool.query('SELECT id, nome, foto_perfil FROM usuarios WHERE id = $1', [id]);
+      if (userResult.rows.length > 0) {
+        return res.json(userResult.rows[0]);
+      } else {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+      }
     }
+    
+    console.log('🔍 Query de atualização:', query);
+    console.log('📋 Parâmetros:', params);
     
     const result = await pool.query(query, params);
     
@@ -593,7 +608,8 @@ app.put('/api/users/profile/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar perfil:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
