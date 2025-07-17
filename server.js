@@ -111,6 +111,23 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+// Rota para testar query de cargos
+app.get('/api/test-cargos', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos LIMIT 5');
+    res.json({
+      message: 'Query de cargos OK',
+      total_encontrados: result.rows.length,
+      cargos: result.rows
+    });
+  } catch (error) {
+    res.json({
+      message: 'Erro na query de cargos',
+      error: error.message
+    });
+  }
+});
+
 // Rota de login - BUSCA DO BANCO
 app.post('/api/login', async (req, res) => {
   try {
@@ -390,6 +407,7 @@ app.get('/api/cargos', async (req, res) => {
     console.log('🔍 Buscando cargos do banco...');
     const result = await pool.query('SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos ORDER BY nome_cargo');
     console.log(`✅ Encontrados ${result.rows.length} cargos no banco`);
+    console.log('📋 Primeiros 3 cargos:', result.rows.slice(0, 3));
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos:', error.message);
