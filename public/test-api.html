@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste API</title>
+</head>
+<body>
+    <h1>Teste da API Pearspective</h1>
+    
+    <h2>Teste de Login</h2>
+    <form id="testForm">
+        <input type="text" id="usuario" placeholder="Usuário" value="admin"><br>
+        <input type="password" id="senha" placeholder="Senha" value="Admin123"><br>
+        <button type="submit">Testar Login</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+            
+            try {
+                console.log('Testando login com:', { usuario, senha });
+                
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ usuario, senha })
+                });
+                
+                console.log('Status da resposta:', response.status);
+                console.log('Headers:', response.headers);
+                
+                const data = await response.json();
+                console.log('Dados recebidos:', data);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>Resultado:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>Erro:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 
