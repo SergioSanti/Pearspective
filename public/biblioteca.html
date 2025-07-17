@@ -19,75 +19,40 @@
   <!-- Navbar carregado dinamicamente -->
   <div id="navbar"></div>
 
-  <div class="library-page">
-    <header class="library-header">
+  <div class="page-container">
+    <header class="page-header">
       <div class="container">
         <div class="header-content">
           <div class="header-center">
-            <h1 class="library-title">Pesquisar Cursos</h1>
-            <p class="library-subtitle">Encontre cursos com certificado em diversas plataformas</p>
+            <h1 class="page-title">Pesquisar Cursos</h1>
+            <p class="page-subtitle">Encontre cursos com certificado em diversas plataformas.</p>
           </div>
         </div>
       </div>
     </header>
     
-    <main class="library-main">
-      <div class="container">
-        <!-- Seção de Busca -->
-        <section class="search-section">
-          <form id="search-form" class="search-form">
+    <main class="container">
+      <div class="content-panel">
+        <form id="search-form">
+          <div class="form-group">
+            <label for="search-query">
+              Informe a área, competência ou habilidade que deseja aprender:
+            </label>
             <input
               type="text"
-              id="search-input"
+              id="search-query"
               name="search-query"
-              class="search-input"
+              class="input input-lg"
               placeholder="Ex: gestão de projetos, programação, liderança"
               required
             />
-            <button type="submit" class="search-button">
-              🔍 Pesquisar Cursos
-            </button>
-          </form>
-        </section>
-
-        <!-- Seção de Filtros -->
-        <section class="filters-section">
-          <div class="filters-grid">
-            <div class="filter-group">
-              <label for="area-filter" class="filter-label">Área</label>
-              <select id="area-filter" class="filter-select">
-                <option value="">Todas as áreas</option>
-              </select>
-            </div>
-            
-            <div class="filter-group">
-              <label for="level-filter" class="filter-label">Nível</label>
-              <select id="level-filter" class="filter-select">
-                <option value="">Todos os níveis</option>
-                <option value="basico">Básico</option>
-                <option value="intermediario">Intermediário</option>
-                <option value="avancado">Avançado</option>
-              </select>
-            </div>
-            
-            <div class="filter-group">
-              <label for="platform-filter" class="filter-label">Plataforma</label>
-              <select id="platform-filter" class="filter-select">
-                <option value="">Todas as plataformas</option>
-              </select>
-            </div>
           </div>
-        </section>
-
-        <!-- Seção de Resultados -->
-        <section class="results-section">
-          <div class="results-header">
-            <span class="results-count">Resultados da busca</span>
-          </div>
-          <div class="results-grid" id="results-container">
-            <!-- Resultados da busca aparecerão aqui -->
-          </div>
-        </section>
+          <button type="submit" class="btn btn-primary btn-lg">Pesquisar Cursos</button>
+        </form>
+    
+        <div id="results-container">
+          <!-- Resultados da busca aparecerão aqui -->
+        </div>
       </div>
     </main>
   </div>
