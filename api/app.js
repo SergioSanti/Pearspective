@@ -154,6 +154,77 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Rota para garantir que os usuários padrão existam
+app.get('/api/ensure-users', async (req, res) => {
+  try {
+    console.log('🔧 Verificando e criando usuários padrão...');
+    
+    // Verificar se a tabela usuarios existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'usuarios'
+      );
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      console.log('❌ Tabela usuarios não existe, criando...');
+      
+      // Criar tabela usuarios
+      await pool.query(`
+        CREATE TABLE usuarios (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(100) UNIQUE NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          senha VARCHAR(255) NOT NULL,
+          tipo_usuario VARCHAR(50) DEFAULT 'usuario',
+          foto_perfil TEXT,
+          departamento VARCHAR(100),
+          cargo_atual VARCHAR(100),
+          data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela usuarios criada');
+    }
+    
+    // Verificar se os usuários padrão existem
+    const adminExists = await pool.query('SELECT id FROM usuarios WHERE nome = $1', ['admin']);
+    const sergioExists = await pool.query('SELECT id FROM usuarios WHERE nome = $1', ['sergio']);
+    
+    let createdUsers = [];
+    
+    if (adminExists.rows.length === 0) {
+      console.log('👤 Criando usuário admin...');
+      await pool.query(`
+        INSERT INTO usuarios (nome, email, senha, tipo_usuario) 
+        VALUES ($1, $2, $3, $4)
+      `, ['admin', 'admin@example.com', 'Admin123', 'admin']);
+      createdUsers.push('admin');
+    }
+    
+    if (sergioExists.rows.length === 0) {
+      console.log('👤 Criando usuário sergio...');
+      await pool.query(`
+        INSERT INTO usuarios (nome, email, senha, tipo_usuario) 
+        VALUES ($1, $2, $3, $4)
+      `, ['sergio', 'sergio@example.com', '12345', 'usuario']);
+      createdUsers.push('sergio');
+    }
+    
+    console.log('✅ Usuários verificados/criados:', createdUsers);
+    res.json({ 
+      message: 'Usuários verificados com sucesso',
+      created: createdUsers,
+      mode: 'railway'
+    });
+  } catch (error) {
+    console.error('❌ Erro ao verificar usuários:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
 // Rota para verificar e corrigir estrutura da tabela cursos
 app.get('/api/fix-cursos-table', async (req, res) => {
   try {
