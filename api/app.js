@@ -83,7 +83,7 @@ pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('❌ Erro ao conectar com o banco:', err);
     console.error('❌ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurada' : 'Não configurada');
-  } else {
+        } else {
     console.log('✅ Conectado ao banco de dados PostgreSQL');
     console.log('🔍 Configuração do banco:', {
       hasDatabaseUrl: !!process.env.DATABASE_URL,
@@ -189,7 +189,7 @@ app.post('/api/login', async (req, res) => {
         params = [usuario, senha];
       } else {
         // Fallback para teste
-        if (usuario === 'admin' && senha === 'Admin123') {
+    if (usuario === 'admin' && senha === 'Admin123') {
           console.log('✅ Login admin bem-sucedido (fallback)');
           
           // Gerar token de sessão
@@ -199,14 +199,14 @@ app.post('/api/login', async (req, res) => {
           res.cookie('sessionToken', sessionToken);
           
           return res.json({ 
-            success: true, 
-            id: 1,
-            nome: 'admin',
-            tipo_usuario: 'admin',
+      success: true, 
+        id: 1,
+        nome: 'admin',
+        tipo_usuario: 'admin',
             foto_perfil: null,
             sessionToken: sessionToken
-          });
-        } else if (usuario === 'sergio' && senha === '12345') {
+      });
+    } else if (usuario === 'sergio' && senha === '12345') {
           console.log('✅ Login sergio bem-sucedido (fallback)');
           
           // Gerar token de sessão
@@ -242,7 +242,7 @@ app.post('/api/login', async (req, res) => {
         // Configurar cookie de sessão simples
         res.cookie('sessionToken', sessionToken);
         
-        res.json({ 
+    res.json({ 
           success: true, 
           id: user.id,
           nome: user.nome || user.username,
@@ -284,10 +284,10 @@ app.post('/api/login', async (req, res) => {
         res.cookie('sessionToken', sessionToken);
         
         return res.json({ 
-          success: true,
-          id: 2,
-          nome: 'sergio',
-          tipo_usuario: 'usuario',
+        success: true,
+        id: 2,
+        nome: 'sergio',
+        tipo_usuario: 'usuario',
           foto_perfil: null,
           sessionToken: sessionToken
         });
@@ -338,7 +338,7 @@ app.get('/api/me', async (req, res) => {
           nome: 'admin',
           email: 'admin@example.com',
           tipo_usuario: 'admin',
-          foto_perfil: null
+        foto_perfil: null
         }
       });
     } else if (sessionToken.startsWith('2-')) {
@@ -562,7 +562,7 @@ app.get('/api/users/profile/:username', async (req, res) => {
 // Rota para atualizar perfil do usuário
 app.put('/api/users/profile/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+  const { id } = req.params;
     const { departamento, cargo_atual, foto_perfil } = req.body;
     
     console.log(`👤 Atualizando perfil do usuário ${id}:`, { 
@@ -870,7 +870,7 @@ app.put('/api/cargos/:id', async (req, res) => {
     
     if (result.rows.length > 0) {
       console.log('✅ Cargo atualizado:', result.rows[0]);
-      res.json(result.rows[0]);
+    res.json(result.rows[0]);
     } else {
       res.status(404).json({ error: 'Cargo não encontrado' });
     }
