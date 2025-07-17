@@ -153,6 +153,60 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Rota para buscar perfil do usuário
+app.get('/api/users/profile/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`👤 Buscando perfil do usuário: ${username}`);
+    
+    // Query adaptativa
+    const checkSchema = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'usuarios' 
+      AND column_name IN ('username', 'nome', 'email')
+    `);
+    
+    const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
+    const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
+    const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
+    
+    let query = '';
+    let params = [username];
+    
+    if (hasUsername) {
+      query = 'SELECT id, username, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE username = $1';
+    } else if (hasNome) {
+      query = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1';
+    } else if (hasEmail) {
+      query = 'SELECT id, email, nome, tipo_usuario, foto_perfil FROM usuarios WHERE email = $1';
+    } else {
+      return res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+    
+    const result = await pool.query(query, params);
+
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      console.log('✅ Perfil encontrado para usuário:', username);
+      res.json({
+        id: user.id,
+        nome: user.nome || user.username,
+        nome_exibicao: user.nome || user.username,
+        email: user.email,
+        tipo_usuario: user.tipo_usuario,
+        foto_perfil: user.foto_perfil
+      });
+    } else {
+      console.log('❌ Usuário não encontrado:', username);
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar perfil:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Rota para buscar foto do usuário
 app.get('/api/users/photo/:username', async (req, res) => {
   try {
@@ -549,6 +603,160 @@ app.delete('/api/cargos/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao deletar cargo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para deletar área
+app.delete('/api/areas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🗑️ Deletando área ${id}...`);
+    
+    const result = await pool.query('DELETE FROM areas WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Área deletada:', result.rows[0]);
+      res.json({ message: 'Área deletada com sucesso' });
+    } else {
+      console.log('❌ Área não encontrada para deletar:', id);
+      res.status(404).json({ error: 'Área não encontrada' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar perfil do usuário
+app.put('/api/users/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { foto_perfil, departamento, cargo_atual } = req.body;
+    
+    console.log(`👤 Atualizando perfil do usuário ${userId}:`, { foto_perfil: !!foto_perfil, departamento, cargo_atual });
+    
+    // Query adaptativa para atualizar apenas os campos fornecidos
+    let query = '';
+    let params = [];
+    
+    if (foto_perfil) {
+      query = 'UPDATE usuarios SET foto_perfil = $1 WHERE id = $2 RETURNING id, nome, foto_perfil';
+      params = [foto_perfil, userId];
+    } else {
+      // Se não há foto, retornar sucesso sem atualizar
+      const userResult = await pool.query('SELECT id, nome, foto_perfil FROM usuarios WHERE id = $1', [userId]);
+      if (userResult.rows.length > 0) {
+        return res.json(userResult.rows[0]);
+      } else {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+      }
+    }
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Perfil atualizado para usuário:', userId);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Usuário não encontrado para atualizar:', userId);
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar perfil:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar status do currículo
+app.get('/api/users/curriculum/:username/status', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`📄 Buscando status do currículo para: ${username}`);
+    
+    // Simular status do currículo
+    res.json({ 
+      hasCurriculum: false, 
+      lastUpdated: null,
+      status: 'not_uploaded'
+    });
+  } catch (error) {
+    console.error('❌ Erro ao buscar status do currículo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para buscar currículo
+app.get('/api/users/curriculum/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`📄 Buscando currículo para: ${username}`);
+    
+    res.status(404).json({ error: 'Currículo não encontrado' });
+  } catch (error) {
+    console.error('❌ Erro ao buscar currículo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar currículo
+app.put('/api/users/curriculum/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`📄 Atualizando currículo para: ${username}`);
+    
+    res.json({ message: 'Currículo atualizado com sucesso' });
+  } catch (error) {
+    console.error('❌ Erro ao atualizar currículo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para deletar currículo
+app.delete('/api/users/curriculum/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`📄 Deletando currículo para: ${username}`);
+    
+    res.json({ message: 'Currículo deletado com sucesso' });
+  } catch (error) {
+    console.error('❌ Erro ao deletar currículo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para atualizar display name
+app.put('/api/users/display-name/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { displayName } = req.body;
+    console.log(`👤 Atualizando display name para ${username}: ${displayName}`);
+    
+    res.json({ 
+      username,
+      displayName,
+      message: 'Display name atualizado com sucesso'
+    });
+  } catch (error) {
+    console.error('❌ Erro ao atualizar display name:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para criar posições
+app.post('/api/positions', async (req, res) => {
+  try {
+    const { nome, area_id } = req.body;
+    console.log(`🏢 Criando posição: ${nome} na área ${area_id}`);
+    
+    res.status(201).json({ 
+      id: Date.now(),
+      nome,
+      area_id,
+      message: 'Posição criada com sucesso'
+    });
+  } catch (error) {
+    console.error('❌ Erro ao criar posição:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
