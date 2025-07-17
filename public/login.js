@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('[LOGIN] foto_perfil:', data.foto_perfil ? 'Presente' : 'Não presente');
         
         // Redireciona após salvar os dados
-        window.location.href = 'Page_inicial/index.html';
+        window.location.href = 'index.html';
       } else {
         alert(data.message || 'Erro no login');
       }
