@@ -1321,10 +1321,36 @@ app.get('/api/certificados', async (req, res) => {
   try {
     console.log('🏆 Buscando certificados...');
     
-    // Query simples com pdf
-    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados ORDER BY data_conclusao DESC';
+    // Verificar quais colunas existem na tabela certificados
+    console.log('🔍 Verificando colunas da tabela certificados para listagem...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
+      ORDER BY ordinal_position
+    `);
     
-    console.log('🔍 Query:', query);
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes para listagem:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let selectColumns = ['id', 'usuario_id', 'nome', 'instituicao'];
+    
+    if (existingColumns.includes('data_conclusao')) {
+      selectColumns.push('data_conclusao');
+    }
+    
+    if (existingColumns.includes('descricao')) {
+      selectColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('pdf')) {
+      selectColumns.push('pdf');
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM certificados ORDER BY ${existingColumns.includes('data_conclusao') ? 'data_conclusao DESC' : 'id DESC'}`;
+    console.log('🔍 Query de listagem adaptativa:', query);
     
     const result = await pool.query(query);
     
@@ -1387,11 +1413,38 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
       return res.json([]);
     }
     
-    // Query simples com pdf
-    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
+    // Verificar quais colunas existem na tabela certificados
+    console.log('🔍 Verificando colunas da tabela certificados...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let selectColumns = ['id', 'usuario_id', 'nome', 'instituicao'];
+    
+    if (existingColumns.includes('data_conclusao')) {
+      selectColumns.push('data_conclusao');
+    }
+    
+    if (existingColumns.includes('descricao')) {
+      selectColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('pdf')) {
+      selectColumns.push('pdf');
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM certificados WHERE usuario_id = $1 ORDER BY ${existingColumns.includes('data_conclusao') ? 'data_conclusao DESC' : 'id DESC'}`;
     const params = [parseInt(userId)];
     
-    console.log('🔍 Executando query:', query, 'Params:', params);
+    console.log('🔍 Executando query adaptativa:', query, 'Params:', params);
     
     const result = await pool.query(query, params);
     
@@ -1469,16 +1522,53 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
       console.log('✅ Tabela certificados criada');
     }
     
-    // Query com PDF se fornecido
+    // Verificar quais colunas existem na tabela certificados
+    console.log('🔍 Verificando colunas da tabela certificados para inserção...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes para inserção:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
     let query = '';
     let params = [];
     
-    if (req.file) {
-      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id), req.file.buffer];
+    if (req.file && existingColumns.includes('pdf')) {
+      // Query com PDF
+      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+        params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id), req.file.buffer];
+      } else if (existingColumns.includes('descricao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+        params = [nome, instituicao, descricao || '', parseInt(usuario_id), req.file.buffer];
+      } else if (existingColumns.includes('data_conclusao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+        params = [nome, instituicao, data_conclusao, parseInt(usuario_id), req.file.buffer];
+      } else {
+        query = 'INSERT INTO certificados (nome, instituicao, usuario_id, pdf) VALUES ($1, $2, $3, $4) RETURNING *';
+        params = [nome, instituicao, parseInt(usuario_id), req.file.buffer];
+      }
     } else {
-      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id)];
+      // Query sem PDF
+      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+        params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id)];
+      } else if (existingColumns.includes('descricao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, descricao, usuario_id) VALUES ($1, $2, $3, $4) RETURNING *';
+        params = [nome, instituicao, descricao || '', parseInt(usuario_id)];
+      } else if (existingColumns.includes('data_conclusao')) {
+        query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, usuario_id) VALUES ($1, $2, $3, $4) RETURNING *';
+        params = [nome, instituicao, data_conclusao, parseInt(usuario_id)];
+      } else {
+        query = 'INSERT INTO certificados (nome, instituicao, usuario_id) VALUES ($1, $2, $3) RETURNING *';
+        params = [nome, instituicao, parseInt(usuario_id)];
+      }
     }
     
     console.log('🔍 Query de inserção:', query, 'Params:', params);
@@ -1514,16 +1604,53 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
       return res.status(400).json({ error: 'Nome e instituição são obrigatórios' });
     }
     
-    // Query com PDF se fornecido
+    // Verificar quais colunas existem na tabela certificados
+    console.log('🔍 Verificando colunas da tabela certificados para atualização...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes para atualização:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
     let query = '';
     let params = [];
     
-    if (req.file) {
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', req.file.buffer, parseInt(id)];
+    if (req.file && existingColumns.includes('pdf')) {
+      // Query com PDF
+      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING *';
+        params = [nome, instituicao, data_conclusao, descricao || '', req.file.buffer, parseInt(id)];
+      } else if (existingColumns.includes('descricao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, descricao = $3, pdf = $4 WHERE id = $5 RETURNING *';
+        params = [nome, instituicao, descricao || '', req.file.buffer, parseInt(id)];
+      } else if (existingColumns.includes('data_conclusao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, pdf = $4 WHERE id = $5 RETURNING *';
+        params = [nome, instituicao, data_conclusao, req.file.buffer, parseInt(id)];
+      } else {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, pdf = $3 WHERE id = $4 RETURNING *';
+        params = [nome, instituicao, req.file.buffer, parseInt(id)];
+      }
     } else {
-      query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', parseInt(id)];
+      // Query sem PDF
+      if (existingColumns.includes('descricao') && existingColumns.includes('data_conclusao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
+        params = [nome, instituicao, data_conclusao, descricao || '', parseInt(id)];
+      } else if (existingColumns.includes('descricao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, descricao = $3 WHERE id = $4 RETURNING *';
+        params = [nome, instituicao, descricao || '', parseInt(id)];
+      } else if (existingColumns.includes('data_conclusao')) {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3 WHERE id = $4 RETURNING *';
+        params = [nome, instituicao, data_conclusao, parseInt(id)];
+      } else {
+        query = 'UPDATE certificados SET nome = $1, instituicao = $2 WHERE id = $3 RETURNING *';
+        params = [nome, instituicao, parseInt(id)];
+      }
     }
     
     console.log('🔍 Query de atualização:', query, 'Params:', params);
@@ -1559,11 +1686,38 @@ app.get('/api/certificados/:id', async (req, res) => {
       return res.status(400).json({ error: 'ID inválido' });
     }
     
-    // Query simples com pdf
-    const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE id = $1';
+    // Verificar quais colunas existem na tabela certificados
+    console.log('🔍 Verificando colunas da tabela certificados para busca...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes para busca:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let selectColumns = ['id', 'usuario_id', 'nome', 'instituicao'];
+    
+    if (existingColumns.includes('data_conclusao')) {
+      selectColumns.push('data_conclusao');
+    }
+    
+    if (existingColumns.includes('descricao')) {
+      selectColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('pdf')) {
+      selectColumns.push('pdf');
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM certificados WHERE id = $1`;
     const params = [parseInt(id)];
     
-    console.log('🔍 Query de busca:', query, 'Params:', params);
+    console.log('🔍 Query de busca adaptativa:', query, 'Params:', params);
     
     const result = await pool.query(query, params);
     
@@ -1596,11 +1750,30 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
       return res.status(400).json({ error: 'ID inválido' });
     }
     
-    // Buscar informações do certificado
-    const query = 'SELECT nome, pdf FROM certificados WHERE id = $1';
+    // Verificar quais colunas existem na tabela certificados
+    console.log('🔍 Verificando colunas da tabela certificados para PDF...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes para PDF:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let selectColumns = ['nome'];
+    
+    if (existingColumns.includes('pdf')) {
+      selectColumns.push('pdf');
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM certificados WHERE id = $1`;
     const params = [parseInt(id)];
     
-    console.log('🔍 Query de PDF:', query, 'Params:', params);
+    console.log('🔍 Query de PDF adaptativa:', query, 'Params:', params);
     
     const certResult = await pool.query(query, params);
     
