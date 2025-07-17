@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login</title>
+</head>
+<body>
+    <h1>Teste de Login</h1>
+    
+    <form id="loginForm">
+        <input type="text" id="usuario" placeholder="Usuário" value="admin"><br>
+        <input type="password" id="senha" placeholder="Senha" value="Admin123"><br>
+        <button type="submit">Login</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Tentando login...');
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ usuario, senha })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                resultDiv.innerHTML = `
+                    <h3>Resultado do Login:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                if (data.success) {
+                    // Testar verificação de sessão
+                    setTimeout(async () => {
+                        console.log('Testando sessão...');
+                        const sessionResponse = await fetch('/api/me', {
+                            credentials: 'include'
+                        });
+                        
+                        console.log('Session response status:', sessionResponse.status);
+                        const sessionData = await sessionResponse.json();
+                        console.log('Session data:', sessionData);
+                        
+                        resultDiv.innerHTML += `
+                            <h3>Resultado da Sessão:</h3>
+                            <pre>${JSON.stringify(sessionData, null, 2)}</pre>
+                        `;
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultDiv.innerHTML = `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html> 
