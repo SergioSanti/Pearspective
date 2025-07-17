@@ -3,13 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Simulador de Cargos - Pearspective</title>
-  <script>
-    // Proteção de Rota: verifica se o usuário está logado
-    if (!localStorage.getItem('userId')) {
-      alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = '../login.html';
-    }
-  </script>
+  <!-- Proteção de rota será feita pelo navbar.js via /api/me -->
   <link href="../assets/global-styles.css" rel="stylesheet" />
   <link href="../navbar.css" rel="stylesheet" />
   <link href="simulador.css" rel="stylesheet" type="text/css" />

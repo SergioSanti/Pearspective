@@ -5,13 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Recomendações de cursos do Pearspective - Cursos certificados selecionados para seu desenvolvimento profissional">
-  <script>
-    // Proteção de Rota: verifica se o usuário está logado
-    if (!localStorage.getItem('userId')) {
-      alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = '../login.html';
-    }
-  </script>
+  <!-- Proteção de rota será feita pelo navbar.js via /api/me -->
   <meta name="keywords" content="cursos, recomendações, treinamento, desenvolvimento profissional, certificados">
   <meta name="author" content="Pearspective Team">
   <meta name="theme-color" content="#6B8E4E">
