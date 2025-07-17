@@ -370,31 +370,13 @@ app.get('/api/cargos', async (req, res) => {
     
     console.log('📋 Buscando cargos para área:', areaId);
     
-    // Query simples e robusta - sempre funciona
     let query, params;
     
     if (areaId) {
-      // Tentar com area_id primeiro
-      query = `
-        SELECT id, 
-               COALESCE(nome_cargo, nome) as nome, 
-               COALESCE(quantidade_vagas, 0) as quantidade_vagas, 
-               COALESCE(requisitos, '') as requisitos 
-        FROM cargos 
-        WHERE area_id = $1 OR area = $1 
-        ORDER BY COALESCE(nome_cargo, nome)
-      `;
+      query = 'SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
       params = [areaId];
     } else {
-      // Se não tem area_id, retorna todos
-      query = `
-        SELECT id, 
-               COALESCE(nome_cargo, nome) as nome, 
-               COALESCE(quantidade_vagas, 0) as quantidade_vagas, 
-               COALESCE(requisitos, '') as requisitos 
-        FROM cargos 
-        ORDER BY COALESCE(nome_cargo, nome)
-      `;
+      query = 'SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos ORDER BY nome_cargo';
       params = [];
     }
     
@@ -404,7 +386,6 @@ app.get('/api/cargos', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos:', error);
-    // Retorna array vazio em caso de erro
     res.json([]);
   }
 });
@@ -566,7 +547,6 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar certificados:', error);
-    // Retorna array vazio em caso de erro
     res.json([]);
   }
 });
@@ -592,7 +572,7 @@ app.get('/api/certificados/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro ao buscar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.json({ error: 'Certificado não encontrado' });
   }
 });
 
@@ -619,7 +599,7 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao adicionar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.json({ error: 'Erro ao adicionar certificado' });
   }
 });
 
@@ -648,11 +628,11 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
       res.json(result.rows[0]);
     } else {
       console.log('❌ Certificado não encontrado');
-      res.status(404).json({ error: 'Certificado não encontrado' });
+      res.json({ error: 'Certificado não encontrado' });
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar certificado:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.json({ error: 'Erro ao atualizar certificado' });
   }
 });
 
