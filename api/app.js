@@ -983,39 +983,40 @@ app.put('/api/cursos/:id', async (req, res) => {
     let values = [];
     let paramIndex = 1;
     
-    if (hasTitulo && title) {
+    // Sempre incluir campos que existem, mesmo se vazios
+    if (hasTitulo) {
       setClauses.push(`titulo = $${paramIndex++}`);
-      values.push(title);
+      values.push(title || '');
     }
     
-    if (hasPlataforma && platform) {
+    if (hasPlataforma) {
       setClauses.push(`plataforma = $${paramIndex++}`);
-      values.push(platform);
+      values.push(platform || '');
     }
     
-    if (hasUrlExterna && url) {
+    if (hasUrlExterna) {
       setClauses.push(`url_externa = $${paramIndex++}`);
-      values.push(url);
+      values.push(url || null);
     }
     
-    if (hasCategoria && categoria) {
+    if (hasCategoria) {
       setClauses.push(`categoria = $${paramIndex++}`);
-      values.push(categoria);
+      values.push(categoria || 'Geral');
     }
     
-    if (hasNivel && level) {
+    if (hasNivel) {
       setClauses.push(`nivel = $${paramIndex++}`);
-      values.push(level);
+      values.push(level || '');
     }
     
-    if (hasDuracao && duration) {
+    if (hasDuracao) {
       setClauses.push(`duracao = $${paramIndex++}`);
-      values.push(duration);
+      values.push(duration || '');
     }
     
-    if (hasDescricao && description) {
+    if (hasDescricao) {
       setClauses.push(`descricao = $${paramIndex++}`);
-      values.push(description);
+      values.push(description || '');
     }
     
     if (setClauses.length === 0) {
