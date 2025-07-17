@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,6 +9,15 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Servir arquivos estáticos
+app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '..')));
+
+// Rota raiz - servir index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
 
 // Configuração do banco de dados
 const pool = new Pool({
@@ -19,7 +29,7 @@ const pool = new Pool({
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Erro ao conectar com o banco:', err);
-  } else {
+        } else {
     console.log('Conectado ao banco de dados PostgreSQL');
   }
 });
@@ -40,8 +50,8 @@ app.post('/api/login', async (req, res) => {
     // Login hardcoded para teste - usando as credenciais do banco
     if (usuario === 'admin' && senha === 'Admin123') {
       console.log('✅ Login admin bem-sucedido');
-      res.json({
-        success: true,
+    res.json({ 
+      success: true, 
         id: 1,
         nome: 'admin',
         tipo_usuario: 'admin',
@@ -49,7 +59,7 @@ app.post('/api/login', async (req, res) => {
       });
     } else if (usuario === 'sergio' && senha === '12345') {
       console.log('✅ Login sergio bem-sucedido');
-      res.json({
+    res.json({ 
         success: true,
         id: 2,
         nome: 'sergio',
@@ -75,7 +85,7 @@ app.get('/api/users/photo/:username', async (req, res) => {
       'SELECT foto_perfil FROM usuarios WHERE username = $1',
       [username]
     );
-    
+
     if (result.rows.length > 0) {
       res.json({ foto_perfil: result.rows[0].foto_perfil });
     } else {
@@ -111,7 +121,7 @@ app.get('/api/users/profile/:username', async (req, res) => {
 // Rota para atualizar perfil do usuário
 app.put('/api/users/profile/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+  const { id } = req.params;
     const { departamento, cargo_atual, foto_perfil } = req.body;
     
     const result = await pool.query(
@@ -120,7 +130,7 @@ app.put('/api/users/profile/:id', async (req, res) => {
     );
     
     if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+    res.json(result.rows[0]);
     } else {
       res.status(404).json({ error: 'Usuário não encontrado' });
     }

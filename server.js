@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
 const path = require('path');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,15 +9,6 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Servir arquivos estáticos
-app.use(express.static(path.join(__dirname, '..', 'public')));
-app.use(express.static(path.join(__dirname, '..')));
-
-// Rota raiz - servir index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-});
 
 // Configuração do banco de dados
 const pool = new Pool({
@@ -29,8 +20,58 @@ const pool = new Pool({
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Erro ao conectar com o banco:', err);
-        } else {
-    console.log('Conectado ao banco de dados PostgreSQL');
+  } else {
+    console.log('✅ Conectado ao banco de dados PostgreSQL');
+  }
+});
+
+// Servir arquivos estáticos - MÚLTIPLAS PASTAS
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname)));
+app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// Rota raiz - servir index.html
+app.get('/', (req, res) => {
+  console.log('📄 Servindo index.html');
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  const simpleIndexPath = path.join(__dirname, 'public', 'index-simple.html');
+  
+  // Tentar servir o index.html original primeiro
+  if (require('fs').existsSync(indexPath)) {
+    console.log('✅ Servindo index.html original');
+    res.sendFile(indexPath);
+  } else if (require('fs').existsSync(simpleIndexPath)) {
+    console.log('✅ Servindo index-simple.html como fallback');
+    res.sendFile(simpleIndexPath);
+  } else {
+    console.log('❌ Nenhum arquivo index encontrado');
+    res.status(404).send('Página inicial não encontrada');
+  }
+});
+
+// Rota para login.html
+app.get('/login', (req, res) => {
+  console.log('🔐 Servindo login.html');
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Rota para outras páginas HTML
+app.get('/:page', (req, res) => {
+  const page = req.params.page;
+  const htmlFile = path.join(__dirname, 'public', `${page}.html`);
+  const cssFile = path.join(__dirname, 'public', `${page}.css`);
+  const jsFile = path.join(__dirname, 'public', `${page}.js`);
+  
+  console.log(`📄 Tentando servir: ${page}`);
+  
+  // Verificar se o arquivo HTML existe
+  if (require('fs').existsSync(htmlFile)) {
+    console.log(`✅ Servindo ${page}.html`);
+    res.sendFile(htmlFile);
+  } else {
+    console.log(`❌ Arquivo não encontrado: ${htmlFile}`);
+    res.status(404).send('Página não encontrada');
   }
 });
 
@@ -50,8 +91,8 @@ app.post('/api/login', async (req, res) => {
     // Login hardcoded para teste - usando as credenciais do banco
     if (usuario === 'admin' && senha === 'Admin123') {
       console.log('✅ Login admin bem-sucedido');
-    res.json({ 
-      success: true, 
+      res.json({ 
+        success: true, 
         id: 1,
         nome: 'admin',
         tipo_usuario: 'admin',
@@ -59,8 +100,8 @@ app.post('/api/login', async (req, res) => {
       });
     } else if (usuario === 'sergio' && senha === '12345') {
       console.log('✅ Login sergio bem-sucedido');
-    res.json({ 
-      success: true, 
+      res.json({ 
+        success: true, 
         id: 2,
         nome: 'sergio',
         tipo_usuario: 'usuario',
@@ -121,7 +162,7 @@ app.get('/api/users/profile/:username', async (req, res) => {
 // Rota para atualizar perfil do usuário
 app.put('/api/users/profile/:id', async (req, res) => {
   try {
-  const { id } = req.params;
+    const { id } = req.params;
     const { departamento, cargo_atual, foto_perfil } = req.body;
     
     const result = await pool.query(
@@ -130,7 +171,7 @@ app.put('/api/users/profile/:id', async (req, res) => {
     );
     
     if (result.rows.length > 0) {
-    res.json(result.rows[0]);
+      res.json(result.rows[0]);
     } else {
       res.status(404).json({ error: 'Usuário não encontrado' });
     }
@@ -145,5 +186,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
-// Exportar para Vercel
+// Middleware de erro para capturar rotas não encontradas
+app.use((req, res, next) => {
+  console.log(`❌ Rota não encontrada: ${req.method} ${req.url}`);
+  res.status(404).send('Página não encontrada');
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`📁 Diretório atual: ${__dirname}`);
+  console.log(`🌐 Acesse: http://localhost:${PORT}`);
+});
+
 module.exports = app; 

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Pearspective</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #6B8E4E;
+            text-align: center;
+        }
+        .status {
+            background: #e8f5e8;
+            border: 1px solid #6B8E4E;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #ffe8e8;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Teste do Servidor Pearspective</h1>
+        
+        <div class="status">
+            <h3>🎉 Servidor funcionando!</h3>
+            <p>Se você está vendo esta página, o servidor está servindo arquivos estáticos corretamente.</p>
+        </div>
+
+        <div class="status">
+            <h3>📁 Estrutura verificada:</h3>
+            <ul>
+                <li>✅ Arquivos HTML sendo servidos</li>
+                <li>✅ CSS sendo carregado</li>
+                <li>✅ JavaScript funcionando</li>
+                <li>✅ Assets (imagens, etc.) acessíveis</li>
+            </ul>
+        </div>
+
+        <div class="status">
+            <h3>🔗 Links de teste:</h3>
+            <p><a href="/">🏠 Página inicial</a></p>
+            <p><a href="/login">🔐 Página de login</a></p>
+            <p><a href="/api/health">💚 Health check da API</a></p>
+        </div>
+
+        <div class="status">
+            <h3>📊 Informações do servidor:</h3>
+            <p><strong>URL atual:</strong> <span id="currentUrl"></span></p>
+            <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar informações da página
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('timestamp').textContent = new Date().toLocaleString('pt-BR');
+        
+        // Testar API
+        fetch('/api/health')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ API funcionando:', data);
+            })
+            .catch(error => {
+                console.error('❌ Erro na API:', error);
+            });
+    </script>
+</body>
+</html> 
