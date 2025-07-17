@@ -139,8 +139,15 @@ app.post('/api/login', async (req, res) => {
         // Gerar token de sessão
         const sessionToken = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Configurar cookie de sessão
-        res.cookie('sessionToken', sessionToken);
+        // Configurar cookie de sessão com configurações para Railway
+        res.cookie('sessionToken', sessionToken, {
+          domain: '.railway.app',
+          path: '/',
+          maxAge: 24 * 60 * 60 * 1000, // 24 horas
+          httpOnly: false,
+          secure: false,
+          sameSite: 'lax'
+        });
         
         res.json({ 
           success: true, 
@@ -163,8 +170,15 @@ app.post('/api/login', async (req, res) => {
         // Gerar token de sessão
         const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Configurar cookie de sessão
-        res.cookie('sessionToken', sessionToken);
+        // Configurar cookie de sessão com configurações para Railway
+        res.cookie('sessionToken', sessionToken, {
+          domain: '.railway.app',
+          path: '/',
+          maxAge: 24 * 60 * 60 * 1000, // 24 horas
+          httpOnly: false,
+          secure: false,
+          sameSite: 'lax'
+        });
         
         return res.json({ 
           success: true, 
@@ -180,8 +194,15 @@ app.post('/api/login', async (req, res) => {
         // Gerar token de sessão
         const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Configurar cookie de sessão
-        res.cookie('sessionToken', sessionToken);
+        // Configurar cookie de sessão com configurações para Railway
+        res.cookie('sessionToken', sessionToken, {
+          domain: '.railway.app',
+          path: '/',
+          maxAge: 24 * 60 * 60 * 1000, // 24 horas
+          httpOnly: false,
+          secure: false,
+          sameSite: 'lax'
+        });
         
         return res.json({ 
           success: true,
@@ -270,11 +291,13 @@ app.post('/api/logout', (req, res) => {
   try {
     console.log('🚪 Logout solicitado');
     
-    // Limpar cookie de sessão
+    // Limpar cookie de sessão com as mesmas configurações
     res.clearCookie('sessionToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      domain: '.railway.app',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax'
     });
     
     console.log('✅ Cookie de sessão removido');
