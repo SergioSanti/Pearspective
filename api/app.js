@@ -749,6 +749,261 @@ app.get('/api/cursos', async (req, res) => {
   }
 });
 
+// Rota para buscar um curso específico
+app.get('/api/cursos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📚 Buscando curso ${id}...`);
+    
+    const result = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Curso encontrado:', result.rows[0]);
+      res.json(result.rows[0]);
+    } else {
+      console.log('❌ Curso não encontrado:', id);
+      res.status(404).json({ error: 'Curso não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar curso:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para criar curso
+app.post('/api/cursos', async (req, res) => {
+  try {
+    console.log('📚 Criando curso - Dados recebidos:', JSON.stringify(req.body, null, 2));
+    const { title, platform, url, area, level, duration, description } = req.body;
+    
+    // Validar campos obrigatórios
+    if (!title) {
+      console.log('❌ Título do curso é obrigatório');
+      return res.status(400).json({ error: 'Título do curso é obrigatório' });
+    }
+    
+    // Verificar estrutura da tabela cursos
+    const tableInfo = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'cursos' 
+      ORDER BY ordinal_position
+    `);
+    console.log('🔍 Estrutura da tabela cursos:', tableInfo.rows);
+    
+    // Mapear campos do frontend para colunas do banco
+    const hasTitulo = tableInfo.rows.some(row => row.column_name === 'titulo');
+    const hasPlataforma = tableInfo.rows.some(row => row.column_name === 'plataforma');
+    const hasUrlExterna = tableInfo.rows.some(row => row.column_name === 'url_externa');
+    const hasCategoria = tableInfo.rows.some(row => row.column_name === 'categoria');
+    const hasNivel = tableInfo.rows.some(row => row.column_name === 'nivel');
+    const hasDuracao = tableInfo.rows.some(row => row.column_name === 'duracao');
+    const hasDescricao = tableInfo.rows.some(row => row.column_name === 'descricao');
+    
+    console.log('🔍 Campos disponíveis:', { hasTitulo, hasPlataforma, hasUrlExterna, hasCategoria, hasNivel, hasDuracao, hasDescricao });
+    
+    // Construir query dinamicamente baseada nas colunas disponíveis
+    let columns = [];
+    let values = [];
+    let placeholders = [];
+    let paramIndex = 1;
+    
+    if (hasTitulo) {
+      columns.push('titulo');
+      values.push(title);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasPlataforma) {
+      columns.push('plataforma');
+      values.push(platform || 'Não especificado');
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasUrlExterna) {
+      columns.push('url_externa');
+      values.push(url || null);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasCategoria) {
+      columns.push('categoria');
+      values.push(area || 'Geral');
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasNivel) {
+      columns.push('nivel');
+      values.push(level || 'Intermediário');
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasDuracao) {
+      columns.push('duracao');
+      values.push(duration || 'Não especificado');
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasDescricao) {
+      columns.push('descricao');
+      values.push(description || '');
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    // Adicionar campos padrão se existirem
+    const hasAtivo = tableInfo.rows.some(row => row.column_name === 'ativo');
+    if (hasAtivo) {
+      columns.push('ativo');
+      values.push(true);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    const hasDataCadastro = tableInfo.rows.some(row => row.column_name === 'data_cadastro');
+    if (hasDataCadastro) {
+      columns.push('data_cadastro');
+      values.push(new Date());
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (columns.length === 0) {
+      console.log('❌ Nenhuma coluna válida encontrada na tabela cursos');
+      return res.status(500).json({ error: 'Estrutura da tabela cursos não suportada' });
+    }
+    
+    const query = `INSERT INTO cursos (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
+    console.log('🔍 Query final:', query);
+    console.log('🔍 Valores:', values);
+    
+    const result = await pool.query(query, values);
+    
+    console.log('✅ Curso criado com sucesso:', result.rows[0]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao criar curso:', error);
+    console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint
+    });
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Rota para atualizar curso
+app.put('/api/cursos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📚 Atualizando curso ${id}:`, req.body);
+    const { title, platform, url, area, level, duration, description } = req.body;
+    
+    // Verificar se o curso existe
+    const existingCourse = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
+    if (existingCourse.rows.length === 0) {
+      console.log('❌ Curso não encontrado para atualização:', id);
+      return res.status(404).json({ error: 'Curso não encontrado' });
+    }
+    
+    // Verificar estrutura da tabela cursos
+    const tableInfo = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'cursos' 
+      ORDER BY ordinal_position
+    `);
+    
+    // Mapear campos do frontend para colunas do banco
+    const hasTitulo = tableInfo.rows.some(row => row.column_name === 'titulo');
+    const hasPlataforma = tableInfo.rows.some(row => row.column_name === 'plataforma');
+    const hasUrlExterna = tableInfo.rows.some(row => row.column_name === 'url_externa');
+    const hasCategoria = tableInfo.rows.some(row => row.column_name === 'categoria');
+    const hasNivel = tableInfo.rows.some(row => row.column_name === 'nivel');
+    const hasDuracao = tableInfo.rows.some(row => row.column_name === 'duracao');
+    const hasDescricao = tableInfo.rows.some(row => row.column_name === 'descricao');
+    
+    // Construir query de atualização dinamicamente
+    let setClauses = [];
+    let values = [];
+    let paramIndex = 1;
+    
+    if (hasTitulo && title) {
+      setClauses.push(`titulo = $${paramIndex++}`);
+      values.push(title);
+    }
+    
+    if (hasPlataforma && platform) {
+      setClauses.push(`plataforma = $${paramIndex++}`);
+      values.push(platform);
+    }
+    
+    if (hasUrlExterna && url) {
+      setClauses.push(`url_externa = $${paramIndex++}`);
+      values.push(url);
+    }
+    
+    if (hasCategoria && area) {
+      setClauses.push(`categoria = $${paramIndex++}`);
+      values.push(area);
+    }
+    
+    if (hasNivel && level) {
+      setClauses.push(`nivel = $${paramIndex++}`);
+      values.push(level);
+    }
+    
+    if (hasDuracao && duration) {
+      setClauses.push(`duracao = $${paramIndex++}`);
+      values.push(duration);
+    }
+    
+    if (hasDescricao && description) {
+      setClauses.push(`descricao = $${paramIndex++}`);
+      values.push(description);
+    }
+    
+    if (setClauses.length === 0) {
+      console.log('❌ Nenhum campo válido para atualizar');
+      return res.status(400).json({ error: 'Nenhum campo válido fornecido para atualização' });
+    }
+    
+    values.push(id); // ID para WHERE
+    const query = `UPDATE cursos SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    
+    console.log('🔍 Query de atualização:', query);
+    console.log('🔍 Valores:', values);
+    
+    const result = await pool.query(query, values);
+    
+    console.log('✅ Curso atualizado com sucesso:', result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao atualizar curso:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para deletar curso
+app.delete('/api/cursos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🗑️ Deletando curso ${id}...`);
+    
+    const result = await pool.query('DELETE FROM cursos WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Curso deletado:', result.rows[0]);
+      res.json({ message: 'Curso deletado com sucesso' });
+    } else {
+      console.log('❌ Curso não encontrado para deletar:', id);
+      res.status(404).json({ error: 'Curso não encontrado' });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar curso:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Rota para buscar certificados
 app.get('/api/certificados', async (req, res) => {
   try {
