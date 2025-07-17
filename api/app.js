@@ -1092,25 +1092,89 @@ app.get('/api/cursos', async (req, res) => {
   try {
     console.log('📚 Buscando cursos...');
     
-    // Query adaptativa baseada no schema real
-    const checkSchema = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'cursos' 
-      AND column_name IN ('titulo', 'nome')
+    // Verificar se a tabela cursos existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cursos'
+      );
     `);
     
-    const hasTitulo = checkSchema.rows.some(row => row.column_name === 'titulo');
-    const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
-    
-    let query = '';
-    if (hasTitulo) {
-      query = 'SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos ORDER BY titulo';
-    } else if (hasNome) {
-      query = 'SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos ORDER BY nome';
-    } else {
-      query = 'SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos ORDER BY id';
+    if (!tableExists.rows[0].exists) {
+      console.log('❌ Tabela cursos não existe, criando...');
+      
+      // Criar tabela cursos
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS cursos (
+          id SERIAL PRIMARY KEY,
+          titulo VARCHAR(255) NOT NULL,
+          plataforma VARCHAR(100),
+          url_externa TEXT,
+          categoria VARCHAR(100),
+          nivel VARCHAR(50),
+          duracao VARCHAR(50),
+          descricao TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela cursos criada');
     }
+    
+    // Verificar quais colunas existem na tabela cursos
+    console.log('🔍 Verificando colunas da tabela cursos...');
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'cursos'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    console.log('🔍 Colunas existentes na tabela cursos:', existingColumns);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let selectColumns = ['id'];
+    
+    if (existingColumns.includes('title')) {
+      selectColumns.push('title');
+    } else if (existingColumns.includes('titulo')) {
+      selectColumns.push('titulo');
+    }
+    
+    if (existingColumns.includes('platform')) {
+      selectColumns.push('platform');
+    } else if (existingColumns.includes('plataforma')) {
+      selectColumns.push('plataforma');
+    }
+    
+    if (existingColumns.includes('description')) {
+      selectColumns.push('description');
+    } else if (existingColumns.includes('descricao')) {
+      selectColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('area')) {
+      selectColumns.push('area');
+    } else if (existingColumns.includes('categoria')) {
+      selectColumns.push('categoria');
+    }
+    
+    if (existingColumns.includes('url_externa')) {
+      selectColumns.push('url_externa');
+    }
+    
+    if (existingColumns.includes('nivel')) {
+      selectColumns.push('nivel');
+    }
+    
+    if (existingColumns.includes('duracao')) {
+      selectColumns.push('duracao');
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM cursos ORDER BY id`;
     
     const result = await pool.query(query);
     
@@ -1182,7 +1246,58 @@ app.get('/api/cursos/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`📚 Buscando curso ${id}...`);
     
-    const result = await pool.query('SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos WHERE id = $1', [id]);
+    // Verificar quais colunas existem na tabela cursos
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'cursos'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let selectColumns = ['id'];
+    
+    if (existingColumns.includes('title')) {
+      selectColumns.push('title');
+    } else if (existingColumns.includes('titulo')) {
+      selectColumns.push('titulo');
+    }
+    
+    if (existingColumns.includes('platform')) {
+      selectColumns.push('platform');
+    } else if (existingColumns.includes('plataforma')) {
+      selectColumns.push('plataforma');
+    }
+    
+    if (existingColumns.includes('description')) {
+      selectColumns.push('description');
+    } else if (existingColumns.includes('descricao')) {
+      selectColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('area')) {
+      selectColumns.push('area');
+    } else if (existingColumns.includes('categoria')) {
+      selectColumns.push('categoria');
+    }
+    
+    if (existingColumns.includes('url_externa')) {
+      selectColumns.push('url_externa');
+    }
+    
+    if (existingColumns.includes('nivel')) {
+      selectColumns.push('nivel');
+    }
+    
+    if (existingColumns.includes('duracao')) {
+      selectColumns.push('duracao');
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM cursos WHERE id = $1`;
+    const result = await pool.query(query, [id]);
     
     if (result.rows.length > 0) {
       console.log('✅ Curso encontrado:', result.rows[0]);
@@ -1215,21 +1330,97 @@ app.post('/api/cursos', async (req, res) => {
       }
     }
     
-    // Query apenas com os campos do formulário - especificando campos no SELECT
+    // Verificar quais colunas existem na tabela cursos
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'cursos'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let insertColumns = [];
+    let values = [];
+    let placeholders = [];
+    let returningColumns = ['id'];
+    
+    if (existingColumns.includes('title')) {
+      insertColumns.push('title');
+      values.push(title || 'Curso sem título');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('title');
+    } else if (existingColumns.includes('titulo')) {
+      insertColumns.push('titulo');
+      values.push(title || 'Curso sem título');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('titulo');
+    }
+    
+    if (existingColumns.includes('platform')) {
+      insertColumns.push('platform');
+      values.push(platform || 'Não especificado');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('platform');
+    } else if (existingColumns.includes('plataforma')) {
+      insertColumns.push('plataforma');
+      values.push(platform || 'Não especificado');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('plataforma');
+    }
+    
+    if (existingColumns.includes('description')) {
+      insertColumns.push('description');
+      values.push(description || '');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('description');
+    } else if (existingColumns.includes('descricao')) {
+      insertColumns.push('descricao');
+      values.push(description || '');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('area')) {
+      insertColumns.push('area');
+      values.push(categoria);
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('area');
+    } else if (existingColumns.includes('categoria')) {
+      insertColumns.push('categoria');
+      values.push(categoria);
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('categoria');
+    }
+    
+    if (existingColumns.includes('url_externa')) {
+      insertColumns.push('url_externa');
+      values.push(url || '');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('url_externa');
+    }
+    
+    if (existingColumns.includes('nivel')) {
+      insertColumns.push('nivel');
+      values.push(level || 'Intermediário');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('nivel');
+    }
+    
+    if (existingColumns.includes('duracao')) {
+      insertColumns.push('duracao');
+      values.push(duration || '');
+      placeholders.push(`$${placeholders.length + 1}`);
+      returningColumns.push('duracao');
+    }
+    
     const query = `
-      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
+      INSERT INTO cursos (${insertColumns.join(', ')})
+      VALUES (${placeholders.join(', ')})
+      RETURNING ${returningColumns.join(', ')}
     `;
-    const values = [
-      title || 'Curso sem título',
-      platform || 'Não especificado', 
-      url || '',
-      categoria,
-      level || 'Intermediário',
-      duration || '',
-      description || ''
-    ];
     
     const result = await pool.query(query, values);
     res.status(201).json(result.rows[0]);
