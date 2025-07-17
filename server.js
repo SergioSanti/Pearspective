@@ -22,7 +22,10 @@ const upload = multer({
 // Configuração do banco de dados
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pearspective',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 20
 });
 
 // Teste de conexão - SEMPRE funcionar mesmo sem banco
@@ -384,39 +387,13 @@ app.get('/api/areas', async (req, res) => {
 // Rota para cargos - BUSCA DO BANCO
 app.get('/api/cargos', async (req, res) => {
   try {
+    console.log('🔍 Tentando buscar cargos do banco...');
     const result = await pool.query('SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos ORDER BY nome_cargo');
-    
-    // Se não há cargos no banco, retorna dados de teste
-    if (result.rows.length === 0) {
-      const cargosTeste = [
-        {
-          id: 1,
-          nome_cargo: "Desenvolvedor Frontend",
-          quantidade_vagas: 2,
-          requisitos: { experiencia: "2+ anos", formacao: "Superior", habilidades: "HTML, CSS, JavaScript" },
-          area_id: 1
-        },
-        {
-          id: 2,
-          nome_cargo: "Desenvolvedor Backend", 
-          quantidade_vagas: 1,
-          requisitos: { experiencia: "3+ anos", formacao: "Superior", habilidades: "Node.js, PostgreSQL" },
-          area_id: 1
-        },
-        {
-          id: 3,
-          nome_cargo: "Analista de RH",
-          quantidade_vagas: 1,
-          requisitos: { experiencia: "2+ anos", formacao: "Superior", habilidades: "Gestão de pessoas" },
-          area_id: 3
-        }
-      ];
-      res.json(cargosTeste);
-    } else {
-      res.json(result.rows);
-    }
+    console.log(`✅ Encontrados ${result.rows.length} cargos no banco`);
+    res.json(result.rows);
   } catch (error) {
-    console.error('❌ Erro ao buscar cargos:', error);
+    console.error('❌ Erro ao buscar cargos do banco:', error.message);
+    console.log('🔄 Usando dados de teste como fallback...');
     // Em caso de erro, retorna dados de teste
     const cargosTeste = [
       {
