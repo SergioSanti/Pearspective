@@ -130,7 +130,7 @@ class ProfileManager {
                 return;
             }
             
-            const response = await fetch(`/api/cargos?area_id=${area.id}`);
+            const response = await fetch('/api/cargos');
             if (!response.ok) {
                 throw new Error('Erro ao carregar cargos');
             }
@@ -750,7 +750,7 @@ class ProfileManager {
             const area = areas.find(a => a.nome && a.nome.trim().toLowerCase() === cleanArea);
             if (!area) return;
             // Buscar cargos da área
-            const cargosResponse = await fetch(`/api/cargos?area_id=${area.id}`);
+            const cargosResponse = await fetch('/api/cargos');
             if (!cargosResponse.ok) return;
             const cargos = await cargosResponse.json();
             const exists = cargos.some(c => c.nome_cargo && c.nome_cargo.trim().toLowerCase() === cleanPosition);

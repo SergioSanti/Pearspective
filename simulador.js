@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cargosList.innerHTML = '<p>Selecione uma área para ver os cargos.</p>';
             return;
         }
-        const cargos = await fetchFromAPI(`/api/cargos?area_id=${areaId}`);
+        const cargos = await fetchFromAPI('/api/cargos');
         cargosList.innerHTML = '';
         cargos.forEach(cargo => {
             const li = document.createElement('li');
