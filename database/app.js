@@ -135,5 +135,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`📊 Healthcheck disponível em: http://localhost:${PORT}/api/health`);
+});
+
 // Exportar para Vercel
 module.exports = app; 
