@@ -81,35 +81,30 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend funcionando!' });
 });
 
-// Rota de login simplificada - FUNCIONA SEM BANCO
+// Rota de login - BUSCA DO BANCO
 app.post('/api/login', async (req, res) => {
   try {
     const { usuario, senha } = req.body;
     
     console.log('🔐 Tentativa de login:', { usuario, senha });
-    console.log('📡 Rota /api/login chamada');
     
-    // Login hardcoded para teste - SEM DEPENDER DO BANCO
-    if (usuario === 'admin' && senha === 'Admin123') {
-      console.log('✅ Login admin bem-sucedido');
+    const result = await pool.query(
+      'SELECT id, username, nome, tipo_usuario, foto_perfil FROM usuarios WHERE username = $1 AND senha = $2',
+      [usuario, senha]
+    );
+    
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      console.log('✅ Login bem-sucedido:', user.username);
       res.json({ 
         success: true, 
-        id: 1,
-        nome: 'admin',
-        tipo_usuario: 'admin',
-        foto_perfil: null
-      });
-    } else if (usuario === 'sergio' && senha === '12345') {
-      console.log('✅ Login sergio bem-sucedido');
-      res.json({ 
-        success: true, 
-        id: 2,
-        nome: 'sergio',
-        tipo_usuario: 'usuario',
-        foto_perfil: null
+        id: user.id,
+        nome: user.nome,
+        tipo_usuario: user.tipo_usuario,
+        foto_perfil: user.foto_perfil
       });
     } else {
-      console.log('❌ Credenciais inválidas:', { usuario, senha });
+      console.log('❌ Credenciais inválidas');
       res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
   } catch (error) {
@@ -118,16 +113,18 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Rota para buscar foto do usuário - FUNCIONA SEM BANCO
+// Rota para buscar foto do usuário - BUSCA DO BANCO
 app.get('/api/users/photo/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    // Mock data - SEM DEPENDER DO BANCO
-    if (username === 'admin') {
-      res.json({ foto_perfil: null });
-    } else if (username === 'sergio') {
-      res.json({ foto_perfil: null });
+    const result = await pool.query(
+      'SELECT foto_perfil FROM usuarios WHERE username = $1',
+      [username]
+    );
+
+    if (result.rows.length > 0) {
+      res.json({ foto_perfil: result.rows[0].foto_perfil });
     } else {
       res.status(404).json({ error: 'Usuário não encontrado' });
     }
@@ -137,32 +134,18 @@ app.get('/api/users/photo/:username', async (req, res) => {
   }
 });
 
-// Rota para buscar perfil do usuário - FUNCIONA SEM BANCO
+// Rota para buscar perfil do usuário - BUSCA DO BANCO
 app.get('/api/users/profile/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    // Mock data - SEM DEPENDER DO BANCO
-    if (username === 'admin') {
-      res.json({
-        id: 1,
-        username: 'admin',
-        nome: 'Administrador',
-        nome_exibicao: 'Admin',
-        foto_perfil: null,
-        departamento: 'TI',
-        cargo_atual: 'Administrador'
-      });
-    } else if (username === 'sergio') {
-      res.json({
-        id: 2,
-        username: 'sergio',
-        nome: 'Sergio',
-        nome_exibicao: 'Sergio',
-        foto_perfil: null,
-        departamento: 'Desenvolvimento',
-        cargo_atual: 'Desenvolvedor'
-      });
+    const result = await pool.query(
+      'SELECT id, username, nome, nome_exibicao, foto_perfil, departamento, cargo_atual FROM usuarios WHERE username = $1',
+      [username]
+    );
+    
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
     } else {
       res.status(404).json({ error: 'Usuário não encontrado' });
     }
@@ -172,24 +155,24 @@ app.get('/api/users/profile/:username', async (req, res) => {
   }
 });
 
-// Rota para atualizar perfil do usuário - FUNCIONA SEM BANCO
+// Rota para atualizar perfil do usuário - ATUALIZA NO BANCO
 app.put('/api/users/profile/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { departamento, cargo_atual, foto_perfil } = req.body;
     
-    // Mock update - SEM DEPENDER DO BANCO
     console.log('📝 Atualizando perfil:', { id, departamento, cargo_atual, foto_perfil });
     
-    res.json({
-      id: parseInt(id),
-      username: id === '1' ? 'admin' : 'sergio',
-      nome: id === '1' ? 'Administrador' : 'Sergio',
-      nome_exibicao: id === '1' ? 'Admin' : 'Sergio',
-      foto_perfil: foto_perfil,
-      departamento: departamento,
-      cargo_atual: cargo_atual
-    });
+    const result = await pool.query(
+      'UPDATE usuarios SET departamento = $1, cargo_atual = $2, foto_perfil = $3 WHERE id = $4 RETURNING *',
+      [departamento, cargo_atual, foto_perfil, id]
+    );
+    
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Usuário não encontrado' });
+    }
   } catch (error) {
     console.error('Erro ao atualizar perfil:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -201,57 +184,79 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
-// Rota para áreas (mock data)
-app.get('/api/areas', (req, res) => {
-  res.json([
-    { id: 1, nome: 'Tecnologia da Informação' },
-    { id: 2, nome: 'Recursos Humanos' },
-    { id: 3, nome: 'Marketing' },
-    { id: 4, nome: 'Vendas' },
-    { id: 5, nome: 'Financeiro' }
-  ]);
+// Rota para áreas - BUSCA DO BANCO
+app.get('/api/areas', async (req, res) => {
+  try {
+    console.log('📋 Buscando áreas no banco de dados...');
+    
+    const result = await pool.query('SELECT id, nome FROM areas ORDER BY nome');
+    
+    console.log(`✅ Encontradas ${result.rows.length} áreas no banco`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Erro ao buscar áreas:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
-// Rota para cargos (mock data)
-app.get('/api/cargos', (req, res) => {
-  const areaId = req.query.area;
-  
-  console.log('📋 Buscando cargos para área:', areaId);
-  
-  const cargos = {
-    '1': [ // Tecnologia da Informação
-      { id: 1, nome: 'Desenvolvedor Júnior', descricao: 'Desenvolve aplicações web e mobile' },
-      { id: 2, nome: 'Desenvolvedor Pleno', descricao: 'Desenvolve e mantém sistemas complexos' },
-      { id: 3, nome: 'Desenvolvedor Sênior', descricao: 'Lidera projetos e arquitetura de sistemas' },
-      { id: 4, nome: 'Tech Lead', descricao: 'Lidera equipe técnica e define padrões' },
-      { id: 5, nome: 'Arquiteto de Software', descricao: 'Define arquitetura e estratégia técnica' }
-    ],
-    '2': [ // Recursos Humanos
-      { id: 6, nome: 'Analista de RH', descricao: 'Gerencia processos de recrutamento e seleção' },
-      { id: 7, nome: 'Coordenador de RH', descricao: 'Coordena políticas e práticas de RH' },
-      { id: 8, nome: 'Gerente de RH', descricao: 'Gerencia estratégia de recursos humanos' }
-    ],
-    '3': [ // Marketing
-      { id: 9, nome: 'Analista de Marketing', descricao: 'Desenvolve estratégias de marketing digital' },
-      { id: 10, nome: 'Coordenador de Marketing', descricao: 'Coordena campanhas e projetos de marketing' },
-      { id: 11, nome: 'Gerente de Marketing', descricao: 'Gerencia estratégia de marketing da empresa' }
-    ],
-    '4': [ // Vendas
-      { id: 12, nome: 'Vendedor', descricao: 'Realiza vendas e atende clientes' },
-      { id: 13, nome: 'Coordenador de Vendas', descricao: 'Coordena equipe de vendas' },
-      { id: 14, nome: 'Gerente de Vendas', descricao: 'Gerencia estratégia de vendas' }
-    ],
-    '5': [ // Financeiro
-      { id: 15, nome: 'Analista Financeiro', descricao: 'Analisa dados financeiros e orçamentos' },
-      { id: 16, nome: 'Coordenador Financeiro', descricao: 'Coordena processos financeiros' },
-      { id: 17, nome: 'Gerente Financeiro', descricao: 'Gerencia estratégia financeira da empresa' }
-    ]
-  };
-  
-  const cargosArea = cargos[areaId] || [];
-  console.log(`✅ Encontrados ${cargosArea.length} cargos para área ${areaId}`);
-  
-  res.json(cargosArea);
+// Rota para cargos - BUSCA DO BANCO
+app.get('/api/cargos', async (req, res) => {
+  try {
+    const areaId = req.query.area;
+    
+    console.log('📋 Buscando cargos para área:', areaId);
+    
+    const result = await pool.query(
+      'SELECT id, nome, descricao FROM cargos WHERE area_id = $1 ORDER BY nome',
+      [areaId]
+    );
+    
+    console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Erro ao buscar cargos:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para adicionar área
+app.post('/api/areas', async (req, res) => {
+  try {
+    const { nome } = req.body;
+    
+    console.log('➕ Adicionando área:', nome);
+    
+    const result = await pool.query(
+      'INSERT INTO areas (nome) VALUES ($1) RETURNING id, nome',
+      [nome]
+    );
+    
+    console.log('✅ Área adicionada:', result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao adicionar área:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para adicionar cargo
+app.post('/api/cargos', async (req, res) => {
+  try {
+    const { nome, descricao, area_id } = req.body;
+    
+    console.log('➕ Adicionando cargo:', { nome, descricao, area_id });
+    
+    const result = await pool.query(
+      'INSERT INTO cargos (nome, descricao, area_id) VALUES ($1, $2, $3) RETURNING id, nome, descricao, area_id',
+      [nome, descricao, area_id]
+    );
+    
+    console.log('✅ Cargo adicionado:', result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('❌ Erro ao adicionar cargo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // Middleware de erro para capturar rotas não encontradas
