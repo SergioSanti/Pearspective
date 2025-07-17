@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pearspective - Sistema moderno de desenvolvimento profissional com IA">
+  <meta name="keywords" content="desenvolvimento profissional, cursos, treinamento, carreira, cultura organizacional">
+  <meta name="author" content="Pearspective Team">
+  <meta name="theme-color" content="#6B8E4E">
+  
+  <!-- Preconnect para performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Fonte Inter - Padrão moderno -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link href="assets/global-styles.css" rel="stylesheet">
+  <link href="index.css" rel="stylesheet">
+  
+  <title>Pearspective - Sistema de Cultura Organizacional</title>
+
+  <script>
+    // Proteção de Rota: verifica se o usuário está logado
+    if (!localStorage.getItem('userId')) {
+      alert('Você precisa estar logado para acessar esta página.');
+      window.location.href = 'login.html';
+    }
+  </script>
+</head>
+<body>
+  <!-- Navbar carregado dinamicamente -->
+  <div id="navbar"></div>
+
+  <main class="main-content">
+    <!-- Header -->
+    <header class="hero-section">
+      <div class="container">
+        <div class="hero-content">
+          <h1 class="hero-title">
+            <a href="#" class="brand-link">Pearspective</a>
+          </h1>
+          <p class="hero-slogan">Transformando pessoas, construindo o futuro</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <section class="content-section">
+      <div class="container">
+        <div class="content-grid">
+          <!-- Box Principal -->
+          <article class="content-box main-content-box">
+            <header class="content-header">
+              <h2 class="content-title">
+                <a href="#" class="title-link">Sistema de Cultura Organizacional</a>
+              </h2>
+            </header>
+            <div class="content-body">
+              <p>Bem-vindo ao nosso sistema dedicado a fortalecer a cultura organizacional através do desenvolvimento de pessoas e gestão do conhecimento. Aqui, os colaboradores têm acesso a trilhas de carreira, cursos recomendados e ferramentas para planejar o crescimento profissional.</p>
+              <p>Explore as funcionalidades acima para acessar treinamentos, visualizar seu progresso e contribuir com a evolução da cultura da sua empresa.</p>
+            </div>
+          </article>
+
+          <!-- Box de Objetivos -->
+          <aside class="content-box objectives-box">
+            <header class="content-header">
+              <h2 class="content-title">Objetivos</h2>
+            </header>
+            <div class="content-body">
+              <ul class="objectives-list">
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Promover aprendizado contínuo</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Guiar o crescimento profissional</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Centralizar o conhecimento interno</a>
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Estreitar a cultura e os valores da empresa</a>
+                </li>
+                <li class="objective-item">
+      
+                </li>
+                <li class="objective-item">
+                  <a href="#" class="objective-link">Facilitar o acesso a conteúdos relevantes</a>
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Script para carregar o conteúdo da navbar -->
+  <script>
+    fetch("navbar.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+        // Carrega o JS da navbar após inserir o HTML
+        const script = document.createElement('script');
+        script.src = 'navbar.js';
+        document.body.appendChild(script);
+      });
+  </script>
+  
+  <!-- Script de Dark Mode para página inicial -->
+  <script>
+    // Função global para dark mode
+    window.toggleDarkMode = function() {
+      console.log('[DARK MODE] Alternando tema...');
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      console.log('[DARK MODE] Tema atual:', currentTheme, 'Novo tema:', newTheme);
+      
+      // Aplicar o tema
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (newTheme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+      
+      console.log('[DARK MODE] Tema aplicado:', newTheme);
+    };
+    
+    // Inicializar tema
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Atualizar ícones
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      
+      if (sunIcon && moonIcon) {
+        if (theme === 'dark') {
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+      }
+    }
+    
+    // Inicializar quando a página carregar
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTheme);
+    } else {
+      initializeTheme();
+    }
+  </script>
+  
+
+</body>
+</html>
