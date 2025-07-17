@@ -1,61 +1,28 @@
 {
-  "dependencies": {
-    "axios": "^1.10.0",
-    "compromise": "^14.9.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "ejs": "^3.1.10",
-    "express": "^4.21.2",
-    "multer": "^2.0.1",
-    "natural": "^6.5.0",
-    "pg": "^8.16.0",
-    "sentiment": "^5.0.2",
-    "socket.io": "^4.7.2",
-    "cookie-signature": "^1.2.0"
-  },
-  "name": "perspective",
-  "version": "2.0.0",
-  "description": "Sistema moderno de desenvolvimento profissional com IA",
-  "main": "database/app.js",
+  "name": "pearspective",
+  "version": "1.0.0",
+  "description": "Sistema de Desenvolvimento Profissional Pearspective",
+  "main": "api/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node database/app.js",
-    "dev": "nodemon database/app.js",
-    "start:local": "NODE_ENV=development node database/app.js",
-    "dev:local": "NODE_ENV=development nodemon database/app.js",
-    "install:local": "npm install && npm run setup:local",
-    "setup:local": "node scripts/setup-local.js",
-    "docker:build": "docker-compose build",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
-    "docker:status": "docker-compose ps",
-    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
-    "docker:dev-down": "docker-compose -f docker-compose.dev.yml down",
-    "docker:dev-logs": "docker-compose -f docker-compose.dev.yml logs -f",
-    "docker:shell": "docker-compose exec app sh",
-    "docker:db-shell": "docker-compose exec postgres psql -U pearspective_user -d pearspective",
-    "docker:backup": "mkdir -p backups && docker-compose exec -T postgres pg_dump -U pearspective_user pearspective > backups/backup_$(date +%Y%m%d_%H%M%S).sql",
-    "docker:clean": "docker-compose down -v --rmi all && docker system prune -f"
+    "start": "node api/app.js",
+    "dev": "nodemon api/app.js",
+    "build": "bash render-build.sh"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/SergioSanti/Perspective.git"
+  "keywords": ["desenvolvimento", "profissional", "cursos", "certificados"],
+  "author": "Sergio",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2"
   },
-  "keywords": [
-    "nodejs",
-    "express",
-    "ai",
-    "learning",
-    "career"
-  ],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/SergioSanti/Perspective/issues"
-  },
-  "homepage": "https://github.com/SergioSanti/Perspective#readme",
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
