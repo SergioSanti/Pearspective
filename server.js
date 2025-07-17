@@ -366,23 +366,7 @@ app.get('/api/areas', async (req, res) => {
 // Rota para cargos - BUSCA DO BANCO
 app.get('/api/cargos', async (req, res) => {
   try {
-    const areaId = req.query.area_id || req.query.area;
-    
-    console.log('📋 Buscando cargos para área:', areaId);
-    
-    let query, params;
-    
-    if (areaId) {
-      query = 'SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos WHERE area_id = $1 ORDER BY nome_cargo';
-      params = [areaId];
-    } else {
-      query = 'SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos ORDER BY nome_cargo';
-      params = [];
-    }
-    
-    const result = await pool.query(query, params);
-    
-    console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
+    const result = await pool.query('SELECT id, nome_cargo, quantidade_vagas, requisitos, area_id FROM cargos ORDER BY nome_cargo');
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar cargos:', error);
