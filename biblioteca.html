@@ -3,89 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Certificados - Pearspective</title>
+  <title>Pesquisar Cursos - Pearspective</title>
   <script>
     // Proteção de Rota: verifica se o usuário está logado
     if (!localStorage.getItem('userId')) {
       alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = 'login.html';
+      window.location.href = '../login.html';
     }
   </script>
-  <link href="assets/global-styles.css" rel="stylesheet" />
-  <link href="navbar.css" rel="stylesheet" />
-  <link href="historico.css" rel="stylesheet" type="text/css" />
+  <link href="../assets/global-styles.css" rel="stylesheet" />
+  <link href="../navbar.css" rel="stylesheet" />
+  <link href="biblioteca.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
   <!-- Navbar carregado dinamicamente -->
   <div id="navbar"></div>
 
-  <div class="history-page">
-    <header class="history-header">
+  <div class="page-container">
+    <header class="page-header">
       <div class="container">
         <div class="header-content">
           <div class="header-center">
-            <h1 class="history-title">Seus Certificados</h1>
-            <p class="history-subtitle">Gerencie e visualize suas conquistas profissionais</p>
+            <h1 class="page-title">Pesquisar Cursos</h1>
+            <p class="page-subtitle">Encontre cursos com certificado em diversas plataformas.</p>
           </div>
         </div>
       </div>
     </header>
     
-    <main class="history-main">
-      <div class="container">
-        <!-- Seção de Certificados -->
-        <section class="certificates-section">
-          <div class="section-header">
-            <h2>Seus Certificados</h2>
-            <button id="add-certificate-btn" class="btn btn-primary">
-              ➕ Adicionar Certificado
-            </button>
+    <main class="container">
+      <div class="content-panel">
+        <form id="search-form">
+          <div class="form-group">
+            <label for="search-query">
+              Informe a área, competência ou habilidade que deseja aprender:
+            </label>
+            <input
+              type="text"
+              id="search-query"
+              name="search-query"
+              class="input input-lg"
+              placeholder="Ex: gestão de projetos, programação, liderança"
+              required
+            />
           </div>
-          
-          <div id="certificates-list" class="certificates-grid">
-            <!-- Lista de certificados será carregada aqui -->
-          </div>
-        </section>
-        
-        <!-- Seção de Adicionar Certificado -->
-        <section class="add-certificate-section" style="display: none;">
-          <div class="form-container">
-            <h2>Adicionar Novo Certificado</h2>
-            <form id="certificate-form" class="certificate-form">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="certificate-name" class="form-label">Nome do Curso/Certificado *</label>
-                  <input type="text" id="certificate-name" class="form-input" required>
-                </div>
-                
-                <div class="form-group">
-                  <label for="certificate-institution" class="form-label">Instituição Emissora *</label>
-                  <input type="text" id="certificate-institution" class="form-input" required>
-                </div>
-                
-                <div class="form-group">
-                  <label for="certificate-start-date" class="form-label">Data de Início</label>
-                  <input type="date" id="certificate-start-date" class="form-input">
-                </div>
-                
-                <div class="form-group">
-                  <label for="certificate-end-date" class="form-label">Data de Conclusão *</label>
-                  <input type="date" id="certificate-end-date" class="form-input" required>
-                </div>
-              </div>
-              
-              <div class="form-group full-width">
-                <label for="certificate-description" class="form-label">Descrição</label>
-                <textarea id="certificate-description" class="form-textarea" placeholder="Descreva o que foi aprendido no curso"></textarea>
-              </div>
-              
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary">💾 Salvar Certificado</button>
-                <button type="button" id="cancel-certificate" class="btn btn-secondary">❌ Cancelar</button>
-              </div>
-            </form>
-          </div>
-        </section>
+          <button type="submit" class="btn btn-primary btn-lg">Pesquisar Cursos</button>
+        </form>
+    
+        <div id="results-container">
+          <!-- Resultados da busca aparecerão aqui -->
+        </div>
       </div>
     </main>
   </div>
@@ -103,7 +70,7 @@
       });
   </script>
 
-  <script src="historico.js"></script>
+  <script src="biblioteca.js"></script>
   <script>
     // Função global para dark mode
     window.toggleDarkMode = function() {

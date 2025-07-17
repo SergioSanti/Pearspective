@@ -19,99 +19,116 @@
   <!-- Navbar carregado dinamicamente -->
   <div id="navbar"></div>
 
-  <div class="page-container">
-    <header class="page-header">
+  <div class="profile-page">
+    <header class="profile-header">
       <div class="container">
         <div class="header-content">
           <div class="header-center">
-            <h1 class="page-title">Meu Perfil</h1>
-            <p class="page-subtitle">Gerencie suas informações pessoais e profissionais.</p>
+            <h1 class="profile-title">Meu Perfil</h1>
+            <p class="profile-subtitle">Gerencie suas informações pessoais e profissionais</p>
           </div>
         </div>
       </div>
     </header>
     
-    <main class="container">
-      <div class="content-panel">
-        <div class="profile-section">
-          <h2>Informações Pessoais</h2>
-          <div class="profile-photo">
-            <div class="photo-container">
-              <img id="profile-photo" src="assets/default-avatar.png" alt="Foto do perfil">
-            </div>
-            <button id="change-photo-btn" class="btn btn-secondary">
-              <span class="icon">📸</span>
-              Alterar Foto
-            </button>
-            <p class="photo-info">
-              Formatos: JPEG, PNG, GIF, WebP<br>
-              Máximo: 2MB<br>
-              Dimensões: até 2048x2048px
-            </p>
-            <input type="file" id="photo-upload" accept="image/*" style="display: none;">
+    <main class="profile-main">
+      <div class="container">
+        <!-- Seção de Informações Pessoais -->
+        <section class="profile-section">
+          <div class="section-header">
+            <h2>Informações Pessoais</h2>
           </div>
           
-          <form id="personal-info-form">
-            <div class="form-group">
-              <label for="display-name">Nome de Exibição</label>
-              <input type="text" id="display-name" class="input" placeholder="Seu nome de exibição">
+          <div class="profile-content">
+            <div class="profile-photo">
+              <div class="photo-container">
+                <img id="profile-photo" src="assets/default-avatar.png" alt="Foto do perfil">
+              </div>
+              <button id="change-photo-btn" class="btn btn-secondary">
+                📸 Alterar Foto
+              </button>
+              <p class="photo-info">
+                Formatos: JPEG, PNG, GIF, WebP<br>
+                Máximo: 2MB<br>
+                Dimensões: até 2048x2048px
+              </p>
+              <input type="file" id="photo-upload" accept="image/*" style="display: none;">
             </div>
             
-            <div class="form-group">
-              <label for="username">Usuário</label>
-              <input type="text" id="username" class="input" readonly>
-            </div>
-            
-            <div class="form-group">
-              <label for="email">E-mail</label>
-              <input type="email" id="email" class="input" placeholder="seu@email.com">
-            </div>
-            
-            <div class="form-group">
-              <label for="user-type">Tipo de Usuário</label>
-              <input type="text" id="user-type" class="input" readonly>
+            <form id="personal-info-form" class="profile-form">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="display-name" class="form-label">Nome de Exibição</label>
+                  <input type="text" id="display-name" class="form-input" placeholder="Seu nome de exibição">
+                </div>
+                
+                <div class="form-group">
+                  <label for="username" class="form-label">Usuário</label>
+                  <input type="text" id="username" class="form-input" readonly>
+                </div>
+                
+                <div class="form-group">
+                  <label for="email" class="form-label">E-mail</label>
+                  <input type="email" id="email" class="form-input" placeholder="seu@email.com">
+                </div>
+                
+                <div class="form-group">
+                  <label for="user-type" class="form-label">Tipo de Usuário</label>
+                  <input type="text" id="user-type" class="form-input" readonly>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+        
+        <!-- Seção de Informações Profissionais -->
+        <section class="profile-section">
+          <div class="section-header">
+            <h2>Informações Profissionais</h2>
+          </div>
+          
+          <form id="professional-info-form" class="profile-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="department" class="form-label">Área/Departamento</label>
+                <select id="department" class="form-select">
+                  <option value="">Selecione uma área</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="position" class="form-label">Cargo Atual</label>
+                <select id="position" class="form-select">
+                  <option value="">Selecione um cargo</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="registration-date" class="form-label">Data de Cadastro</label>
+                <input type="text" id="registration-date" class="form-input" readonly>
+              </div>
             </div>
           </form>
-        </div>
+        </section>
         
-        <div class="profile-section">
-          <h2>Informações Profissionais</h2>
-          <form id="professional-info-form">
-            <div class="form-group">
-              <label for="department">Área/Departamento</label>
-              <select id="department" class="select">
-                <option value="">Selecione uma área</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="position">Cargo Atual</label>
-              <select id="position" class="select">
-                <option value="">Selecione um cargo</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="registration-date">Data de Cadastro</label>
-              <input type="text" id="registration-date" class="input" readonly>
-            </div>
-          </form>
-        </div>
-        
-        <div class="profile-section">
-          <h2>📄 Currículo</h2>
+        <!-- Seção de Currículo -->
+        <section class="profile-section">
+          <div class="section-header">
+            <h2>📄 Currículo</h2>
+          </div>
+          
           <div class="resume-upload">
             <div class="upload-icon">📄</div>
-            <p>Enviar Currículo</p>
+            <p class="upload-title">Enviar Currículo</p>
             <p class="upload-info">
               Clique para selecionar um arquivo PDF<br>
-              apenas arquivos PDF<br>
-              máximo 10MB
+              Apenas arquivos PDF<br>
+              Máximo 10MB
             </p>
             <input type="file" id="resume-upload" accept=".pdf" style="display: none;">
             <button id="upload-resume-btn" class="btn btn-primary">Selecionar PDF</button>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   </div>

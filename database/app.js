@@ -35,9 +35,11 @@ app.post('/api/login', async (req, res) => {
     const { usuario, senha } = req.body;
     
     console.log('🔐 Tentativa de login:', { usuario, senha });
+    console.log('📡 Rota /api/login chamada');
     
     // Login hardcoded para teste - usando as credenciais do banco
     if (usuario === 'admin' && senha === 'Admin123') {
+      console.log('✅ Login admin bem-sucedido');
       res.json({
         success: true,
         id: 1,
@@ -46,6 +48,7 @@ app.post('/api/login', async (req, res) => {
         foto_perfil: null
       });
     } else if (usuario === 'sergio' && senha === '12345') {
+      console.log('✅ Login sergio bem-sucedido');
       res.json({
         success: true,
         id: 2,
@@ -54,6 +57,7 @@ app.post('/api/login', async (req, res) => {
         foto_perfil: null
       });
     } else {
+      console.log('❌ Credenciais inválidas:', { usuario, senha });
       res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
   } catch (error) {

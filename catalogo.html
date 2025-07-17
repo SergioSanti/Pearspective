@@ -2,19 +2,33 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recomendações de Cursos - Pearspective</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Recomendações de cursos do Pearspective - Cursos certificados selecionados para seu desenvolvimento profissional">
   <script>
     // Proteção de Rota: verifica se o usuário está logado
     if (!localStorage.getItem('userId')) {
       alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = 'login.html';
+      window.location.href = '../login.html';
     }
   </script>
-  <link href="assets/global-styles.css" rel="stylesheet" />
-  <link href="navbar.css" rel="stylesheet" />
-  <link href="catalogo.css" rel="stylesheet" type="text/css" />
+  <meta name="keywords" content="cursos, recomendações, treinamento, desenvolvimento profissional, certificados">
+  <meta name="author" content="Pearspective Team">
+  <meta name="theme-color" content="#6B8E4E">
+  
+  <!-- Preconnect para performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Fonte Inter - Padrão moderno -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="../navbar.css" rel="stylesheet">
+  <link href="catalogo.css" rel="stylesheet">
+  
+  <title>Recomendações de Cursos - Pearspective</title>
 </head>
 <body>
   <!-- Navbar carregado dinamicamente -->
@@ -184,12 +198,12 @@
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <p>Tem certeza que deseja excluir este curso? Esta ação não pode ser desfeita.</p>
-        <p class="text-warning">⚠️ Atenção: Esta ação é irreversível!</p>
+        <p>Tem certeza que deseja excluir o curso "<span id="delete-course-title"></span>"?</p>
+        <p class="text-warning">Esta ação não pode ser desfeita.</p>
       </div>
       <div class="modal-footer">
         <button id="confirm-delete" class="btn btn-danger">🗑️ Excluir</button>
-        <button onclick="closeModal()" class="btn btn-secondary">❌ Cancelar</button>
+        <button onclick="closeModal()" class="btn btn-secondary">Cancelar</button>
       </div>
     </div>
   </div>

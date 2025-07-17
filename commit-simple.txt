@@ -1,0 +1,9 @@
+Execute estes comandos no terminal:
+
+git add api/app.js vercel.json
+git commit -m "Fix login - move backend to api folder"
+git push
+
+Depois aguarde o Vercel fazer o deploy e teste o login com:
+- Usuário: admin
+- Senha: Admin123 

@@ -1,95 +1,92 @@
+<!-- certificados.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pesquisar Cursos - Pearspective</title>
+  <meta charset="UTF-8">
+  <title>Meus Certificados - Pearspective</title>
   <script>
     // Proteção de Rota: verifica se o usuário está logado
     if (!localStorage.getItem('userId')) {
       alert('Você precisa estar logado para acessar esta página.');
-      window.location.href = 'login.html';
+      window.location.href = '../login.html';
     }
   </script>
-  <link href="assets/global-styles.css" rel="stylesheet" />
-  <link href="navbar.css" rel="stylesheet" />
-  <link href="biblioteca.css" rel="stylesheet" type="text/css" />
+  <link href="../assets/global-styles.css" rel="stylesheet">
+  <link href="../navbar.css" rel="stylesheet">
+  <link href="certificados.css" rel="stylesheet">
 </head>
 <body>
   <!-- Navbar carregado dinamicamente -->
   <div id="navbar"></div>
 
-  <div class="library-page">
-    <header class="library-header">
+  <div class="page-container">
+    <header class="page-header">
       <div class="container">
         <div class="header-content">
           <div class="header-center">
-            <h1 class="library-title">Pesquisar Cursos</h1>
-            <p class="library-subtitle">Encontre cursos com certificado em diversas plataformas</p>
+            <h1 class="page-title">Meus Certificados</h1>
+            <p class="page-subtitle">Gerencie e visualize suas conquistas profissionais.</p>
           </div>
         </div>
       </div>
     </header>
-    
-    <main class="library-main">
-      <div class="container">
-        <!-- Seção de Busca -->
-        <section class="search-section">
-          <form id="search-form" class="search-form">
-            <input
-              type="text"
-              id="search-input"
-              name="search-query"
-              class="search-input"
-              placeholder="Ex: gestão de projetos, programação, liderança"
-              required
-            />
-            <button type="submit" class="search-button">
-              🔍 Pesquisar Cursos
-            </button>
-          </form>
-        </section>
 
-        <!-- Seção de Filtros -->
-        <section class="filters-section">
-          <div class="filters-grid">
-            <div class="filter-group">
-              <label for="area-filter" class="filter-label">Área</label>
-              <select id="area-filter" class="filter-select">
-                <option value="">Todas as áreas</option>
-              </select>
-            </div>
-            
-            <div class="filter-group">
-              <label for="level-filter" class="filter-label">Nível</label>
-              <select id="level-filter" class="filter-select">
-                <option value="">Todos os níveis</option>
-                <option value="basico">Básico</option>
-                <option value="intermediario">Intermediário</option>
-                <option value="avancado">Avançado</option>
-              </select>
-            </div>
-            
-            <div class="filter-group">
-              <label for="platform-filter" class="filter-label">Plataforma</label>
-              <select id="platform-filter" class="filter-select">
-                <option value="">Todas as plataformas</option>
-              </select>
-            </div>
-          </div>
-        </section>
+    <main class="container">
+      <div class="content-panel">
+        <div class="panel-header">
+          <h2>Seus Certificados</h2>
+          <button id="add-cert-btn" class="btn btn-primary">
+            <span class="icon">➕</span> Adicionar Certificado
+          </button>
+        </div>
 
-        <!-- Seção de Resultados -->
-        <section class="results-section">
-          <div class="results-header">
-            <span class="results-count">Resultados da busca</span>
-          </div>
-          <div class="results-grid" id="results-container">
-            <!-- Resultados da busca aparecerão aqui -->
-          </div>
-        </section>
+        <div class="cert-grid" id="cert-grid">
+          <!-- Certificados serão carregados aqui via JavaScript -->
+        </div>
       </div>
     </main>
+  </div>
+
+  <!-- Modal para adicionar/editar certificado -->
+  <div id="certModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">Adicionar Novo Certificado</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="cert-form" enctype="multipart/form-data">
+        <input type="hidden" id="cert-id">
+        <div class="form-group">
+          <label for="cert-name">Nome do Curso/Certificado</label>
+          <input type="text" id="cert-name" class="input" required>
+        </div>
+        <div class="form-group">
+          <label for="cert-issuer">Instituição Emissora</label>
+          <input type="text" id="cert-issuer" class="input" required>
+        </div>
+        <div class="form-group">
+          <label for="cert-date-start">Data de Início</label>
+          <input type="date" id="cert-date-start" class="input" required>
+        </div>
+        <div class="form-group">
+          <label for="cert-date">Data de Conclusão</label>
+          <input type="date" id="cert-date" class="input" required>
+        </div>
+        <div class="form-group">
+          <label for="cert-pdf">Anexar PDF do Certificado</label>
+          <input type="file" id="cert-pdf" name="pdf" accept=".pdf" class="input">
+          <small class="form-help">Apenas arquivos PDF são aceitos (máximo 10MB)</small>
+        </div>
+        <div class="form-group">
+          <label for="cert-description">Descrição (opcional)</label>
+          <textarea id="cert-description" class="textarea" rows="3" placeholder="Descreva o que foi aprendido no curso..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary close-btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Script para carregar o conteúdo da navbar -->
@@ -105,7 +102,7 @@
       });
   </script>
 
-  <script src="biblioteca.js"></script>
+  <script src="historico.js"></script>
   <script>
     // Função global para dark mode
     window.toggleDarkMode = function() {

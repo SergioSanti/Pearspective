@@ -19,89 +19,105 @@
   <!-- Navbar carregado dinamicamente -->
   <div id="navbar"></div>
 
-  <div class="page-container">
-    <header class="page-header">
+  <div class="simulator-page">
+    <header class="simulator-header">
       <div class="container">
         <div class="header-content">
           <div class="header-center">
-            <h1 class="page-title">Simulador de Cargos</h1>
-            <p class="page-subtitle">veja as informações e responsabilidades de cada cargo.</p>
+            <h1 class="simulator-title">Simulador de Cargos</h1>
+            <p class="simulator-subtitle">Veja as informações e responsabilidades de cada cargo</p>
           </div>
         </div>
       </div>
     </header>
     
-    <main class="container">
-      <div class="content-panel">
-        <div class="simulator-section">
-          <div class="form-group">
-            <label for="area-select">Área:</label>
-            <select id="area-select" class="select" required>
-              <option value="">Carregando áreas...</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="cargo-select">Cargo:</label>
-            <select id="cargo-select" class="select" required>
-              <option value="">Escolha uma área primeiro</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="admin-section">
-          <h2>Gerenciar Áreas</h2>
-          <div class="admin-form">
-            <h3>Adicionar/Editar Área</h3>
+    <main class="simulator-main">
+      <div class="container">
+        <!-- Seção do Simulador -->
+        <section class="simulator-section">
+          <div class="simulator-form">
             <div class="form-group">
-              <label for="area-name">Nome da Área</label>
-              <input type="text" id="area-name" class="input" placeholder="Digite o nome da área">
-            </div>
-            <div class="form-actions">
-              <button id="save-area" class="btn btn-primary">Salvar Área</button>
-              <button id="cancel-area" class="btn btn-secondary">Cancelar</button>
-            </div>
-          </div>
-          
-          <div class="existing-areas">
-            <h3>Áreas Existentes</h3>
-            <div id="areas-list">
-              <!-- Lista de áreas será carregada aqui -->
-            </div>
-          </div>
-        </div>
-        
-        <div class="admin-section">
-          <h2>Gerenciar Cargos</h2>
-          <div class="admin-form">
-            <h3>Adicionar/Editar Cargo</h3>
-            <div class="form-group">
-              <label for="cargo-area">Área do Cargo</label>
-              <select id="cargo-area" class="select">
-                <option value="">Selecione uma área</option>
+              <label for="area-select" class="form-label">Área</label>
+              <select id="area-select" class="form-select" required>
+                <option value="">Carregando áreas...</option>
               </select>
             </div>
+            
             <div class="form-group">
-              <label for="cargo-name">Nome do Cargo</label>
-              <input type="text" id="cargo-name" class="input" placeholder="Digite o nome do cargo">
-            </div>
-            <div class="form-group">
-              <label for="cargo-description">Descrição</label>
-              <textarea id="cargo-description" class="textarea" placeholder="Descreva as responsabilidades do cargo"></textarea>
-            </div>
-            <div class="form-actions">
-              <button id="save-cargo" class="btn btn-primary">Salvar Cargo</button>
-              <button id="cancel-cargo" class="btn btn-secondary">Cancelar</button>
+              <label for="cargo-select" class="form-label">Cargo</label>
+              <select id="cargo-select" class="form-select" required>
+                <option value="">Escolha uma área primeiro</option>
+              </select>
             </div>
           </div>
           
-          <div class="existing-cargos">
-            <h3>Cargos Existentes</h3>
-            <div id="cargos-list">
-              <!-- Lista de cargos será carregada aqui -->
+          <!-- Resultado do Simulador -->
+          <div id="cargo-result" class="cargo-result" style="display: none;">
+            <!-- Resultado será exibido aqui -->
+          </div>
+        </section>
+        
+        <!-- Seção Administrativa -->
+        <section class="admin-section">
+          <div class="admin-tabs">
+            <button class="tab-button active" data-tab="areas">Gerenciar Áreas</button>
+            <button class="tab-button" data-tab="cargos">Gerenciar Cargos</button>
+          </div>
+          
+          <!-- Tab Áreas -->
+          <div id="areas-tab" class="tab-content active">
+            <div class="admin-form">
+              <h3>Adicionar/Editar Área</h3>
+              <div class="form-group">
+                <label for="area-name" class="form-label">Nome da Área</label>
+                <input type="text" id="area-name" class="form-input" placeholder="Digite o nome da área">
+              </div>
+              <div class="form-actions">
+                <button id="save-area" class="btn btn-primary">💾 Salvar Área</button>
+                <button id="cancel-area" class="btn btn-secondary">❌ Cancelar</button>
+              </div>
+            </div>
+            
+            <div class="existing-items">
+              <h3>Áreas Existentes</h3>
+              <div id="areas-list" class="items-list">
+                <!-- Lista de áreas será carregada aqui -->
+              </div>
             </div>
           </div>
-        </div>
+          
+          <!-- Tab Cargos -->
+          <div id="cargos-tab" class="tab-content">
+            <div class="admin-form">
+              <h3>Adicionar/Editar Cargo</h3>
+              <div class="form-group">
+                <label for="cargo-area" class="form-label">Área do Cargo</label>
+                <select id="cargo-area" class="form-select">
+                  <option value="">Selecione uma área</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="cargo-name" class="form-label">Nome do Cargo</label>
+                <input type="text" id="cargo-name" class="form-input" placeholder="Digite o nome do cargo">
+              </div>
+              <div class="form-group">
+                <label for="cargo-description" class="form-label">Descrição</label>
+                <textarea id="cargo-description" class="form-textarea" placeholder="Descreva as responsabilidades do cargo"></textarea>
+              </div>
+              <div class="form-actions">
+                <button id="save-cargo" class="btn btn-primary">💾 Salvar Cargo</button>
+                <button id="cancel-cargo" class="btn btn-secondary">❌ Cancelar</button>
+              </div>
+            </div>
+            
+            <div class="existing-items">
+              <h3>Cargos Existentes</h3>
+              <div id="cargos-list" class="items-list">
+                <!-- Lista de cargos será carregada aqui -->
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
