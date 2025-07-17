@@ -1,3 +1,200 @@
+/* ===== ESTILOS PARA A PÁGINA DE CERTIFICADOS E MODAL ===== */
+
+body {
+  background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%);
+  padding-top: 70px; /* Espaço para navbar fixa */
+  min-height: 100vh;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: var(--spacing-8) 0;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.page-header .container {
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.header-left,
+.header-right {
+  flex: 0 0 auto;
+}
+
+.header-center {
+  text-align: center;
+}
+
+.page-header .btn {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.page-title {
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+  margin: 0;
+  color: white;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: color var(--transition-fast);
+}
+
+.page-title:hover {
+  color: #2d5019;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.page-subtitle {
+  font-size: var(--font-size-lg);
+  color: rgba(255, 255, 255, 0.95);
+  margin: var(--spacing-2) 0 0 0;
+  font-weight: 500;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.content-panel {
+  background-color: white;
+  border-radius: var(--border-radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-8);
+  margin: var(--spacing-6) auto 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-8);
+  border-bottom: 1px solid var(--gray-200);
+  padding-bottom: var(--spacing-6);
+}
+
+.panel-header h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--gray-800);
+  margin: 0;
+}
+
+.cert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-6);
+}
+
+.cert-card {
+  background-color: var(--gray-50);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-6);
+  border: 1px solid var(--gray-200);
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+}
+
+.cert-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-300);
+}
+
+.cert-card h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+.cert-card p {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  margin: 0 0 var(--spacing-4) 0;
+}
+
+.cert-card .dates {
+  font-weight: 500;
+  color: var(--primary-700);
+}
+
+.cert-card .description {
+  font-style: italic;
+  color: var(--gray-500);
+  margin-bottom: var(--spacing-3);
+}
+
+.pdf-section {
+  margin: var(--spacing-3) 0;
+  padding: var(--spacing-3);
+  background-color: var(--gray-100);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--gray-200);
+}
+
+.pdf-actions {
+  display: flex;
+  gap: var(--spacing-2);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pdf-actions .btn {
+  flex: 1;
+  min-width: 120px;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  padding: 0.5rem 0.75rem;
+}
+
+.pdf-actions .btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+}
+
+.pdf-actions .btn-secondary {
+  background: var(--gray-200);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.pdf-actions .btn-secondary:hover {
+  background: var(--gray-300);
+  color: var(--gray-800);
+}
+
+.pdf-section .btn {
+  margin-right: var(--spacing-2);
+}
+
+.no-pdf {
+  color: var(--gray-500);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
 /* ===== HISTÓRICO DE CERTIFICADOS - PEARSPECTIVE ===== */
 
 /* Layout da Página */

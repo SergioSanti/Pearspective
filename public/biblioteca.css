@@ -1,3 +1,138 @@
+/* ===== ESTILOS PARA A PÁGINA DA BIBLIOTECA (PESQUISAR CURSOS) ===== */
+
+body {
+    background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%);
+    padding-top: 70px; /* Espaço para navbar fixa */
+    min-height: 100vh;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: var(--spacing-8) 0;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.page-header .container {
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.header-center {
+    text-align: center;
+}
+
+.page-header .btn-outline {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    border-color: var(--gray-600);
+    color: var(--gray-200);
+}
+
+.page-header .btn-outline:hover {
+    background-color: var(--gray-700);
+    border-color: var(--gray-500);
+    color: white;
+}
+
+.page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    margin: 0;
+    color: white;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: color var(--transition-fast);
+}
+
+.page-title:hover {
+    color: #2d5019;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.page-subtitle {
+    font-size: var(--font-size-lg);
+    color: rgba(255, 255, 255, 0.95);
+    margin: var(--spacing-2) 0 0 0;
+    font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-4);
+}
+
+main.container {
+    width: 100%;
+    max-width: 800px;
+}
+
+.content-panel {
+    background-color: white;
+    border-radius: var(--border-radius-2xl);
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-10);
+    margin: var(--spacing-6) auto 0 auto;
+    position: relative;
+    z-index: 10;
+    width: 100%;
+}
+
+#search-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-6);
+    margin-bottom: var(--spacing-8);
+}
+
+#search-form .form-group {
+    width: 100%;
+    text-align: center;
+}
+
+#search-form label {
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-4);
+    display: block;
+}
+
+.input-lg {
+    padding: var(--spacing-4);
+    font-size: var(--font-size-lg);
+    text-align: center;
+}
+
+.btn-lg {
+    padding: var(--spacing-4) var(--spacing-8);
+    font-size: var(--font-size-lg);
+}
+
+#results-container {
+    margin-top: var(--spacing-8);
+}
+
 /* ===== BIBLIOTECA DE CURSOS - PEARSPECTIVE ===== */
 
 /* Layout da Página */
