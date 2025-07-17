@@ -978,6 +978,50 @@ app.get('/api/users/curriculum/:username', async (req, res) => {
   }
 });
 
+// Rota para upload de currículo
+app.post('/api/users/curriculum/:username', upload.single('curriculum'), async (req, res) => {
+  try {
+    const { username } = req.params;
+    const file = req.file;
+    
+    console.log(`📄 Upload de currículo para: ${username}`);
+    console.log('📋 Dados do arquivo:', {
+      originalname: file?.originalname,
+      mimetype: file?.mimetype,
+      size: file?.size
+    });
+    
+    if (!file) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    }
+    
+    // Validar tipo de arquivo
+    if (file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: 'Apenas arquivos PDF são permitidos' });
+    }
+    
+    // Validar tamanho (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return res.status(400).json({ error: 'Arquivo muito grande. Máximo 10MB permitido' });
+    }
+    
+    // Aqui você pode salvar o arquivo no banco de dados ou sistema de arquivos
+    // Por enquanto, vamos simular o sucesso
+    
+    console.log('✅ Currículo processado com sucesso');
+    res.json({
+      message: 'Currículo enviado com sucesso',
+      fileName: file.originalname,
+      fileSize: file.size,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Erro ao fazer upload do currículo:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Rota para atualizar currículo
 app.put('/api/users/curriculum/:username', async (req, res) => {
   try {
