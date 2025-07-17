@@ -784,7 +784,7 @@ app.post('/api/cursos', async (req, res) => {
     
     // Verificar estrutura da tabela cursos
     const tableInfo = await pool.query(`
-      SELECT column_name, data_type 
+      SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns 
       WHERE table_name = 'cursos' 
       ORDER BY ordinal_position
@@ -808,12 +808,50 @@ app.post('/api/cursos', async (req, res) => {
     let placeholders = [];
     let paramIndex = 1;
     
+    // Verificar quais campos são NOT NULL
+    const notNullColumns = tableInfo.rows
+      .filter(row => row.is_nullable === 'NO')
+      .map(row => row.column_name);
+    
+    console.log('🔍 Colunas NOT NULL:', notNullColumns);
+    
+    // Sempre incluir campos obrigatórios
     if (hasTitulo) {
       columns.push('titulo');
-      values.push(title);
+      values.push(title || 'Curso sem título');
       placeholders.push(`$${paramIndex++}`);
     }
     
+    // Incluir outros campos obrigatórios se existirem
+    const hasInstrutor = tableInfo.rows.some(row => row.column_name === 'instrutor');
+    if (hasInstrutor) {
+      columns.push('instrutor');
+      values.push('Instrutor não especificado');
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    const hasPreco = tableInfo.rows.some(row => row.column_name === 'preco');
+    if (hasPreco) {
+      columns.push('preco');
+      values.push(0.00);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    const hasAvaliacao = tableInfo.rows.some(row => row.column_name === 'avaliacao');
+    if (hasAvaliacao) {
+      columns.push('avaliacao');
+      values.push(0.0);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    const hasEstudantes = tableInfo.rows.some(row => row.column_name === 'estudantes');
+    if (hasEstudantes) {
+      columns.push('estudantes');
+      values.push(0);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    // Campos opcionais
     if (hasPlataforma) {
       columns.push('plataforma');
       values.push(platform || 'Não especificado');
@@ -850,7 +888,7 @@ app.post('/api/cursos', async (req, res) => {
       placeholders.push(`$${paramIndex++}`);
     }
     
-    // Adicionar campos padrão se existirem
+    // Campos padrão
     const hasAtivo = tableInfo.rows.some(row => row.column_name === 'ativo');
     if (hasAtivo) {
       columns.push('ativo');
@@ -907,7 +945,7 @@ app.put('/api/cursos/:id', async (req, res) => {
     
     // Verificar estrutura da tabela cursos
     const tableInfo = await pool.query(`
-      SELECT column_name, data_type 
+      SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns 
       WHERE table_name = 'cursos' 
       ORDER BY ordinal_position
