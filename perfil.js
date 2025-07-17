@@ -74,6 +74,8 @@ class ProfileManager {
     }
 
     async loadAreas() {
+        const areaSelect = document.getElementById('userDepartment');
+        
         try {
             const response = await fetch('/api/areas');
             if (!response.ok) {
@@ -81,10 +83,9 @@ class ProfileManager {
             }
             
             const areas = await response.json();
-            const areaSelect = document.getElementById('userDepartment');
             
-            // Limpar opções existentes, mantendo apenas a primeira
-            areaSelect.innerHTML = '<option value="">Selecione uma área</option>';
+            // Limpar opções existentes
+            areaSelect.innerHTML = '<option value="">-- Escolha uma área --</option>';
             
             // Remover duplicatas baseado no nome
             const uniqueAreas = areas.filter((area, index, self) => 
@@ -94,8 +95,8 @@ class ProfileManager {
             // Adicionar áreas únicas do banco de dados
             uniqueAreas.forEach(area => {
                 const option = document.createElement('option');
-                option.value = area.nome; // Usar nome em vez de ID
-                option.textContent = area.nome;
+                option.value = area.id; // Usar ID da área como valor
+                option.textContent = area.nome; // Usar nome da área como texto
                 areaSelect.appendChild(option);
             });
             
@@ -105,32 +106,18 @@ class ProfileManager {
         }
     }
 
-    async loadCargosByArea(areaName, selectedCargo = null) {
+    async loadCargosByArea(areaId, selectedCargo = null) {
         const cargoSelect = document.getElementById('userPosition');
         
-        if (!areaName) {
+        if (!areaId) {
             cargoSelect.innerHTML = '<option value="">Escolha uma área primeiro</option>';
             cargoSelect.disabled = true;
             return;
         }
 
         try {
-            // Primeiro buscar o ID da área pelo nome
-            const areasResponse = await fetch('/api/areas');
-            if (!areasResponse.ok) {
-                throw new Error('Erro ao carregar áreas');
-            }
-            
-            const areas = await areasResponse.json();
-            const area = areas.find(a => a.nome === areaName);
-            
-            if (!area) {
-                cargoSelect.innerHTML = '<option value="">Área não encontrada</option>';
-                cargoSelect.disabled = true;
-                return;
-            }
-            
-            const response = await fetch('/api/cargos');
+            // Buscar cargos da área específica
+            const response = await fetch(`/api/cargos/area/${areaId}`);
             if (!response.ok) {
                 throw new Error('Erro ao carregar cargos');
             }
@@ -138,14 +125,16 @@ class ProfileManager {
             const cargos = await response.json();
             
             if (cargos.length === 0) {
-                cargoSelect.innerHTML = '<option value="">Nenhum cargo encontrado</option>';
+                cargoSelect.innerHTML = '<option value="">Nenhum cargo encontrado para esta área</option>';
                 cargoSelect.disabled = true;
             } else {
                 cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
                 cargos.forEach(cargo => {
                     const option = document.createElement('option');
-                    option.value = cargo.nome_cargo;
-                    option.textContent = cargo.nome_cargo;
+                    // Usar nome_cargo se disponível, senão usar nome
+                    const cargoName = cargo.nome_cargo || cargo.nome || 'Cargo sem nome';
+                    option.value = cargoName;
+                    option.textContent = cargoName;
                     cargoSelect.appendChild(option);
                 });
                 cargoSelect.disabled = false;
@@ -188,12 +177,24 @@ class ProfileManager {
             // Definir a área diretamente pelo nome (áreas já foram carregadas)
             const userDepartment = this.currentUser.departamento || '';
             if (userDepartment) {
-                document.getElementById('userDepartment').value = userDepartment;
-                
-                // Aguardar um pouco e carregar cargos da área selecionada
-                await new Promise(resolve => setTimeout(resolve, 200));
-                const selectedCargo = this.currentUser.cargo_atual || '';
-                await this.loadCargosByArea(userDepartment, selectedCargo);
+                // Buscar o ID da área pelo nome
+                const areasResponse = await fetch('/api/areas');
+                if (areasResponse.ok) {
+                    const areas = await areasResponse.json();
+                    const area = areas.find(a => a.nome === userDepartment);
+                    if (area) {
+                        document.getElementById('userDepartment').value = area.id;
+                        
+                        // Aguardar um pouco e carregar cargos da área selecionada
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        const selectedCargo = this.currentUser.cargo_atual || '';
+                        await this.loadCargosByArea(area.id, selectedCargo);
+                    } else {
+                        document.getElementById('userDepartment').value = userDepartment;
+                    }
+                } else {
+                    document.getElementById('userDepartment').value = userDepartment;
+                }
             }
         }
     }

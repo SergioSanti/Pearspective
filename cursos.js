@@ -106,8 +106,8 @@ class CourseManager {
     // Adicionar opções das áreas
     this.areas.forEach(area => {
       const option = document.createElement('option');
-      option.value = area.nome; // Usar o nome da área como valor
-      option.textContent = area.nome;
+      option.value = area.id; // Usar o ID da área como valor
+      option.textContent = area.nome; // Usar o nome da área como texto
       selectElement.appendChild(option);
     });
   }
@@ -307,19 +307,35 @@ class CourseManager {
     const selectedLevel = this.levelSelect.value;
     const selectedDuration = this.durationSelect.value;
 
+    console.log('🔍 Filtrando cursos:', { selectedArea, selectedLevel, selectedDuration });
+
     const filtered = this.courses.filter(course => {
       const matchesSearch = !searchTerm || 
         (course.title && course.title.toLowerCase().includes(searchTerm)) ||
         (course.description && course.description.toLowerCase().includes(searchTerm)) ||
         (course.platform && course.platform.toLowerCase().includes(searchTerm));
 
-      const matchesArea = !selectedArea || course.area === selectedArea;
+      // Filtrar por área - usar ID da área se disponível, senão usar nome
+      let matchesArea = true;
+      if (selectedArea) {
+        if (course.area_id) {
+          // Se o curso tem area_id, comparar com o ID da área selecionada
+          matchesArea = course.area_id.toString() === selectedArea;
+        } else if (course.area) {
+          // Se não tem area_id, comparar pelo nome da área
+          matchesArea = course.area === selectedArea;
+        } else {
+          matchesArea = false;
+        }
+      }
+
       const matchesLevel = !selectedLevel || course.level === selectedLevel;
       const matchesDuration = !selectedDuration || course.duration === selectedDuration;
 
       return matchesSearch && matchesArea && matchesLevel && matchesDuration;
     });
 
+    console.log(`✅ Filtrados ${filtered.length} cursos de ${this.courses.length} total`);
     this.renderCourses(filtered);
     this.updateResultsCount(filtered.length);
   }
