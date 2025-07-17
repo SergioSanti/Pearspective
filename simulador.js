@@ -103,9 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-        const cargos = await fetchFromAPI('/api/cargos');
+        console.log(`🔍 Carregando cargos da área ${areaId}...`);
+        const cargos = await fetchFromAPI(`/api/cargos/area/${areaId}`);
+        console.log(`✅ Encontrados ${cargos.length} cargos para área ${areaId}`);
+        
         if (cargos.length === 0) {
-            cargoSelect.innerHTML = '<option value="">Nenhum cargo cadastrado no sistema</option>';
+            cargoSelect.innerHTML = '<option value="">Nenhum cargo encontrado para esta área</option>';
             cargoSelect.disabled = true;
         } else {
             cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
