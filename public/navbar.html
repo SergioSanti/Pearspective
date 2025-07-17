@@ -1,0 +1,301 @@
+<!-- CSS da Navbar -->
+<link rel="stylesheet" href="../assets/global-styles.css">
+<link rel="stylesheet" href="../navbar.css">
+
+<!-- Navbar Principal -->
+<nav class="navbar" role="navigation" aria-label="Navegação principal">
+  <!-- Logo/Brand -->
+  <div class="navbar-brand">
+    <a href="../Page_inicial/index.html" class="brand-link">
+      <img src="../assets/Pearspective-logo.png" alt="Pearspective Logo" class="brand-logo">
+      <span class="brand-text">Pearspective</span>
+    </a>
+  </div>
+
+  <!-- Menu de Navegação -->
+  <ul class="navbar-menu" role="menubar">
+    <li class="navbar-item" role="none">
+      <a href="../Page_inicial/index.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🏡</span>
+        <span class="nav-text">Início</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../catalogo/catalogo.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">⭐</span>
+        <span class="nav-text">Recomendações</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../biblioteca/biblioteca.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🔎</span>
+        <span class="nav-text">Pesquisar Cursos</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../simulador/simulador.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-text">Simulador</span>
+      </a>
+    </li>
+    <li class="navbar-item" role="none">
+      <a href="../historico/historico.html" class="navbar-link" role="menuitem">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-text">Certificados</span>
+      </a>
+    </li>
+  </ul>
+
+  <!-- Área do Usuário -->
+  <div class="user-area">
+    <!-- Botão de Dark Mode -->
+    <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Alternar modo escuro" onclick="toggleDarkMode()">
+      <span class="icon sun-icon">☀️</span>
+      <span class="icon moon-icon" style="display: none;">🌙</span>
+    </button>
+    <!-- Círculo do usuário e menu dropdown -->
+    <div class="user-circle-container" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+      <div class="user-circle" id="userCircle" aria-label="Foto do usuário"></div>
+      <div class="user-name" id="userNameDisplay" aria-label="Nome do usuário"></div>
+      
+      <!-- Menu do Usuário -->
+      <div class="user-menu" role="menu" aria-label="Menu do usuário">
+        <ul class="user-menu-list">
+          <li class="user-menu-item" role="none">
+            <a href="../simulador/simulador.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">🎯</span>
+              Simulador
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../biblioteca/biblioteca.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">📚</span>
+              Cursos
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../recomendacoes.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">⭐</span>
+              Recomendações
+            </a>
+          </li>
+
+          
+          <li class="user-menu-divider" role="separator"></li>
+          
+          <li class="user-menu-item" role="none">
+            <a href="../historico/historico.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">🏆</span>
+              Meus Certificados
+            </a>
+          </li>
+          <li class="user-menu-item" role="none">
+            <a href="../perfil/perfil.html" class="user-menu-link" role="menuitem">
+              <span class="menu-icon">👤</span>
+              Meu Perfil
+            </a>
+          </li>
+          
+          <li class="user-menu-divider" role="separator"></li>
+          
+          <li class="user-menu-item" role="none">
+            <label class="photo-upload-label" role="menuitem">
+              <span class="menu-icon">📸</span>
+              Alterar Foto
+              <input type="file" id="photoUpload" accept="image/*" class="sr-only" aria-label="Selecionar foto">
+            </label>
+          </li>
+          
+          <li class="user-menu-divider" role="separator"></li>
+          
+          <li class="user-menu-item" role="none">
+            <button id="logoutButton" class="user-menu-button" role="menuitem">
+              <span class="menu-icon">🚪</span>
+              Logoff
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Função para obter a inicial do usuário
+  function getUserInitial() {
+    const userName = localStorage.getItem('userName') || 'U';
+    return userName.charAt(0).toUpperCase();
+  }
+
+  // Função para atualizar o círculo do usuário
+  function updateUserCircle() {
+    const userCircle = document.getElementById('userCircle');
+    const userName = localStorage.getItem('userName') || '';
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    console.log('[NAVBAR] userName lido do localStorage:', userName);
+    
+    if (userName) {
+      // SEMPRE buscar foto do banco de dados primeiro
+      fetch(`/api/users/photo/${encodeURIComponent(userName)}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Usuário não encontrado');
+          }
+          return response.json();
+        })
+        .then(userData => {
+          if (userData.foto_perfil) {
+            // Atualizar localStorage e exibir foto
+            localStorage.setItem('userPhoto', userData.foto_perfil);
+            userCircle.innerHTML = `<img src="${userData.foto_perfil}" alt="Foto do usuário">`;
+            console.log('[NAVBAR] Foto carregada do banco de dados');
+          } else {
+            // Se não há foto no banco, usar inicial
+            localStorage.removeItem('userPhoto');
+            userCircle.textContent = getUserInitial();
+            console.log('[NAVBAR] Nenhuma foto no banco, usando inicial');
+          }
+        })
+        .catch(error => {
+          console.error('[NAVBAR] Erro ao buscar foto do usuário:', error);
+          // Fallback para localStorage se disponível
+          const userPhoto = localStorage.getItem('userPhoto');
+          if (userPhoto) {
+            userCircle.innerHTML = `<img src="${userPhoto}" alt="Foto do usuário">`;
+            console.log('[NAVBAR] Usando foto do localStorage como fallback');
+          } else {
+            userCircle.textContent = getUserInitial();
+            console.log('[NAVBAR] Usando inicial como fallback');
+          }
+        });
+    } else {
+      // Se não há userName, limpar tudo
+      localStorage.removeItem('userPhoto');
+      userCircle.textContent = getUserInitial();
+      console.log('[NAVBAR] Nenhum usuário logado');
+    }
+    userNameDisplay.textContent = userName;
+  }
+
+  // Função para lidar com o upload de foto
+  document.getElementById('photoUpload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const photoData = e.target.result;
+        localStorage.setItem('userPhoto', photoData);
+        updateUserCircle();
+        
+        // Sincronizar com o banco de dados
+        const userName = localStorage.getItem('userName');
+        const userId = localStorage.getItem('userId');
+        
+        if (userName && userId) {
+          fetch(`/api/users/profile/${userId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              departamento: localStorage.getItem('userDepartment') || '',
+              cargo_atual: localStorage.getItem('userPosition') || '',
+              foto_perfil: photoData
+            })
+          })
+          .then(response => response.json())
+          .then(updatedUser => {
+            console.log('[NAVBAR] Foto sincronizada com o banco:', updatedUser.foto_perfil ? 'Salva' : 'Não salva');
+          })
+          .catch(error => {
+            console.error('[NAVBAR] Erro ao sincronizar foto:', error);
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Função para lidar com o logout
+  document.getElementById('logoutButton').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Remover apenas dados de sessão, manter foto como cache
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('tipo_usuario');
+    localStorage.removeItem('userDepartment');
+    localStorage.removeItem('userPosition');
+    
+    // NÃO remover userPhoto - manter como cache
+    console.log('[NAVBAR] Logoff: dados de sessão removidos, foto mantida como cache');
+    window.location.href = '/login.html';
+  });
+
+  // Atualiza o círculo do usuário ao carregar a página
+  updateUserCircle();
+
+  // ===== DARK MODE FUNCTIONALITY =====
+  
+  // Função para alternar o tema (global)
+  window.toggleDarkMode = function() {
+    console.log('[DARK MODE] Alternando tema...');
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    console.log('[DARK MODE] Tema atual:', currentTheme, 'Novo tema:', newTheme);
+    
+    // Aplicar o tema
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Atualizar ícones
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    
+    if (sunIcon && moonIcon) {
+      if (newTheme === 'dark') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      }
+    }
+    
+    console.log('[DARK MODE] Tema aplicado:', newTheme);
+  };
+  
+  // Função para inicializar o tema
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Usar tema salvo ou preferência do sistema
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    
+    console.log('[DARK MODE] Inicializando tema:', theme);
+    
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // Atualizar ícones
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    
+    if (sunIcon && moonIcon) {
+      if (theme === 'dark') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      }
+    }
+  }
+  
+  // Inicializar tema
+  initializeTheme();
+});
+</script>
