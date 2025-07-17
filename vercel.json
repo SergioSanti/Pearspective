@@ -4,7 +4,6 @@
     { "src": "database/app.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/database/app.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/api/(.*)", "dest": "/database/app.js" }
   ]
 } 
