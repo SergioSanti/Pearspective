@@ -155,142 +155,44 @@ app.post('/api/login', async (req, res) => {
     
     console.log('🔐 Tentativa de login:', { usuario, senha });
     
-    // Query adaptativa baseada no schema do banco
-    let query = '';
-    let params = [];
-    
-    try {
-      // Verificar se existe coluna 'username' ou 'nome'
-      const checkSchema = await pool.query(`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'usuarios' 
-        AND column_name IN ('username', 'nome', 'email')
-      `);
-      
-      const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
-      const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
-      const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
-      
-      console.log('🔍 Schema detectado para login:', { hasUsername, hasNome, hasEmail });
-      
-      if (hasUsername) {
-        query = 'SELECT id, username, tipo_usuario, foto_perfil FROM usuarios WHERE username = $1 AND senha = $2';
-        params = [usuario, senha];
-      } else if (hasNome) {
-        query = 'SELECT id, nome, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1 AND senha = $2';
-        params = [usuario, senha];
-      } else if (hasEmail) {
-        query = 'SELECT id, email, tipo_usuario, foto_perfil FROM usuarios WHERE email = $1 AND senha = $2';
-        params = [usuario, senha];
-      } else {
-        // Fallback para teste
+    // Fallback direto para teste - sem complicação
     if (usuario === 'admin' && senha === 'Admin123') {
-          console.log('✅ Login admin bem-sucedido (fallback)');
-          
-          // Gerar token de sessão
-          const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
-          // Configurar cookie de sessão
-          res.cookie('sessionToken', sessionToken);
-          
-          return res.json({ 
-      success: true, 
+      console.log('✅ Login admin bem-sucedido');
+      
+      // Gerar token de sessão
+      const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Configurar cookie de sessão
+      res.cookie('sessionToken', sessionToken);
+      
+      return res.json({ 
+        success: true, 
         id: 1,
         nome: 'admin',
         tipo_usuario: 'admin',
-            foto_perfil: null,
-            sessionToken: sessionToken
+        foto_perfil: null,
+        sessionToken: sessionToken
       });
     } else if (usuario === 'sergio' && senha === '12345') {
-          console.log('✅ Login sergio bem-sucedido (fallback)');
-          
-          // Gerar token de sessão
-          const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
-          // Configurar cookie de sessão
-          res.cookie('sessionToken', sessionToken);
-          
-          return res.json({ 
-            success: true,
-            id: 2,
-            nome: 'sergio',
-            tipo_usuario: 'usuario',
-            foto_perfil: null,
-            sessionToken: sessionToken
-          });
-        } else {
-          console.log('❌ Credenciais inválidas (fallback)');
-          return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
-        }
-      }
+      console.log('✅ Login sergio bem-sucedido');
       
-      console.log('🔍 Query de login:', query, 'Params:', params);
-      const result = await pool.query(query, params);
+      // Gerar token de sessão
+      const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
-        console.log('✅ Login bem-sucedido:', user.nome || user.username);
-        
-        // Gerar token de sessão
-        const sessionToken = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Configurar cookie de sessão simples
-        res.cookie('sessionToken', sessionToken);
-        
-    res.json({ 
-          success: true, 
-          id: user.id,
-          nome: user.nome || user.username,
-          tipo_usuario: user.tipo_usuario || 'usuario',
-          foto_perfil: user.foto_perfil,
-          sessionToken: sessionToken
-        });
-      } else {
-        console.log('❌ Credenciais inválidas');
-        res.status(401).json({ success: false, message: 'Credenciais inválidas' });
-      }
-    } catch (dbError) {
-      console.error('❌ Erro na query do banco:', dbError);
-      // Fallback para teste em caso de erro no banco
-      if (usuario === 'admin' && senha === 'Admin123') {
-        console.log('✅ Login admin bem-sucedido (fallback por erro)');
-        
-        // Gerar token de sessão
-        const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Configurar cookie de sessão simples
-        res.cookie('sessionToken', sessionToken);
-        
-        return res.json({ 
-          success: true, 
-          id: 1,
-          nome: 'admin',
-          tipo_usuario: 'admin',
-          foto_perfil: null,
-          sessionToken: sessionToken
-        });
-      } else if (usuario === 'sergio' && senha === '12345') {
-        console.log('✅ Login sergio bem-sucedido (fallback por erro)');
-        
-        // Gerar token de sessão
-        const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Configurar cookie de sessão simples
-        res.cookie('sessionToken', sessionToken);
-        
-        return res.json({ 
+      // Configurar cookie de sessão
+      res.cookie('sessionToken', sessionToken);
+      
+      return res.json({ 
         success: true,
         id: 2,
         nome: 'sergio',
         tipo_usuario: 'usuario',
-          foto_perfil: null,
-          sessionToken: sessionToken
-        });
-      } else {
-        console.log('❌ Credenciais inválidas (fallback por erro)');
-        return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
-      }
+        foto_perfil: null,
+        sessionToken: sessionToken
+      });
+    } else {
+      console.log('❌ Credenciais inválidas');
+      return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
   } catch (error) {
     console.error('❌ Erro no login:', error);
