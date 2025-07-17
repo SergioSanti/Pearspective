@@ -109,7 +109,7 @@ if (logoutButton) {
     
     // NÃO remover userPhoto - manter como cache
     console.log('[NAVBAR] Logoff: dados de sessão removidos, foto mantida como cache');
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
   });
 }
 

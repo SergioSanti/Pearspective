@@ -6,6 +6,11 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/database/app.js" },
+    { "src": "/catalogo/catalogo.html", "dest": "/catalogo.html" },
+    { "src": "/biblioteca/biblioteca.html", "dest": "/biblioteca.html" },
+    { "src": "/simulador/simulador.html", "dest": "/simulador.html" },
+    { "src": "/historico/historico.html", "dest": "/historico.html" },
+    { "src": "/perfil/perfil.html", "dest": "/perfil.html" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ]
 } 
