@@ -788,13 +788,26 @@ app.post('/api/cursos', async (req, res) => {
       }
     }
     
-    // Query simples - apenas campos essenciais
+    // Query com TODOS os campos obrigatórios
     const query = `
-      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, ativo)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `;
-    const values = [title, platform, url, categoria, level, duration, description];
+    const values = [
+      title || 'Curso sem título',
+      platform || 'Não especificado', 
+      url || '',
+      categoria,
+      level || 'Intermediário',
+      duration || '',
+      description || '',
+      'Instrutor não especificado',
+      0.00,
+      0.0,
+      0,
+      true
+    ];
     
     const result = await pool.query(query, values);
     res.status(201).json(result.rows[0]);
@@ -823,20 +836,37 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Query simples - atualizar apenas os campos enviados
+    // Query com valores padrão para campos obrigatórios
     const query = `
       UPDATE cursos SET
-        titulo = COALESCE($1, titulo),
-        plataforma = COALESCE($2, plataforma),
-        url_externa = COALESCE($3, url_externa),
-        categoria = COALESCE($4, categoria),
-        nivel = COALESCE($5, nivel),
-        duracao = COALESCE($6, duracao),
-        descricao = COALESCE($7, descricao)
-      WHERE id = $8
+        titulo = $1,
+        plataforma = $2,
+        url_externa = $3,
+        categoria = $4,
+        nivel = $5,
+        duracao = $6,
+        descricao = $7,
+        instrutor = $8,
+        preco = $9,
+        avaliacao = $10,
+        estudantes = $11
+      WHERE id = $12
       RETURNING *
     `;
-    const values = [title, platform, url, categoria, level, duration, description, id];
+    const values = [
+      title || 'Curso sem título',
+      platform || 'Não especificado',
+      url || '',
+      categoria,
+      level || 'Intermediário',
+      duration || '',
+      description || '',
+      'Instrutor não especificado',
+      0.00,
+      0.0,
+      0,
+      id
+    ];
     
     const result = await pool.query(query, values);
     
