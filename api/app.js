@@ -387,16 +387,36 @@ app.post('/api/cargos', async (req, res) => {
     console.log('📋 Criando cargo:', req.body);
     const { nome_cargo, area_id, requisitos, quantidade_vagas } = req.body;
     
+    // Validar campos obrigatórios
+    if (!nome_cargo || !area_id) {
+      console.log('❌ Campos obrigatórios faltando:', { nome_cargo, area_id });
+      return res.status(400).json({ error: 'Nome do cargo e área são obrigatórios' });
+    }
+    
+    // Converter requisitos para JSON se for objeto
+    let requisitosJson = requisitos;
+    if (typeof requisitos === 'object' && requisitos !== null) {
+      requisitosJson = JSON.stringify(requisitos);
+    }
+    
+    console.log('🔍 Dados processados:', {
+      nome_cargo,
+      area_id: parseInt(area_id),
+      quantidade_vagas: parseInt(quantidade_vagas) || 1,
+      requisitos: requisitosJson
+    });
+    
     const result = await pool.query(
       'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nome_cargo, area_id, requisitos, quantidade_vagas]
+      [nome_cargo, parseInt(area_id), requisitosJson, parseInt(quantidade_vagas) || 1]
     );
     
     console.log('✅ Cargo criado:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao criar cargo:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
