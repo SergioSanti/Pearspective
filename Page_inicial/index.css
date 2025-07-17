@@ -147,7 +147,7 @@ ul.style1 a:hover {
 /* Layout Principal */
 .main-content {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-primary) 100%);
+  background: var(--gray-50);
   padding-top: 90px; /* Espaço para navbar fixa */
 }
 
