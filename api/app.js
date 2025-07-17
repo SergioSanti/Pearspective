@@ -71,13 +71,13 @@ app.post('/api/login', async (req, res) => {
       console.log('🔍 Schema detectado para login:', { hasUsername, hasNome, hasEmail });
       
       if (hasUsername) {
-        query = 'SELECT * FROM usuarios WHERE username = $1 AND senha = $2';
+        query = 'SELECT id, username, tipo_usuario, foto_perfil FROM usuarios WHERE username = $1 AND senha = $2';
         params = [usuario, senha];
       } else if (hasNome) {
-        query = 'SELECT * FROM usuarios WHERE nome = $1 AND senha = $2';
+        query = 'SELECT id, nome, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1 AND senha = $2';
         params = [usuario, senha];
       } else if (hasEmail) {
-        query = 'SELECT * FROM usuarios WHERE email = $1 AND senha = $2';
+        query = 'SELECT id, email, tipo_usuario, foto_perfil FROM usuarios WHERE email = $1 AND senha = $2';
         params = [usuario, senha];
       } else {
         // Fallback para teste
@@ -346,12 +346,12 @@ app.get('/api/cargos', async (req, res) => {
     const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
     
     if (hasNomeCargo) {
-      query = 'SELECT * FROM cargos ORDER BY nome_cargo';
+      query = 'SELECT id, nome_cargo, area_id, requisitos FROM cargos ORDER BY nome_cargo';
     } else if (hasNome) {
-      query = 'SELECT * FROM cargos ORDER BY nome';
+      query = 'SELECT id, nome_cargo, area_id, requisitos FROM cargos ORDER BY nome';
     } else {
       // Fallback - tentar com qualquer coluna que exista
-      query = 'SELECT * FROM cargos';
+      query = 'SELECT id, nome_cargo, area_id, requisitos FROM cargos';
     }
     
     const result = await pool.query(query);
@@ -375,7 +375,7 @@ app.get('/api/cargos/area/:areaId', async (req, res) => {
     console.log(`📋 Buscando cargos da área ${areaId}...`);
     
     // Simples: buscar cargos pelo area_id
-    const result = await pool.query('SELECT * FROM cargos WHERE area_id = $1 ORDER BY nome_cargo', [areaId]);
+    const result = await pool.query('SELECT id, nome_cargo, area_id, requisitos FROM cargos WHERE area_id = $1 ORDER BY nome_cargo', [areaId]);
     
     console.log(`✅ Encontrados ${result.rows.length} cargos para área ${areaId}`);
     console.log('📊 Cargos:', result.rows.map(c => c.nome_cargo));
@@ -392,7 +392,7 @@ app.get('/api/cargos/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const result = await pool.query('SELECT * FROM cargos WHERE id = $1', [id]);
+    const result = await pool.query('SELECT id, nome_cargo, area_id, requisitos FROM cargos WHERE id = $1', [id]);
     
     if (result.rows.length > 0) {
       res.json(result.rows[0]);
@@ -455,13 +455,13 @@ app.post('/api/cargos', async (req, res) => {
     if (hasQuantidadeVagas) {
       // Se a coluna existe, usar ela
       result = await pool.query(
-        'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING *',
+        'INSERT INTO cargos (nome_cargo, area_id, requisitos, quantidade_vagas) VALUES ($1, $2, $3, $4) RETURNING id, nome_cargo, area_id, requisitos',
         [nome_cargo, parseInt(area_id), requisitosJson, parseInt(quantidade_vagas) || 1]
       );
     } else {
       // Se não existe, usar apenas as colunas básicas
       result = await pool.query(
-        'INSERT INTO cargos (nome_cargo, area_id, requisitos) VALUES ($1, $2, $3) RETURNING *',
+        'INSERT INTO cargos (nome_cargo, area_id, requisitos) VALUES ($1, $2, $3) RETURNING id, nome_cargo, area_id, requisitos',
         [nome_cargo, parseInt(area_id), requisitosJson]
       );
     }
@@ -510,13 +510,13 @@ app.put('/api/cargos/:id', async (req, res) => {
     if (hasQuantidadeVagas) {
       // Se a coluna existe, usar ela
       result = await pool.query(
-        'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3, quantidade_vagas = $4 WHERE id = $5 RETURNING *',
+        'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3, quantidade_vagas = $4 WHERE id = $5 RETURNING id, nome_cargo, area_id, requisitos',
         [nome_cargo, area_id, requisitosJson, quantidade_vagas, id]
       );
     } else {
       // Se não existe, usar apenas as colunas básicas
       result = await pool.query(
-        'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3 WHERE id = $4 RETURNING *',
+        'UPDATE cargos SET nome_cargo = $1, area_id = $2, requisitos = $3 WHERE id = $4 RETURNING id, nome_cargo, area_id, requisitos',
         [nome_cargo, area_id, requisitosJson, id]
       );
     }
@@ -559,7 +559,7 @@ app.get('/api/areas', async (req, res) => {
   try {
     console.log('🏢 Buscando áreas...');
     
-    const result = await pool.query('SELECT * FROM areas ORDER BY nome');
+    const result = await pool.query('SELECT id, nome FROM areas ORDER BY nome');
     
     console.log(`✅ Encontradas ${result.rows.length} áreas`);
     console.log('📊 Áreas:', result.rows);
@@ -577,7 +577,7 @@ app.get('/api/areas/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const result = await pool.query('SELECT * FROM areas WHERE id = $1', [id]);
+    const result = await pool.query('SELECT id, nome FROM areas WHERE id = $1', [id]);
     
     if (result.rows.length > 0) {
       res.json(result.rows[0]);
@@ -597,7 +597,7 @@ app.post('/api/areas', async (req, res) => {
     const { nome } = req.body;
     
     const result = await pool.query(
-      'INSERT INTO areas (nome) VALUES ($1) RETURNING *',
+      'INSERT INTO areas (nome) VALUES ($1) RETURNING id, nome',
       [nome]
     );
     
@@ -618,7 +618,7 @@ app.put('/api/areas/:id', async (req, res) => {
     console.log(`🏢 Atualizando área ${id}:`, req.body);
     
     const result = await pool.query(
-      'UPDATE areas SET nome = $1 WHERE id = $2 RETURNING *',
+      'UPDATE areas SET nome = $1 WHERE id = $2 RETURNING id, nome',
       [nome, id]
     );
     
@@ -678,11 +678,11 @@ app.get('/api/cursos', async (req, res) => {
     
     let query = '';
     if (hasTitulo) {
-      query = 'SELECT * FROM cursos ORDER BY titulo';
+      query = 'SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos ORDER BY titulo';
     } else if (hasNome) {
-      query = 'SELECT * FROM cursos ORDER BY nome';
+      query = 'SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos ORDER BY nome';
     } else {
-      query = 'SELECT * FROM cursos ORDER BY id';
+      query = 'SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos ORDER BY id';
     }
     
     const result = await pool.query(query);
@@ -755,7 +755,7 @@ app.get('/api/cursos/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`📚 Buscando curso ${id}...`);
     
-    const result = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
+    const result = await pool.query('SELECT id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao FROM cursos WHERE id = $1', [id]);
     
     if (result.rows.length > 0) {
       console.log('✅ Curso encontrado:', result.rows[0]);
@@ -788,11 +788,11 @@ app.post('/api/cursos', async (req, res) => {
       }
     }
     
-    // Query apenas com os campos do formulário
+    // Query apenas com os campos do formulário - especificando campos no SELECT
     const query = `
       INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
+      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
     `;
     const values = [
       title || 'Curso sem título',
@@ -831,7 +831,7 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Query apenas com os campos do formulário
+    // Query apenas com os campos do formulário - especificando campos no SELECT
     const query = `
       UPDATE cursos SET
         titulo = $1,
@@ -842,7 +842,7 @@ app.put('/api/cursos/:id', async (req, res) => {
         duracao = $6,
         descricao = $7
       WHERE id = $8
-      RETURNING *
+      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
     `;
     const values = [
       title || 'Curso sem título',
@@ -907,11 +907,11 @@ app.get('/api/certificados', async (req, res) => {
     
     let query = '';
     if (hasDataObtencao) {
-      query = 'SELECT * FROM certificados ORDER BY data_obtencao DESC';
+      query = 'SELECT id, usuario_id, nome, instituicao, data_obtencao, descricao FROM certificados ORDER BY data_obtencao DESC';
     } else if (hasDataConclusao) {
-      query = 'SELECT * FROM certificados ORDER BY data_conclusao DESC';
+      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados ORDER BY data_conclusao DESC';
     } else {
-      query = 'SELECT * FROM certificados ORDER BY id DESC';
+      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados ORDER BY id DESC';
     }
     
     const result = await pool.query(query);
@@ -948,10 +948,10 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     let params = [];
     
     if (hasUsuarioId) {
-      query = 'SELECT * FROM certificados WHERE usuario_id = $1 ORDER BY data_obtencao DESC';
+      query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
       params = [userId];
     } else if (hasUserId) {
-      query = 'SELECT * FROM certificados WHERE user_id = $1 ORDER BY data_obtencao DESC';
+      query = 'SELECT id, user_id, nome, instituicao, data_conclusao, descricao FROM certificados WHERE user_id = $1 ORDER BY data_conclusao DESC';
       params = [userId];
     } else {
       // Se não encontrar, retornar vazio
