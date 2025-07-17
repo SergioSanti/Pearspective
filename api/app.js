@@ -773,19 +773,10 @@ app.get('/api/cursos/:id', async (req, res) => {
 // Rota para criar curso
 app.post('/api/cursos', async (req, res) => {
   try {
-    console.log('📚 Criando curso - Dados recebidos:', JSON.stringify(req.body, null, 2));
     let { title, platform, url, area, level, duration, description } = req.body;
     
-    // Garantir valores padrão para todos os campos obrigatórios
-    const titulo = title || 'Curso sem título';
-    const plataforma = platform || 'Não especificado';
-    const url_externa = url || '';
-    const nivel = level || 'Intermediário';
-    const duracao = duration || '';
-    const descricao = description || '';
-    let categoria = 'Geral';
-    
     // Converter area (ID) para nome
+    let categoria = 'Geral';
     if (area) {
       if (!isNaN(Number(area))) {
         const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
@@ -797,37 +788,19 @@ app.post('/api/cursos', async (req, res) => {
       }
     }
     
-    // Valores padrão para campos obrigatórios do banco
-    const instrutor = 'Instrutor não especificado';
-    const preco = 0.00;
-    const avaliacao = 0.0;
-    const estudantes = 0;
-    
-    // Query direta com todos os campos obrigatórios
+    // Query simples - apenas campos essenciais
     const query = `
-      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, ativo, data_cadastro)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const values = [titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, true, new Date()];
-    
-    console.log('🔍 Query final:', query);
-    console.log('🔍 Valores:', values);
+    const values = [title, platform, url, categoria, level, duration, description];
     
     const result = await pool.query(query, values);
-    
-    console.log('✅ Curso criado com sucesso:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('❌ Erro ao criar curso:', error);
-    console.error('❌ Stack trace:', error.stack);
-    console.error('❌ Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      hint: error.hint
-    });
-    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
@@ -835,26 +808,10 @@ app.post('/api/cursos', async (req, res) => {
 app.put('/api/cursos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`📚 Atualizando curso ${id}:`, req.body);
     let { title, platform, url, area, level, duration, description } = req.body;
     
-    // Verificar se o curso existe
-    const existingCourse = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
-    if (existingCourse.rows.length === 0) {
-      console.log('❌ Curso não encontrado para atualização:', id);
-      return res.status(404).json({ error: 'Curso não encontrado' });
-    }
-    
-    // Garantir valores padrão para todos os campos obrigatórios
-    const titulo = title || existingCourse.rows[0].titulo || 'Curso sem título';
-    const plataforma = platform || existingCourse.rows[0].plataforma || 'Não especificado';
-    const url_externa = url || existingCourse.rows[0].url_externa || '';
-    const nivel = level || existingCourse.rows[0].nivel || 'Intermediário';
-    const duracao = duration || existingCourse.rows[0].duracao || '';
-    const descricao = description || existingCourse.rows[0].descricao || '';
-    let categoria = existingCourse.rows[0].categoria || 'Geral';
-    
     // Converter area (ID) para nome se fornecido
+    let categoria = 'Geral';
     if (area) {
       if (!isNaN(Number(area))) {
         const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
@@ -866,38 +823,28 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Valores padrão para campos obrigatórios do banco
-    const instrutor = existingCourse.rows[0].instrutor || 'Instrutor não especificado';
-    const preco = existingCourse.rows[0].preco || 0.00;
-    const avaliacao = existingCourse.rows[0].avaliacao || 0.0;
-    const estudantes = existingCourse.rows[0].estudantes || 0;
-    
-    // Query direta com todos os campos obrigatórios
+    // Query simples - atualizar apenas os campos enviados
     const query = `
       UPDATE cursos SET
-        titulo = $1,
-        plataforma = $2,
-        url_externa = $3,
-        categoria = $4,
-        nivel = $5,
-        duracao = $6,
-        descricao = $7,
-        instrutor = $8,
-        preco = $9,
-        avaliacao = $10,
-        estudantes = $11
-      WHERE id = $12
+        titulo = COALESCE($1, titulo),
+        plataforma = COALESCE($2, plataforma),
+        url_externa = COALESCE($3, url_externa),
+        categoria = COALESCE($4, categoria),
+        nivel = COALESCE($5, nivel),
+        duracao = COALESCE($6, duracao),
+        descricao = COALESCE($7, descricao)
+      WHERE id = $8
       RETURNING *
     `;
-    const values = [titulo, plataforma, url_externa, categoria, nivel, duracao, descricao, instrutor, preco, avaliacao, estudantes, id];
-    
-    console.log('🔍 Query de atualização:', query);
-    console.log('🔍 Valores:', values);
+    const values = [title, platform, url, categoria, level, duration, description, id];
     
     const result = await pool.query(query, values);
     
-    console.log('✅ Curso atualizado com sucesso:', result.rows[0]);
-    res.json(result.rows[0]);
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Curso não encontrado' });
+    }
   } catch (error) {
     console.error('❌ Erro ao atualizar curso:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
