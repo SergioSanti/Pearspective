@@ -774,13 +774,19 @@ app.get('/api/cursos/:id', async (req, res) => {
 app.post('/api/cursos', async (req, res) => {
   try {
     console.log('📚 Criando curso - Dados recebidos:', JSON.stringify(req.body, null, 2));
-    const { title, platform, url, area, level, duration, description } = req.body;
+    let { title, platform, url, area, level, duration, description } = req.body;
     
-    // Validar campos obrigatórios
-    if (!title) {
-      console.log('❌ Título do curso é obrigatório');
-      return res.status(400).json({ error: 'Título do curso é obrigatório' });
+    // Se area for um número (ID), buscar o nome da área
+    let categoria = area;
+    if (area && !isNaN(Number(area))) {
+      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
+      if (areaResult.rows.length > 0) {
+        categoria = areaResult.rows[0].nome;
+      } else {
+        categoria = 'Geral';
+      }
     }
+    if (!categoria) categoria = 'Geral';
     
     // Verificar estrutura da tabela cursos
     const tableInfo = await pool.query(`
@@ -866,7 +872,7 @@ app.post('/api/cursos', async (req, res) => {
     
     if (hasCategoria) {
       columns.push('categoria');
-      values.push(area || 'Geral');
+      values.push(categoria);
       placeholders.push(`$${paramIndex++}`);
     }
     
@@ -934,7 +940,19 @@ app.put('/api/cursos/:id', async (req, res) => {
   try {
     const { id } = req.params;
     console.log(`📚 Atualizando curso ${id}:`, req.body);
-    const { title, platform, url, area, level, duration, description } = req.body;
+    let { title, platform, url, area, level, duration, description } = req.body;
+    
+    // Se area for um número (ID), buscar o nome da área
+    let categoria = area;
+    if (area && !isNaN(Number(area))) {
+      const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
+      if (areaResult.rows.length > 0) {
+        categoria = areaResult.rows[0].nome;
+      } else {
+        categoria = 'Geral';
+      }
+    }
+    if (!categoria) categoria = 'Geral';
     
     // Verificar se o curso existe
     const existingCourse = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
@@ -980,9 +998,9 @@ app.put('/api/cursos/:id', async (req, res) => {
       values.push(url);
     }
     
-    if (hasCategoria && area) {
+    if (hasCategoria && categoria) {
       setClauses.push(`categoria = $${paramIndex++}`);
-      values.push(area);
+      values.push(categoria);
     }
     
     if (hasNivel && level) {
