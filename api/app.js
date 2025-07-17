@@ -140,6 +140,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
+// Rota de teste para PUT
+app.put('/api/test-put', (req, res) => {
+  console.log('✅ Rota PUT de teste funcionando');
+  res.json({ message: 'PUT funcionando', body: req.body });
+});
+
+// Rota de teste específica para cursos
+app.put('/api/cursos/test', (req, res) => {
+  console.log('✅ Rota PUT /api/cursos/test funcionando');
+  res.json({ message: 'PUT cursos funcionando', body: req.body });
+});
+
 // Rota de login com banco de dados
 app.post('/api/login', async (req, res) => {
   try {
