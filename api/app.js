@@ -427,6 +427,9 @@ app.post('/api/login', async (req, res) => {
       // Gerar token de sessão
       const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
+      console.log('🔍 Token gerado para admin:', sessionToken);
+      console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
+      
       // Configurar cookie de sessão
       res.cookie('sessionToken', sessionToken);
       
@@ -443,6 +446,9 @@ app.post('/api/login', async (req, res) => {
       
       // Gerar token de sessão
       const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log('🔍 Token gerado para sergio:', sessionToken);
+      console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
       
       // Configurar cookie de sessão
       res.cookie('sessionToken', sessionToken);
@@ -489,12 +495,19 @@ app.get('/api/me', async (req, res) => {
     // Determinar qual usuário baseado no token
     let userName = '';
     let expectedUserId = null;
+    
+    console.log('🔍 Analisando token:', sessionToken);
+    console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
+    console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
+    
     if (sessionToken.startsWith('1-')) {
       userName = 'admin';
       expectedUserId = 1;
+      console.log('✅ Token identificado como ADMIN');
     } else if (sessionToken.startsWith('2-')) {
       userName = 'sergio';
       expectedUserId = 2;
+      console.log('✅ Token identificado como SERGIO');
     } else {
       console.log('❌ Token inválido:', sessionToken);
       return res.status(401).json({ 
@@ -503,7 +516,7 @@ app.get('/api/me', async (req, res) => {
       });
     }
     
-    console.log('✅ Usuário identificado:', userName);
+    console.log('✅ Usuário identificado:', userName, 'ID:', expectedUserId);
     
     // Buscar dados do usuário no banco Railway PostgreSQL
     try {
@@ -2076,6 +2089,43 @@ app.get('/api/debug/users', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro no debug:', error);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Rota de teste para verificar tokens
+app.get('/api/test-token', async (req, res) => {
+  try {
+    const sessionToken = req.cookies?.sessionToken;
+    
+    console.log('🔍 Testando token:', sessionToken);
+    
+    if (!sessionToken) {
+      return res.json({ error: 'Nenhum token encontrado' });
+    }
+    
+    const result = {
+      token: sessionToken,
+      startsWith1: sessionToken.startsWith('1-'),
+      startsWith2: sessionToken.startsWith('2-'),
+      length: sessionToken.length
+    };
+    
+    if (sessionToken.startsWith('1-')) {
+      result.user = 'admin';
+      result.id = 1;
+    } else if (sessionToken.startsWith('2-')) {
+      result.user = 'sergio';
+      result.id = 2;
+    } else {
+      result.user = 'desconhecido';
+      result.id = null;
+    }
+    
+    console.log('🔍 Resultado do teste:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Erro no teste:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
