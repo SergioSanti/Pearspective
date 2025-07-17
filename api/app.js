@@ -15,8 +15,20 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
+
+// Log para debug de todas as requisições (apenas para rotas da API)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    console.log(`📨 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+    // Log do body para debug
+    if (req.method === 'POST' || req.method === 'PUT') {
+      console.log('📋 Body recebido:', req.body);
+    }
+  }
+  next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -32,29 +44,95 @@ const upload = multer({
 // Servir arquivos estáticos da raiz
 app.use(express.static(path.join(__dirname, '..')));
 
+// Log para debug de arquivos estáticos
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    next();
+  } else {
+    console.log('📁 Arquivo estático solicitado:', req.path);
+    next();
+  }
+});
+
 // Rota raiz - servir index.html
 app.get('/', (req, res) => {
+  console.log('🏠 Servindo index.html da raiz');
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // Configuração do banco de dados com SSL forçado para Railway
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pearspective',
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Tratamento de erros do pool
+pool.on('error', (err) => {
+  console.error('❌ Erro inesperado no pool de conexão:', err);
+});
+
+pool.on('connect', () => {
+  console.log('✅ Nova conexão estabelecida com o banco');
 });
 
 // Teste de conexão
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('❌ Erro ao conectar com o banco:', err);
+    console.error('❌ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurada' : 'Não configurada');
   } else {
     console.log('✅ Conectado ao banco de dados PostgreSQL');
+    console.log('🔍 Configuração do banco:', {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL ? 'Habilitado' : 'Desabilitado'
+    });
   }
 });
 
 // Rota de teste
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend funcionando!' });
+});
+
+// Rota de teste de banco
+app.get('/api/test-db', async (req, res) => {
+  try {
+    console.log('🔍 Testando conexão com banco...');
+    const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
+    console.log('✅ Teste de banco OK:', result.rows[0]);
+    res.json({ 
+      message: 'Conexão com banco OK!',
+      current_time: result.rows[0].current_time,
+      db_version: result.rows[0].db_version
+    });
+  } catch (error) {
+    console.error('❌ Erro no teste de banco:', error);
+    res.status(500).json({ error: 'Erro no banco', details: error.message });
+  }
+});
+
+// Rota de teste de tabelas
+app.get('/api/test-tables', async (req, res) => {
+  try {
+    console.log('🔍 Listando tabelas...');
+    const result = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `);
+    console.log('✅ Tabelas encontradas:', result.rows);
+    res.json({ 
+      message: 'Tabelas listadas!',
+      tables: result.rows.map(row => row.table_name)
+    });
+  } catch (error) {
+    console.error('❌ Erro ao listar tabelas:', error);
+    res.status(500).json({ error: 'Erro ao listar tabelas', details: error.message });
+  }
 });
 
 // Rota para verificar se o servidor está funcionando
@@ -1266,16 +1344,29 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     const { userId } = req.params;
     console.log(`🏆 Buscando certificados do usuário ${userId}...`);
     
-    // Primeiro verificar se a tabela existe
-    const tableExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'certificados'
-      );
+    // Validar userId
+    if (!userId || isNaN(userId)) {
+      console.log('❌ userId inválido:', userId);
+      return res.status(400).json({ error: 'ID de usuário inválido' });
+    }
+    
+    // Teste simples primeiro
+    console.log('🔍 Testando conexão básica...');
+    const testResult = await pool.query('SELECT 1 as test');
+    console.log('✅ Teste básico OK:', testResult.rows[0]);
+    
+    // Verificar se a tabela existe
+    console.log('🔍 Verificando tabela certificados...');
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'certificados'
     `);
     
-    if (!tableExists.rows[0].exists) {
+    console.log('🔍 Tabelas encontradas:', tableCheck.rows);
+    
+    if (tableCheck.rows.length === 0) {
       console.log('❌ Tabela certificados não existe, criando...');
       
       // Criar tabela certificados
@@ -1293,24 +1384,31 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
       `);
       
       console.log('✅ Tabela certificados criada');
-      return res.json([]); // Retornar array vazio para nova tabela
+      return res.json([]);
     }
     
-    // Query simples e direta com pdf
+    // Query simples com pdf
     const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
-    const params = [userId];
+    const params = [parseInt(userId)];
     
-    console.log('🔍 Query:', query, 'Params:', params);
+    console.log('🔍 Executando query:', query, 'Params:', params);
     
     const result = await pool.query(query, params);
     
-    console.log(`✅ Encontrados ${result.rows.length} certificados para usuário ${userId}`);
-    console.log('📋 Certificados:', result.rows);
+    console.log(`✅ Encontrados ${result.rows.length} certificados`);
     res.json(result.rows);
+    
   } catch (error) {
-    console.error('❌ Erro ao buscar certificados do usuário:', error);
-    console.error('❌ Stack trace:', error.stack);
-    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+    console.error('❌ Erro na rota de certificados:', error);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message,
+      stack: error.stack 
+    });
   }
 });
 
@@ -1334,6 +1432,12 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
         mimetype: req.file.mimetype,
         size: req.file.size
       });
+    }
+    
+    // Validar dados obrigatórios
+    if (!nome || !instituicao || !usuario_id) {
+      console.log('❌ Dados obrigatórios faltando:', { nome, instituicao, usuario_id });
+      return res.status(400).json({ error: 'Nome, instituição e ID do usuário são obrigatórios' });
     }
     
     // Verificar se a tabela certificados existe
@@ -1371,10 +1475,10 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     
     if (req.file) {
       query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id, pdf) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', usuario_id, req.file.buffer];
+      params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id), req.file.buffer];
     } else {
       query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', usuario_id];
+      params = [nome, instituicao, data_conclusao, descricao || '', parseInt(usuario_id)];
     }
     
     console.log('🔍 Query de inserção:', query, 'Params:', params);
@@ -1386,6 +1490,9 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao criar certificado:', error);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
@@ -1401,16 +1508,22 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
     
     console.log(`🏆 Atualizando certificado ID: ${id}`, req.body);
     
+    // Validar dados obrigatórios
+    if (!nome || !instituicao) {
+      console.log('❌ Dados obrigatórios faltando:', { nome, instituicao });
+      return res.status(400).json({ error: 'Nome e instituição são obrigatórios' });
+    }
+    
     // Query com PDF se fornecido
     let query = '';
     let params = [];
     
     if (req.file) {
       query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4, pdf = $5 WHERE id = $6 RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', req.file.buffer, id];
+      params = [nome, instituicao, data_conclusao, descricao || '', req.file.buffer, parseInt(id)];
     } else {
       query = 'UPDATE certificados SET nome = $1, instituicao = $2, data_conclusao = $3, descricao = $4 WHERE id = $5 RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao || '', id];
+      params = [nome, instituicao, data_conclusao, descricao || '', parseInt(id)];
     }
     
     console.log('🔍 Query de atualização:', query, 'Params:', params);
@@ -1427,6 +1540,9 @@ app.put('/api/certificados/:id', upload.single('pdf'), async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao atualizar certificado:', error);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
@@ -1437,9 +1553,15 @@ app.get('/api/certificados/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`🏆 Buscando certificado ID: ${id}`);
     
+    // Validar ID
+    if (!id || isNaN(id)) {
+      console.log('❌ ID inválido:', id);
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+    
     // Query simples com pdf
     const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE id = $1';
-    const params = [id];
+    const params = [parseInt(id)];
     
     console.log('🔍 Query de busca:', query, 'Params:', params);
     
@@ -1455,6 +1577,9 @@ app.get('/api/certificados/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao buscar certificado:', error);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
@@ -1465,9 +1590,15 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
     const { id } = req.params;
     console.log(`📄 Buscando PDF do certificado ID: ${id}`);
     
+    // Validar ID
+    if (!id || isNaN(id)) {
+      console.log('❌ ID inválido:', id);
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+    
     // Buscar informações do certificado
     const query = 'SELECT nome, pdf FROM certificados WHERE id = $1';
-    const params = [id];
+    const params = [parseInt(id)];
     
     console.log('🔍 Query de PDF:', query, 'Params:', params);
     
@@ -1494,6 +1625,9 @@ app.get('/api/certificados/:id/pdf', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao buscar PDF:', error);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
@@ -1504,8 +1638,14 @@ app.delete('/api/certificados/:id', async (req, res) => {
     const { id } = req.params;
     console.log(`🗑️ Deletando certificado ID: ${id}`);
     
+    // Validar ID
+    if (!id || isNaN(id)) {
+      console.log('❌ ID inválido:', id);
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+    
     const query = 'DELETE FROM certificados WHERE id = $1 RETURNING *';
-    const params = [id];
+    const params = [parseInt(id)];
     
     console.log('🔍 Query de deleção:', query, 'Params:', params);
     
@@ -1521,6 +1661,9 @@ app.delete('/api/certificados/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao deletar certificado:', error);
     console.error('❌ Stack trace:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error detail:', error.detail);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
@@ -1626,16 +1769,40 @@ app.get('/api/schema', async (req, res) => {
   }
 });
 
-// Rota catch-all para arquivos estáticos
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+// Rota catch-all para arquivos estáticos (apenas para rotas que não começam com /api)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  console.log('📁 Rota catch-all servindo index.html para:', req.path);
+  res.sendFile(path.join(__dirname, '..', 'index.html'), (err) => {
+    if (err) {
+      console.error('❌ Erro ao servir arquivo estático:', err);
+      res.status(404).send('Arquivo não encontrado');
+    }
+  });
+});
+
+// Tratamento de erros global
+app.use((error, req, res, next) => {
+  console.error('❌ Erro global não tratado:', error);
+  console.error('❌ Stack trace:', error.stack);
+  res.status(500).json({ 
+    error: 'Erro interno do servidor', 
+    details: error.message 
+  });
 });
 
 // Iniciar servidor
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📁 Servindo arquivos estáticos de: ${path.join(__dirname, '..', 'public')}`);
+    console.log(`📁 Servindo arquivos estáticos de: ${path.join(__dirname, '..')}`);
+  });
+  
+  // Tratamento de erros do servidor
+  server.on('error', (error) => {
+    console.error('❌ Erro no servidor:', error);
   });
 }
 

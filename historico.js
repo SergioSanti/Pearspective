@@ -45,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return certificados;
         } catch (error) {
             console.error('Erro ao buscar certificados:', error);
+            console.error('Detalhes do erro:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
             return [];
         }
     };
@@ -98,6 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error('Erro ao renderizar certificados:', error);
+            console.error('Detalhes do erro:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
             certGrid.innerHTML = '<p style="color: #dc2626; text-align: center; padding: 2rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">Erro ao carregar certificados. Tente novamente mais tarde.</p>';
         }
     };
@@ -190,6 +200,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (error) {
             console.error('Erro ao salvar certificado:', error);
+            console.error('Detalhes do erro:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
             alert('Erro ao salvar certificado. Tente novamente.');
         }
     });
@@ -206,6 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal(cert);
         } catch (error) {
             console.error('Erro ao buscar certificado:', error);
+            console.error('Detalhes do erro:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
             alert('Erro ao carregar certificado para edição.');
         }
     };
@@ -226,6 +246,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Certificado excluído com sucesso!');
             } catch (error) {
                 console.error('Erro ao excluir certificado:', error);
+                console.error('Detalhes do erro:', {
+                    message: error.message,
+                    stack: error.stack,
+                    response: error.response
+                });
                 alert('Erro ao excluir certificado. Tente novamente.');
             }
         }
@@ -250,6 +275,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Erro ao visualizar PDF:', error);
+            console.error('Detalhes do erro:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
             alert('Erro ao visualizar PDF. Tente novamente.');
         }
     };
@@ -291,6 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Erro ao baixar PDF:', error);
+            console.error('Detalhes do erro:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+            });
             alert('Erro ao baixar PDF. Tente novamente.');
         }
     };
