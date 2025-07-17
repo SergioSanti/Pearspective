@@ -35,5 +35,4 @@ services:
   - type: pserv
     name: pearspective-db
     env: postgresql
-    plan: free
-    ipAllowList: [] 
+    plan: free 
