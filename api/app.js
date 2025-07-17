@@ -1282,6 +1282,39 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     const { userId } = req.params;
     console.log(`🏆 Buscando certificados do usuário ${userId}...`);
     
+    // Primeiro verificar se a tabela certificados existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'certificados'
+      );
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      console.log('❌ Tabela certificados não existe, criando...');
+      
+      // Criar tabela certificados
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS certificados (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(255) NOT NULL,
+          instituicao VARCHAR(255) NOT NULL,
+          data_inicio DATE,
+          data_conclusao DATE,
+          descricao TEXT,
+          usuario_id INTEGER,
+          url_certificado VARCHAR(500),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela certificados criada');
+      
+      // Retornar array vazio para primeira execução
+      return res.json([]);
+    }
+    
     // Query adaptativa
     const checkSchema = await pool.query(`
       SELECT column_name 
@@ -1313,7 +1346,8 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('❌ Erro ao buscar certificados do usuário:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
@@ -1340,6 +1374,36 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
       });
     }
     
+    // Verificar se a tabela certificados existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'certificados'
+      );
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      console.log('❌ Tabela certificados não existe, criando...');
+      
+      // Criar tabela certificados
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS certificados (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(255) NOT NULL,
+          instituicao VARCHAR(255) NOT NULL,
+          data_inicio DATE,
+          data_conclusao DATE,
+          descricao TEXT,
+          usuario_id INTEGER,
+          url_certificado VARCHAR(500),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela certificados criada');
+    }
+    
     // Query adaptativa
     const checkSchema = await pool.query(`
       SELECT column_name 
@@ -1354,20 +1418,9 @@ app.post('/api/certificados', upload.single('pdf'), async (req, res) => {
     const hasDataConclusao = checkSchema.rows.some(row => row.column_name === 'data_conclusao');
     const hasDescricao = checkSchema.rows.some(row => row.column_name === 'descricao');
     
-    let query = '';
-    let params = [];
-    
-    if (hasUsuarioId && hasDataInicio && hasDataConclusao && hasDescricao) {
-      query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-      params = [nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id];
-    } else if (hasUserId && hasDataConclusao) {
-      query = 'INSERT INTO certificados (nome, instituicao, data_conclusao, descricao, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-      params = [nome, instituicao, data_conclusao, descricao, usuario_id];
-    } else {
-      // Fallback simples
-      query = 'INSERT INTO certificados (nome, instituicao, descricao) VALUES ($1, $2, $3) RETURNING *';
-      params = [nome, instituicao, descricao || ''];
-    }
+    // Query simples usando a estrutura que criamos
+    const query = 'INSERT INTO certificados (nome, instituicao, data_inicio, data_conclusao, descricao, usuario_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
+    const params = [nome, instituicao, data_inicio, data_conclusao, descricao || '', usuario_id];
     
     const result = await pool.query(query, params);
     
