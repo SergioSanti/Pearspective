@@ -79,8 +79,8 @@ pool.on('connect', () => {
   console.log('✅ Nova conexão estabelecida com o banco');
 });
 
-// Teste de conexão
-pool.query('SELECT NOW()', (err, res) => {
+// Teste de conexão e inicialização das tabelas
+pool.query('SELECT NOW()', async (err, res) => {
   if (err) {
     console.error('❌ Erro ao conectar com o banco:', err);
     console.error('❌ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurada' : 'Não configurada');
@@ -90,6 +90,98 @@ pool.query('SELECT NOW()', (err, res) => {
       hasDatabaseUrl: !!process.env.DATABASE_URL,
       ssl: 'Habilitado'
     });
+    
+    // Verificar e criar tabelas necessárias
+    try {
+      console.log('🔧 Verificando tabelas necessárias...');
+      
+      // Verificar se a tabela curriculos existe
+      const curriculumTableExists = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'curriculos'
+        );
+      `);
+      
+      if (!curriculumTableExists.rows[0].exists) {
+        console.log('❌ Tabela curriculos não existe, criando...');
+        
+        // Criar tabela curriculos
+        await pool.query(`
+          CREATE TABLE curriculos (
+            id SERIAL PRIMARY KEY,
+            usuario_nome VARCHAR(100) NOT NULL,
+            nome_arquivo VARCHAR(255) NOT NULL,
+            tipo_mime VARCHAR(100) NOT NULL,
+            tamanho BIGINT NOT NULL,
+            dados BYTEA NOT NULL,
+            data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        
+        console.log('✅ Tabela curriculos criada com sucesso');
+      } else {
+        console.log('✅ Tabela curriculos já existe');
+      }
+      
+      // Verificar se a tabela usuarios existe
+      const usuariosTableExists = await pool.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'usuarios'
+        );
+      `);
+      
+      if (!usuariosTableExists.rows[0].exists) {
+        console.log('❌ Tabela usuarios não existe, criando...');
+        
+        // Criar tabela usuarios
+        await pool.query(`
+          CREATE TABLE usuarios (
+            id SERIAL PRIMARY KEY,
+            nome VARCHAR(100) UNIQUE NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            senha VARCHAR(255) NOT NULL,
+            tipo_usuario VARCHAR(50) DEFAULT 'usuario',
+            foto_perfil TEXT,
+            departamento VARCHAR(100),
+            cargo_atual VARCHAR(100),
+            data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        
+        console.log('✅ Tabela usuarios criada');
+      } else {
+        console.log('✅ Tabela usuarios já existe');
+      }
+      
+      // Verificar se os usuários padrão existem
+      const adminExists = await pool.query('SELECT id FROM usuarios WHERE nome = $1', ['admin']);
+      const sergioExists = await pool.query('SELECT id FROM usuarios WHERE nome = $1', ['sergio']);
+      
+      if (adminExists.rows.length === 0) {
+        console.log('👤 Criando usuário admin...');
+        await pool.query(`
+          INSERT INTO usuarios (nome, email, senha, tipo_usuario) 
+          VALUES ($1, $2, $3, $4)
+        `, ['admin', 'admin@example.com', 'Admin123', 'admin']);
+      }
+      
+      if (sergioExists.rows.length === 0) {
+        console.log('👤 Criando usuário sergio...');
+        await pool.query(`
+          INSERT INTO usuarios (nome, email, senha, tipo_usuario) 
+          VALUES ($1, $2, $3, $4)
+        `, ['sergio', 'sergio@example.com', '12345', 'usuario']);
+      }
+      
+      console.log('✅ Inicialização das tabelas concluída');
+      
+    } catch (error) {
+      console.error('❌ Erro ao inicializar tabelas:', error);
+    }
   }
 });
 
