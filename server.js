@@ -212,6 +212,48 @@ app.get('/api/areas', (req, res) => {
   ]);
 });
 
+// Rota para cargos (mock data)
+app.get('/api/cargos', (req, res) => {
+  const areaId = req.query.area;
+  
+  console.log('📋 Buscando cargos para área:', areaId);
+  
+  const cargos = {
+    '1': [ // Tecnologia da Informação
+      { id: 1, nome: 'Desenvolvedor Júnior', descricao: 'Desenvolve aplicações web e mobile' },
+      { id: 2, nome: 'Desenvolvedor Pleno', descricao: 'Desenvolve e mantém sistemas complexos' },
+      { id: 3, nome: 'Desenvolvedor Sênior', descricao: 'Lidera projetos e arquitetura de sistemas' },
+      { id: 4, nome: 'Tech Lead', descricao: 'Lidera equipe técnica e define padrões' },
+      { id: 5, nome: 'Arquiteto de Software', descricao: 'Define arquitetura e estratégia técnica' }
+    ],
+    '2': [ // Recursos Humanos
+      { id: 6, nome: 'Analista de RH', descricao: 'Gerencia processos de recrutamento e seleção' },
+      { id: 7, nome: 'Coordenador de RH', descricao: 'Coordena políticas e práticas de RH' },
+      { id: 8, nome: 'Gerente de RH', descricao: 'Gerencia estratégia de recursos humanos' }
+    ],
+    '3': [ // Marketing
+      { id: 9, nome: 'Analista de Marketing', descricao: 'Desenvolve estratégias de marketing digital' },
+      { id: 10, nome: 'Coordenador de Marketing', descricao: 'Coordena campanhas e projetos de marketing' },
+      { id: 11, nome: 'Gerente de Marketing', descricao: 'Gerencia estratégia de marketing da empresa' }
+    ],
+    '4': [ // Vendas
+      { id: 12, nome: 'Vendedor', descricao: 'Realiza vendas e atende clientes' },
+      { id: 13, nome: 'Coordenador de Vendas', descricao: 'Coordena equipe de vendas' },
+      { id: 14, nome: 'Gerente de Vendas', descricao: 'Gerencia estratégia de vendas' }
+    ],
+    '5': [ // Financeiro
+      { id: 15, nome: 'Analista Financeiro', descricao: 'Analisa dados financeiros e orçamentos' },
+      { id: 16, nome: 'Coordenador Financeiro', descricao: 'Coordena processos financeiros' },
+      { id: 17, nome: 'Gerente Financeiro', descricao: 'Gerencia estratégia financeira da empresa' }
+    ]
+  };
+  
+  const cargosArea = cargos[areaId] || [];
+  console.log(`✅ Encontrados ${cargosArea.length} cargos para área ${areaId}`);
+  
+  res.json(cargosArea);
+});
+
 // Middleware de erro para capturar rotas não encontradas
 app.use((req, res, next) => {
   console.log(`❌ Rota não encontrada: ${req.method} ${req.url}`);
