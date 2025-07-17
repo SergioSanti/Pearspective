@@ -1266,6 +1266,36 @@ app.get('/api/certificados/usuario/:userId', async (req, res) => {
     const { userId } = req.params;
     console.log(`🏆 Buscando certificados do usuário ${userId}...`);
     
+    // Primeiro verificar se a tabela existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'certificados'
+      );
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      console.log('❌ Tabela certificados não existe, criando...');
+      
+      // Criar tabela certificados
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS certificados (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(255) NOT NULL,
+          instituicao VARCHAR(255) NOT NULL,
+          data_conclusao DATE,
+          descricao TEXT,
+          usuario_id INTEGER,
+          pdf BYTEA,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela certificados criada');
+      return res.json([]); // Retornar array vazio para nova tabela
+    }
+    
     // Query simples e direta com pdf
     const query = 'SELECT id, usuario_id, nome, instituicao, data_conclusao, descricao, pdf FROM certificados WHERE usuario_id = $1 ORDER BY data_conclusao DESC';
     const params = [userId];
