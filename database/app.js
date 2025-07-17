@@ -32,28 +32,26 @@ app.get('/api/test', (req, res) => {
 // Rota de login simplificada
 app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { usuario, senha } = req.body;
     
-    // Login hardcoded para teste
-    if (username === 'admin' && password === 'admin') {
+    console.log('🔐 Tentativa de login:', { usuario, senha });
+    
+    // Login hardcoded para teste - usando as credenciais do banco
+    if (usuario === 'admin' && senha === 'Admin123') {
       res.json({
         success: true,
-        user: {
-          id: 1,
-          username: 'admin',
-          name: 'Administrador',
-          tipo_usuario: 'admin'
-        }
+        id: 1,
+        nome: 'admin',
+        tipo_usuario: 'admin',
+        foto_perfil: null
       });
-    } else if (username === 'sergio' && password === 'sergio') {
+    } else if (usuario === 'sergio' && senha === '12345') {
       res.json({
         success: true,
-        user: {
-          id: 2,
-          username: 'sergio',
-          name: 'Sergio',
-          tipo_usuario: 'user'
-        }
+        id: 2,
+        nome: 'sergio',
+        tipo_usuario: 'usuario',
+        foto_perfil: null
       });
     } else {
       res.status(401).json({ success: false, message: 'Credenciais inválidas' });
