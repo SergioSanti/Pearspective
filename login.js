@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log('[LOGIN] Resposta do servidor:', data);
 
       if (data.success && data.id) {
+        // Salvar dados básicos no localStorage para compatibilidade
         localStorage.setItem('userName', data.nome);
         localStorage.setItem('userId', data.id);
         localStorage.setItem('tipo_usuario', data.tipo_usuario);
@@ -31,8 +32,8 @@ document.addEventListener("DOMContentLoaded", function () {
           localStorage.removeItem('userPhoto');
         }
         
-        console.log('[LOGIN] userId salvo:', data.id);
-        console.log('[LOGIN] foto_perfil:', data.foto_perfil ? 'Presente' : 'Não presente');
+        console.log('[LOGIN] Login bem-sucedido:', data.nome);
+        console.log('[LOGIN] Session token:', data.sessionToken ? 'Presente' : 'Não presente');
         
         // Redireciona após salvar os dados
         window.location.href = 'Page_inicial/index.html';

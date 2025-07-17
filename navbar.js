@@ -1,57 +1,86 @@
-function getUserInitial() {
-  const userName = localStorage.getItem('userName') || 'U';
+function getUserInitial(userName = 'U') {
   return userName.charAt(0).toUpperCase();
 }
-function updateUserCircle() {
+
+async function updateUserCircle() {
   const userCircle = document.getElementById('userCircle');
-  const userName = localStorage.getItem('userName') || '';
   const userNameDisplay = document.getElementById('userNameDisplay');
-  console.log('[NAVBAR] userName lido do localStorage:', userName);
+  
+  console.log('[NAVBAR] Verificando sessão atual...');
   
   if (userCircle) {
-    if (userName) {
-      // Buscar foto e nome de exibição do banco de dados
-      fetch(`/api/users/profile/${encodeURIComponent(userName)}`)
-        .then(response => {
-          if (!response.ok) throw new Error('Usuário não encontrado');
-          return response.json();
-        })
-        .then(userData => {
+    try {
+      // Verificar sessão atual via API
+      const response = await fetch('/api/me', {
+        credentials: 'include' // Incluir cookies
+      });
+      
+      if (response.ok) {
+        const sessionData = await response.json();
+        console.log('[NAVBAR] Sessão válida:', sessionData.user.nome);
+        
+        if (sessionData.authenticated && sessionData.user) {
+          const user = sessionData.user;
+          
           // Foto
-          if (userData.foto_perfil) {
-            localStorage.setItem('userPhoto', userData.foto_perfil);
-            userCircle.innerHTML = `<img src="${userData.foto_perfil}" alt="Foto do usuário">`;
+          if (user.foto_perfil) {
+            localStorage.setItem('userPhoto', user.foto_perfil);
+            userCircle.innerHTML = `<img src="${user.foto_perfil}" alt="Foto do usuário">`;
             console.log('[NAVBAR] Foto carregada do banco de dados');
           } else {
             localStorage.removeItem('userPhoto');
-            userCircle.textContent = getUserInitial();
+            userCircle.textContent = getUserInitial(user.nome);
             console.log('[NAVBAR] Nenhuma foto no banco, usando inicial');
           }
+          
           // Nome de exibição
           if (userNameDisplay) {
-            userNameDisplay.textContent = userData.nome_exibicao || userData.nome || userName;
+            userNameDisplay.textContent = user.nome;
           }
-        })
-        .catch(error => {
-          console.error('[NAVBAR] Erro ao buscar perfil do usuário:', error);
-          // Fallback para localStorage se disponível
-          const userPhoto = localStorage.getItem('userPhoto');
-          if (userPhoto) {
-            userCircle.innerHTML = `<img src="${userPhoto}" alt="Foto do usuário">`;
-            console.log('[NAVBAR] Usando foto do localStorage como fallback');
-          } else {
-            userCircle.textContent = getUserInitial();
-            console.log('[NAVBAR] Usando inicial como fallback');
-          }
-          if (userNameDisplay) {
-            userNameDisplay.textContent = userName;
-          }
-        });
-    } else {
-      localStorage.removeItem('userPhoto');
-      userCircle.textContent = getUserInitial();
-      console.log('[NAVBAR] Nenhum usuário logado');
-      if (userNameDisplay) userNameDisplay.textContent = '';
+          
+          // Atualizar localStorage com dados da sessão
+          localStorage.setItem('userName', user.nome);
+          localStorage.setItem('userId', user.id);
+          localStorage.setItem('tipo_usuario', user.tipo_usuario);
+        }
+      } else {
+        console.log('[NAVBAR] Sessão inválida ou expirada');
+        // Limpar dados de sessão
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('tipo_usuario');
+        localStorage.removeItem('userPhoto');
+        
+        userCircle.textContent = getUserInitial();
+        if (userNameDisplay) userNameDisplay.textContent = '';
+        
+        // Redirecionar para login se não estiver na página de login
+        if (!window.location.pathname.includes('login.html')) {
+          console.log('[NAVBAR] Redirecionando para login...');
+          window.location.href = '/login.html';
+        }
+      }
+    } catch (error) {
+      console.error('[NAVBAR] Erro ao verificar sessão:', error);
+      
+      // Fallback para localStorage se disponível
+      const userName = localStorage.getItem('userName');
+      const userPhoto = localStorage.getItem('userPhoto');
+      
+      if (userName && userPhoto) {
+        userCircle.innerHTML = `<img src="${userPhoto}" alt="Foto do usuário">`;
+        console.log('[NAVBAR] Usando foto do localStorage como fallback');
+      } else if (userName) {
+        userCircle.textContent = getUserInitial(userName);
+        console.log('[NAVBAR] Usando inicial como fallback');
+      } else {
+        userCircle.textContent = getUserInitial();
+        console.log('[NAVBAR] Nenhum usuário logado');
+      }
+      
+      if (userNameDisplay) {
+        userNameDisplay.textContent = userName || '';
+      }
     }
   }
 }
@@ -97,18 +126,28 @@ if (photoUpload) {
 }
 const logoutButton = document.getElementById('logoutButton');
 if (logoutButton) {
-  logoutButton.addEventListener('click', function(e) {
+  logoutButton.addEventListener('click', async function(e) {
     e.preventDefault();
     
-    // Remover apenas dados de sessão, manter foto como cache
+    try {
+      // Chamar API para fazer logout (limpar cookie)
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('[NAVBAR] Erro ao fazer logout:', error);
+    }
+    
+    // Limpar dados locais
     localStorage.removeItem('userName');
     localStorage.removeItem('userId');
     localStorage.removeItem('tipo_usuario');
     localStorage.removeItem('userDepartment');
     localStorage.removeItem('userPosition');
+    localStorage.removeItem('userPhoto');
     
-    // NÃO remover userPhoto - manter como cache
-    console.log('[NAVBAR] Logoff: dados de sessão removidos, foto mantida como cache');
+    console.log('[NAVBAR] Logoff: dados de sessão removidos');
     window.location.href = '/login.html';
   });
 }

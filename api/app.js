@@ -2,13 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // Servir arquivos estáticos da raiz
 app.use(express.static(path.join(__dirname, '..')));
@@ -110,12 +115,25 @@ app.post('/api/login', async (req, res) => {
       if (result.rows.length > 0) {
         const user = result.rows[0];
         console.log('✅ Login bem-sucedido:', user.nome || user.username);
+        
+        // Gerar token de sessão
+        const sessionToken = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Configurar cookie de sessão
+        res.cookie('sessionToken', sessionToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        });
+        
         res.json({ 
           success: true, 
           id: user.id,
           nome: user.nome || user.username,
           tipo_usuario: user.tipo_usuario || 'usuario',
-          foto_perfil: user.foto_perfil
+          foto_perfil: user.foto_perfil,
+          sessionToken: sessionToken
         });
       } else {
         console.log('❌ Credenciais inválidas');
@@ -149,6 +167,107 @@ app.post('/api/login', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro no login:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
+  }
+});
+
+// Rota para verificar usuário atual logado
+app.get('/api/me', async (req, res) => {
+  try {
+    // Verificar se há um token de sessão no header ou cookie
+    const authHeader = req.headers.authorization;
+    const sessionToken = req.cookies?.sessionToken || authHeader?.replace('Bearer ', '');
+    
+    console.log('🔍 Verificando sessão atual:', { 
+      hasAuthHeader: !!authHeader, 
+      hasSessionToken: !!sessionToken,
+      cookies: req.cookies 
+    });
+    
+    if (!sessionToken) {
+      console.log('❌ Nenhuma sessão encontrada');
+      return res.status(401).json({ 
+        authenticated: false, 
+        message: 'Usuário não autenticado' 
+      });
+    }
+    
+    // Por enquanto, vamos usar uma abordagem simples baseada no token
+    // Em produção, você deveria usar JWT ou sessions do Express
+    const userId = sessionToken; // Simplificado para demonstração
+    
+    // Buscar usuário no banco
+    const checkSchema = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'usuarios' 
+      AND column_name IN ('username', 'nome', 'email')
+    `);
+    
+    const hasUsername = checkSchema.rows.some(row => row.column_name === 'username');
+    const hasNome = checkSchema.rows.some(row => row.column_name === 'nome');
+    const hasEmail = checkSchema.rows.some(row => row.column_name === 'email');
+    
+    let query = '';
+    let params = [userId];
+    
+    if (hasUsername) {
+      query = 'SELECT id, username, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1 OR username = $1';
+    } else if (hasNome) {
+      query = 'SELECT id, nome, email, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1 OR nome = $1';
+    } else if (hasEmail) {
+      query = 'SELECT id, email, nome, tipo_usuario, foto_perfil FROM usuarios WHERE id = $1 OR email = $1';
+    } else {
+      return res.status(404).json({ error: 'Schema não suportado' });
+    }
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      console.log('✅ Usuário autenticado:', user.nome || user.username);
+      res.json({
+        authenticated: true,
+        user: {
+          id: user.id,
+          nome: user.nome || user.username,
+          email: user.email,
+          tipo_usuario: user.tipo_usuario,
+          foto_perfil: user.foto_perfil
+        }
+      });
+    } else {
+      console.log('❌ Usuário não encontrado para token:', sessionToken);
+      res.status(401).json({ 
+        authenticated: false, 
+        message: 'Sessão inválida' 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar sessão:', error);
+    res.status(500).json({ 
+      authenticated: false, 
+      message: 'Erro interno do servidor' 
+    });
+  }
+});
+
+// Rota para fazer logout
+app.post('/api/logout', (req, res) => {
+  try {
+    console.log('🚪 Logout solicitado');
+    
+    // Limpar cookie de sessão
+    res.clearCookie('sessionToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    console.log('✅ Cookie de sessão removido');
+    res.json({ success: true, message: 'Logout realizado com sucesso' });
+  } catch (error) {
+    console.error('❌ Erro no logout:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
