@@ -147,8 +147,11 @@ class CourseManager {
       if (!response.ok) throw new Error('Erro ao buscar cursos da API.');
       
       this.courses = await response.json();
-      // Renomear 'is_new' para 'new' para compatibilidade com o frontend
-      this.courses.forEach(c => c.new = c.is_new);
+      // Remover referência a campos que não existem mais
+      this.courses.forEach(c => {
+        // Garantir que os campos existam
+        c.new = false; // Campo 'new' não existe mais, definir como false
+      });
 
       this.renderCourses();
       this.updateResultsCount();

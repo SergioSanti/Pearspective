@@ -140,6 +140,63 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Servidor funcionando' });
 });
 
+// Rota para verificar e corrigir estrutura da tabela cursos
+app.get('/api/fix-cursos-table', async (req, res) => {
+  try {
+    console.log('🔧 Verificando estrutura da tabela cursos...');
+    
+    // Verificar se a tabela existe
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'cursos'
+    `);
+    
+    if (tableCheck.rows.length === 0) {
+      console.log('❌ Tabela cursos não existe, criando...');
+      
+      // Criar tabela cursos com estrutura correta
+      await pool.query(`
+        CREATE TABLE cursos (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          platform VARCHAR(100) NOT NULL,
+          url TEXT,
+          area VARCHAR(100) DEFAULT 'Geral',
+          level VARCHAR(50) DEFAULT 'Intermediário',
+          duration VARCHAR(50),
+          description TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela cursos criada com sucesso');
+      res.json({ message: 'Tabela cursos criada com sucesso' });
+    } else {
+      console.log('✅ Tabela cursos já existe');
+      
+      // Verificar colunas existentes
+      const columnsCheck = await pool.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cursos'
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('📋 Colunas existentes:', columnsCheck.rows);
+      res.json({ 
+        message: 'Tabela cursos existe',
+        columns: columnsCheck.rows
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar tabela cursos:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
 // Rota de teste para PUT
 app.put('/api/test-put', (req, res) => {
   console.log('✅ Rota PUT de teste funcionando');
@@ -1076,17 +1133,17 @@ app.get('/api/cursos', async (req, res) => {
     if (!tableExists.rows[0].exists) {
       console.log('❌ Tabela cursos não existe, criando...');
       
-      // Criar tabela cursos
+      // Criar tabela cursos com nomes corretos
       await pool.query(`
         CREATE TABLE IF NOT EXISTS cursos (
           id SERIAL PRIMARY KEY,
-          titulo VARCHAR(255) NOT NULL,
-          plataforma VARCHAR(100),
-          url_externa TEXT,
-          categoria VARCHAR(100),
-          nivel VARCHAR(50),
-          duracao VARCHAR(50),
-          descricao TEXT,
+          title VARCHAR(255) NOT NULL,
+          platform VARCHAR(100),
+          url TEXT,
+          area VARCHAR(100),
+          level VARCHAR(50),
+          duration VARCHAR(50),
+          description TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -1096,17 +1153,17 @@ app.get('/api/cursos', async (req, res) => {
     
 
     
-    // Query simples sem JOIN - voltar ao que funcionava
+    // Query corrigida para usar os nomes corretos das colunas
     const query = `
       SELECT 
         id,
-        titulo as title,
-        plataforma as platform,
-        url_externa as url,
-        categoria as area,
-        nivel as level,
-        duracao as duration,
-        descricao as description
+        title,
+        platform,
+        url,
+        area,
+        level,
+        duration,
+        description
       FROM cursos 
       ORDER BY id DESC
     `;
@@ -1172,13 +1229,13 @@ app.get('/api/cursos/:id', async (req, res) => {
     const query = `
       SELECT 
         id,
-        titulo as title,
-        plataforma as platform,
-        url_externa as url,
-        categoria as area,
-        nivel as level,
-        duracao as duration,
-        descricao as description
+        title,
+        platform,
+        url,
+        area,
+        level,
+        duration,
+        description
       FROM cursos 
       WHERE id = $1
     `;
@@ -1223,11 +1280,11 @@ app.post('/api/cursos', async (req, res) => {
       }
     }
     
-    // Query simples e direta
+    // Query corrigida para usar os nomes corretos das colunas
     const query = `
-      INSERT INTO cursos (titulo, plataforma, url_externa, categoria, nivel, duracao, descricao)
+      INSERT INTO cursos (title, platform, url, area, level, duration, description)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
+      RETURNING id, title, platform, url, area, level, duration, description
     `;
     
     const values = [
@@ -1274,16 +1331,16 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Query simples e direta
+    // Query corrigida para usar os nomes corretos das colunas
     const query = `
       UPDATE cursos SET
-        titulo = $1,
-        plataforma = $2,
-        url_externa = $3,
-        categoria = $4,
-        nivel = $5,
-        duracao = $6,
-        descricao = $7
+        title = $1,
+        platform = $2,
+        url = $3,
+        area = $4,
+        level = $5,
+        duration = $6,
+        description = $7
       WHERE id = $8
       RETURNING *
     `;
