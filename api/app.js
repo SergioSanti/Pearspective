@@ -10,13 +10,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Servir arquivos estáticos
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Servir arquivos estáticos da raiz
 app.use(express.static(path.join(__dirname, '..')));
 
 // Rota raiz - servir index.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // Configuração do banco de dados com SSL forçado para Railway
@@ -1156,7 +1155,7 @@ app.get('/api/schema', async (req, res) => {
 
 // Rota catch-all para arquivos estáticos
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // Iniciar servidor
