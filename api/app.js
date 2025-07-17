@@ -1163,15 +1163,15 @@ app.get('/api/cursos', async (req, res) => {
     }
     
     if (existingColumns.includes('url_externa')) {
-      selectColumns.push('url_externa');
+      selectColumns.push('url_externa as url');
     }
     
     if (existingColumns.includes('nivel')) {
-      selectColumns.push('nivel');
+      selectColumns.push('nivel as level');
     }
     
     if (existingColumns.includes('duracao')) {
-      selectColumns.push('duracao');
+      selectColumns.push('duracao as duration');
     }
     
     const query = `SELECT ${selectColumns.join(', ')} FROM cursos ORDER BY id`;
@@ -1180,7 +1180,7 @@ app.get('/api/cursos', async (req, res) => {
     
     console.log(`✅ Encontrados ${result.rows.length} cursos`);
     console.log('📊 Primeiros 3 cursos:', result.rows.slice(0, 3));
-    console.log('🔍 Schema detectado:', { hasTitulo, hasNome });
+    console.log('🔍 Colunas selecionadas:', selectColumns);
     
     // Se não há cursos, retornar dados de teste
     if (result.rows.length === 0) {
@@ -1188,45 +1188,33 @@ app.get('/api/cursos', async (req, res) => {
       const testCursos = [
         {
           id: 1,
-          titulo: 'JavaScript Completo',
-          instrutor: 'João Silva',
-          plataforma: 'Udemy',
-          categoria: 'Programação',
-          nivel: 'Intermediário',
-          duracao: '40 horas',
-          preco: 29.90,
-          avaliacao: 4.8,
-          estudantes: 15000,
-          descricao: 'Curso completo de JavaScript do básico ao avançado',
-          ativo: true
+          title: 'JavaScript Completo',
+          platform: 'Udemy',
+          url: 'https://www.udemy.com/javascript-completo',
+          area: 'Programação',
+          level: 'intermediario',
+          duration: 'medio',
+          description: 'Curso completo de JavaScript do básico ao avançado'
         },
         {
           id: 2,
-          titulo: 'React para Iniciantes',
-          instrutor: 'Maria Santos',
-          plataforma: 'Coursera',
-          categoria: 'Desenvolvimento Web',
-          nivel: 'Iniciante',
-          duracao: '25 horas',
-          preco: 49.90,
-          avaliacao: 4.6,
-          estudantes: 8500,
-          descricao: 'Aprenda React do zero com projetos práticos',
-          ativo: true
+          title: 'React para Iniciantes',
+          platform: 'Coursera',
+          url: 'https://www.coursera.org/react-iniciantes',
+          area: 'Desenvolvimento Web',
+          level: 'basico',
+          duration: 'medio',
+          description: 'Aprenda React do zero com projetos práticos'
         },
         {
           id: 3,
-          titulo: 'Node.js Backend',
-          instrutor: 'Pedro Costa',
-          plataforma: 'Alura',
-          categoria: 'Backend',
-          nivel: 'Avançado',
-          duracao: '35 horas',
-          preco: 79.90,
-          avaliacao: 4.9,
-          estudantes: 12000,
-          descricao: 'Desenvolvimento de APIs com Node.js e Express',
-          ativo: true
+          title: 'Node.js Backend',
+          platform: 'Alura',
+          url: 'https://www.alura.com.br/nodejs-backend',
+          area: 'Backend',
+          level: 'avancado',
+          duration: 'longo',
+          description: 'Desenvolvimento de APIs com Node.js e Express'
         }
       ];
       res.json(testCursos);
@@ -1285,15 +1273,15 @@ app.get('/api/cursos/:id', async (req, res) => {
     }
     
     if (existingColumns.includes('url_externa')) {
-      selectColumns.push('url_externa');
+      selectColumns.push('url_externa as url');
     }
     
     if (existingColumns.includes('nivel')) {
-      selectColumns.push('nivel');
+      selectColumns.push('nivel as level');
     }
     
     if (existingColumns.includes('duracao')) {
-      selectColumns.push('duracao');
+      selectColumns.push('duracao as duration');
     }
     
     const query = `SELECT ${selectColumns.join(', ')} FROM cursos WHERE id = $1`;
@@ -1449,29 +1437,86 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Query apenas com os campos do formulário - especificando campos no SELECT
+    // Verificar quais colunas existem na tabela cursos
+    const columnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'cursos'
+      ORDER BY ordinal_position
+    `);
+    
+    const existingColumns = columnsCheck.rows.map(row => row.column_name);
+    
+    // Construir query adaptativa baseada nas colunas existentes
+    let updateFields = [];
+    let values = [id];
+    let valueIndex = 2;
+    let returningColumns = ['id'];
+    
+    if (existingColumns.includes('title')) {
+      updateFields.push('title = $' + valueIndex++);
+      values.push(title || 'Curso sem título');
+      returningColumns.push('title');
+    } else if (existingColumns.includes('titulo')) {
+      updateFields.push('titulo = $' + valueIndex++);
+      values.push(title || 'Curso sem título');
+      returningColumns.push('titulo');
+    }
+    
+    if (existingColumns.includes('platform')) {
+      updateFields.push('platform = $' + valueIndex++);
+      values.push(platform || 'Não especificado');
+      returningColumns.push('platform');
+    } else if (existingColumns.includes('plataforma')) {
+      updateFields.push('plataforma = $' + valueIndex++);
+      values.push(platform || 'Não especificado');
+      returningColumns.push('plataforma');
+    }
+    
+    if (existingColumns.includes('description')) {
+      updateFields.push('description = $' + valueIndex++);
+      values.push(description || '');
+      returningColumns.push('description');
+    } else if (existingColumns.includes('descricao')) {
+      updateFields.push('descricao = $' + valueIndex++);
+      values.push(description || '');
+      returningColumns.push('descricao');
+    }
+    
+    if (existingColumns.includes('area')) {
+      updateFields.push('area = $' + valueIndex++);
+      values.push(categoria);
+      returningColumns.push('area');
+    } else if (existingColumns.includes('categoria')) {
+      updateFields.push('categoria = $' + valueIndex++);
+      values.push(categoria);
+      returningColumns.push('categoria');
+    }
+    
+    if (existingColumns.includes('url_externa')) {
+      updateFields.push('url_externa = $' + valueIndex++);
+      values.push(url || '');
+      returningColumns.push('url_externa');
+    }
+    
+    if (existingColumns.includes('nivel')) {
+      updateFields.push('nivel = $' + valueIndex++);
+      values.push(level || 'Intermediário');
+      returningColumns.push('nivel');
+    }
+    
+    if (existingColumns.includes('duracao')) {
+      updateFields.push('duracao = $' + valueIndex++);
+      values.push(duration || '');
+      returningColumns.push('duracao');
+    }
+    
     const query = `
-      UPDATE cursos SET
-        titulo = $1,
-        plataforma = $2,
-        url_externa = $3,
-        categoria = $4,
-        nivel = $5,
-        duracao = $6,
-        descricao = $7
-      WHERE id = $8
-      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
+      UPDATE cursos SET ${updateFields.join(', ')}
+      WHERE id = $1
+      RETURNING ${returningColumns.join(', ')}
     `;
-    const values = [
-      title || 'Curso sem título',
-      platform || 'Não especificado',
-      url || '',
-      categoria,
-      level || 'Intermediário',
-      duration || '',
-      description || '',
-      id
-    ];
     
     const result = await pool.query(query, values);
     
