@@ -201,7 +201,7 @@ app.get('/api/ensure-users', async (req, res) => {
     if (!curriculumTableExists.rows[0].exists) {
       console.log('❌ Tabela curriculos não existe, criando...');
       
-      // Criar tabela curriculos
+      // Criar tabela curriculos (sem foreign key para evitar problemas)
       await pool.query(`
         CREATE TABLE curriculos (
           id SERIAL PRIMARY KEY,
@@ -210,12 +210,13 @@ app.get('/api/ensure-users', async (req, res) => {
           tipo_mime VARCHAR(100) NOT NULL,
           tamanho BIGINT NOT NULL,
           dados BYTEA NOT NULL,
-          data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (usuario_nome) REFERENCES usuarios(nome) ON DELETE CASCADE
+          data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
       
       console.log('✅ Tabela curriculos criada');
+    } else {
+      console.log('✅ Tabela curriculos já existe');
     }
     
     // Verificar se os usuários padrão existem
@@ -1399,8 +1400,7 @@ app.post('/api/fix-curriculum-table', async (req, res) => {
         tipo_mime VARCHAR(100) NOT NULL,
         tamanho BIGINT NOT NULL,
         dados BYTEA NOT NULL,
-        data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_nome) REFERENCES usuarios(nome) ON DELETE CASCADE
+        data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
     
@@ -1425,6 +1425,69 @@ app.post('/api/fix-curriculum-table', async (req, res) => {
     console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ 
       error: 'Erro ao recriar tabela', 
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Rota GET para criar tabela curriculos (mais fácil de testar)
+app.get('/api/create-curriculum-table', async (req, res) => {
+  try {
+    console.log('🔧 Criando tabela curriculos via GET...');
+    
+    // 1. Verificar se a tabela existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'curriculos'
+      );
+    `);
+    
+    if (tableExists.rows[0].exists) {
+      console.log('✅ Tabela curriculos já existe');
+      return res.json({
+        status: 'exists',
+        message: 'Tabela curriculos já existe'
+      });
+    }
+    
+    // 2. Criar tabela curriculos (sem foreign key para evitar problemas)
+    console.log('📋 Criando tabela curriculos...');
+    await pool.query(`
+      CREATE TABLE curriculos (
+        id SERIAL PRIMARY KEY,
+        usuario_nome VARCHAR(100) NOT NULL,
+        nome_arquivo VARCHAR(255) NOT NULL,
+        tipo_mime VARCHAR(100) NOT NULL,
+        tamanho BIGINT NOT NULL,
+        dados BYTEA NOT NULL,
+        data_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // 3. Verificar estrutura
+    const columns = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns 
+      WHERE table_name = 'curriculos' 
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('✅ Tabela curriculos criada com sucesso');
+    
+    res.json({
+      status: 'created',
+      message: 'Tabela curriculos criada com sucesso',
+      columns: columns.rows
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao criar tabela curriculos:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro ao criar tabela', 
       details: error.message,
       stack: error.stack
     });
