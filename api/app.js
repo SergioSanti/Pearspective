@@ -1412,98 +1412,45 @@ app.put('/api/cursos/:id', async (req, res) => {
     
     console.log(`📝 Atualizando curso ${id}:`, { title, platform, url, area, level, duration, description });
     
-    // Primeiro, verificar se o curso existe
-    console.log('🔍 Verificando se o curso existe...');
-    const checkResult = await pool.query('SELECT * FROM cursos WHERE id = $1', [id]);
-    if (checkResult.rows.length === 0) {
-      console.log('❌ Curso não encontrado:', id);
-      return res.status(404).json({ error: 'Curso não encontrado' });
-    }
-    
-    console.log('✅ Curso encontrado:', checkResult.rows[0]);
-    
-    // Verificar estrutura da tabela cursos
-    console.log('🔍 Verificando estrutura da tabela cursos...');
-    const columnsCheck = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_schema = 'public' 
-      AND table_name = 'cursos'
-      ORDER BY ordinal_position
-    `);
-    
-    const existingColumns = columnsCheck.rows.map(row => row.column_name);
-    console.log('🔍 Colunas existentes na tabela cursos:', existingColumns);
-    
     // Converter area (ID) para nome se fornecido
     let categoria = 'Geral';
     if (area) {
       if (!isNaN(Number(area))) {
-        console.log('🔍 Buscando nome da área por ID:', area);
         const areaResult = await pool.query('SELECT nome FROM areas WHERE id = $1', [area]);
         if (areaResult.rows.length > 0) {
           categoria = areaResult.rows[0].nome;
-          console.log('✅ Nome da área encontrado:', categoria);
-        } else {
-          console.log('⚠️ Área não encontrada, usando padrão');
         }
       } else if (typeof area === 'string') {
         categoria = area;
-        console.log('✅ Usando nome da área diretamente:', categoria);
       }
     }
     
-    // Construir query adaptativa baseada nas colunas existentes
-    let updateFields = [];
-    let values = [];
-    let paramIndex = 1;
-    
-    if (existingColumns.includes('titulo')) {
-      updateFields.push(`titulo = $${paramIndex++}`);
-      values.push(title || 'Curso sem título');
-    }
-    
-    if (existingColumns.includes('plataforma')) {
-      updateFields.push(`plataforma = $${paramIndex++}`);
-      values.push(platform || 'Não especificado');
-    }
-    
-    if (existingColumns.includes('url_externa')) {
-      updateFields.push(`url_externa = $${paramIndex++}`);
-      values.push(url || '');
-    }
-    
-    if (existingColumns.includes('categoria')) {
-      updateFields.push(`categoria = $${paramIndex++}`);
-      values.push(categoria);
-    }
-    
-    if (existingColumns.includes('nivel')) {
-      updateFields.push(`nivel = $${paramIndex++}`);
-      values.push(level || 'Intermediário');
-    }
-    
-    if (existingColumns.includes('duracao')) {
-      updateFields.push(`duracao = $${paramIndex++}`);
-      values.push(duration || '');
-    }
-    
-    if (existingColumns.includes('descricao')) {
-      updateFields.push(`descricao = $${paramIndex++}`);
-      values.push(description || '');
-    }
-    
-    // Adicionar ID no final
-    values.push(id);
-    
+    // Query simples e direta
     const query = `
       UPDATE cursos SET
-        ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}
+        titulo = $1,
+        plataforma = $2,
+        url_externa = $3,
+        categoria = $4,
+        nivel = $5,
+        duracao = $6,
+        descricao = $7
+      WHERE id = $8
       RETURNING *
     `;
     
-    console.log('🔍 Query de atualização adaptativa:', query);
+    const values = [
+      title || 'Curso sem título',
+      platform || 'Não especificado',
+      url || '',
+      categoria,
+      level || 'Intermediário',
+      duration || '',
+      description || '',
+      id
+    ];
+    
+    console.log('🔍 Query de atualização:', query);
     console.log('📋 Valores:', values);
     
     const result = await pool.query(query, values);
@@ -1512,8 +1459,8 @@ app.put('/api/cursos/:id', async (req, res) => {
       console.log('✅ Curso atualizado com sucesso:', result.rows[0]);
       res.json(result.rows[0]);
     } else {
-      console.log('❌ Erro: Nenhuma linha foi atualizada');
-      res.status(500).json({ error: 'Falha na atualização' });
+      console.log('❌ Curso não encontrado para atualização:', id);
+      res.status(404).json({ error: 'Curso não encontrado' });
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar curso:', error);
