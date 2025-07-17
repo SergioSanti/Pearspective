@@ -410,10 +410,25 @@ class ProfileManager {
         try {
             this.showLoading(true);
 
+            // Buscar nome do usuário da sessão atual
+            const sessionResponse = await fetch('/api/me', {
+                credentials: 'include'
+            });
+            
+            if (!sessionResponse.ok) {
+                throw new Error('Sessão inválida');
+            }
+            
+            const sessionData = await sessionResponse.json();
+            const userName = sessionData.user?.nome;
+            
+            if (!userName) {
+                throw new Error('Nome do usuário não encontrado na sessão');
+            }
+
             const formData = new FormData();
             formData.append('curriculum', file);
 
-            const userName = localStorage.getItem('userName');
             const response = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}`, {
                 method: 'POST',
                 body: formData
@@ -447,10 +462,23 @@ class ProfileManager {
     }
 
     async viewCurriculum() {
-        const userName = localStorage.getItem('userName');
-        if (!userName) return;
-
         try {
+            // Buscar nome do usuário da sessão atual
+            const sessionResponse = await fetch('/api/me', {
+                credentials: 'include'
+            });
+            
+            if (!sessionResponse.ok) {
+                throw new Error('Sessão inválida');
+            }
+            
+            const sessionData = await sessionResponse.json();
+            const userName = sessionData.user?.nome;
+            
+            if (!userName) {
+                throw new Error('Nome do usuário não encontrado na sessão');
+            }
+
             const response = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}`);
             
             if (!response.ok) {
@@ -482,10 +510,23 @@ class ProfileManager {
     }
 
     async downloadCurriculum() {
-        const userName = localStorage.getItem('userName');
-        if (!userName) return;
-
         try {
+            // Buscar nome do usuário da sessão atual
+            const sessionResponse = await fetch('/api/me', {
+                credentials: 'include'
+            });
+            
+            if (!sessionResponse.ok) {
+                throw new Error('Sessão inválida');
+            }
+            
+            const sessionData = await sessionResponse.json();
+            const userName = sessionData.user?.nome;
+            
+            if (!userName) {
+                throw new Error('Nome do usuário não encontrado na sessão');
+            }
+
             // Primeiro, obter informações do arquivo para usar o nome original
             const statusResponse = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}/status`);
             const statusData = await statusResponse.json();
@@ -516,14 +557,27 @@ class ProfileManager {
     }
 
     async deleteCurriculum() {
-        const userName = localStorage.getItem('userName');
-        if (!userName) return;
-
-        if (!confirm('Tem certeza que deseja excluir o currículo?')) {
-            return;
-        }
-
         try {
+            // Buscar nome do usuário da sessão atual
+            const sessionResponse = await fetch('/api/me', {
+                credentials: 'include'
+            });
+            
+            if (!sessionResponse.ok) {
+                throw new Error('Sessão inválida');
+            }
+            
+            const sessionData = await sessionResponse.json();
+            const userName = sessionData.user?.nome;
+            
+            if (!userName) {
+                throw new Error('Nome do usuário não encontrado na sessão');
+            }
+
+            if (!confirm('Tem certeza que deseja excluir o currículo?')) {
+                return;
+            }
+
             const response = await fetch(`/api/users/curriculum/${encodeURIComponent(userName)}`, {
                 method: 'DELETE'
             });
