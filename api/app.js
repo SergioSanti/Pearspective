@@ -512,31 +512,67 @@ app.get('/api/users/profile/:username', async (req, res) => {
     const { username } = req.params;
     console.log(`👤 Buscando perfil do usuário: ${username}`);
     
-    // Query simples e direta
-    const query = 'SELECT id, nome, email, tipo_usuario, foto_perfil, departamento, cargo_atual FROM usuarios WHERE nome = $1';
+    // Primeiro, verificar a estrutura da tabela usuarios
+    const tableInfo = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'usuarios' 
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('🔍 Estrutura da tabela usuarios:', tableInfo.rows.map(row => row.column_name));
+    
+    // Construir query dinamicamente baseada nas colunas existentes
+    const availableColumns = tableInfo.rows.map(row => row.column_name);
+    const selectColumns = [];
+    
+    // Adicionar colunas básicas que devem existir
+    if (availableColumns.includes('id')) selectColumns.push('id');
+    if (availableColumns.includes('nome')) selectColumns.push('nome');
+    if (availableColumns.includes('email')) selectColumns.push('email');
+    if (availableColumns.includes('tipo_usuario')) selectColumns.push('tipo_usuario');
+    if (availableColumns.includes('foto_perfil')) selectColumns.push('foto_perfil');
+    if (availableColumns.includes('departamento')) selectColumns.push('departamento');
+    if (availableColumns.includes('cargo_atual')) selectColumns.push('cargo_atual');
+    if (availableColumns.includes('data_cadastro')) selectColumns.push('data_cadastro');
+    
+    if (selectColumns.length === 0) {
+      console.error('❌ Nenhuma coluna válida encontrada na tabela usuarios');
+      return res.status(500).json({ error: 'Estrutura da tabela inválida' });
+    }
+    
+    const query = `SELECT ${selectColumns.join(', ')} FROM usuarios WHERE nome = $1`;
+    console.log('🔍 Query executada:', query);
+    
     const result = await pool.query(query, [username]);
     
     if (result.rows.length > 0) {
       const user = result.rows[0];
       console.log('✅ Perfil encontrado para usuário:', username);
-      res.json({
-        id: user.id,
-        nome: user.nome,
-        nome_exibicao: user.nome,
-        email: user.email,
-        tipo_usuario: user.tipo_usuario,
-        foto_perfil: user.foto_perfil,
+      
+      // Construir resposta com campos disponíveis
+      const response = {
+        id: user.id || null,
+        nome: user.nome || username,
+        nome_exibicao: user.nome || username,
+        email: user.email || `${username}@example.com`,
+        tipo_usuario: user.tipo_usuario || 'usuario',
+        foto_perfil: user.foto_perfil || null,
         departamento: user.departamento || '',
         cargo_atual: user.cargo_atual || '',
         data_cadastro: user.data_cadastro || new Date().toISOString()
-      });
+      };
+      
+      console.log('📊 Resposta construída:', response);
+      res.json(response);
     } else {
       console.log('❌ Usuário não encontrado:', username);
       res.status(404).json({ error: 'Usuário não encontrado' });
     }
   } catch (error) {
     console.error('❌ Erro ao buscar perfil:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
