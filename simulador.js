@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = id ? `/api/areas/${id}` : '/api/areas';
 
       try {
+        console.log('🏢 Enviando área:', { id, nome, method, url });
         const response = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
@@ -258,11 +259,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.ok) {
           const message = id ? 'Área atualizada com sucesso!' : 'Área criada com sucesso!';
           showSuccessMessage(message);
+          console.log('✅ Área salva com sucesso');
         } else {
-          showErrorMessage('Erro ao salvar área. Tente novamente.');
+          const errorData = await response.json();
+          showErrorMessage(`Erro ao salvar área: ${errorData.error || 'Tente novamente.'}`);
+          console.error('❌ Erro ao salvar área:', errorData);
         }
       } catch (error) {
         showErrorMessage('Erro ao conectar com o servidor.');
+        console.error('❌ Erro de conexão:', error);
       }
 
       areaForm.reset();
@@ -279,7 +284,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target.classList.contains('delete-area')) {
         if (confirm('Tem certeza? Deletar uma área também deletará todos os cargos associados.')) {
           const id = e.target.dataset.id;
-          await fetch(`/api/areas/${id}`, { method: 'DELETE' });
+          try {
+            const response = await fetch(`/api/areas/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+              showSuccessMessage('Área deletada com sucesso!');
+            } else {
+              showErrorMessage('Erro ao deletar área.');
+            }
+          } catch (error) {
+            showErrorMessage('Erro ao conectar com o servidor.');
+          }
           loadAreasIntoModal();
           carregarAreas(); // Recarrega o select principal
         }
@@ -339,16 +353,16 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const body = {
-            area_id: cargoAreaSelect.value,
+            area_id: parseInt(cargoAreaSelect.value),
             nome_cargo: cargoNameInput.value,
-            quantidade_vagas: parseInt(cargoVagasInput.value),
-            requisitos: requisitos, // Objeto montado a partir dos inputs
-            complexidade: '', 
-            responsabilidades: ''
+            quantidade_vagas: parseInt(cargoVagasInput.value) || 1,
+            requisitos: requisitos
         };
 
         const method = id ? 'PUT' : 'POST';
         const url = id ? `/api/cargos/${id}` : '/api/cargos';
+        
+        console.log('📋 Enviando cargo:', { id, body, method, url });
         
         try {
             const response = await fetch(url, {
@@ -360,11 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const message = id ? 'Cargo atualizado com sucesso!' : 'Cargo criado com sucesso!';
                 showSuccessMessage(message);
+                console.log('✅ Cargo salvo com sucesso');
             } else {
-                showErrorMessage('Erro ao salvar cargo. Tente novamente.');
+                const errorData = await response.json();
+                showErrorMessage(`Erro ao salvar cargo: ${errorData.error || 'Tente novamente.'}`);
+                console.error('❌ Erro ao salvar cargo:', errorData);
             }
         } catch (error) {
             showErrorMessage('Erro ao conectar com o servidor.');
+            console.error('❌ Erro de conexão:', error);
         }
 
         cargoForm.reset();
@@ -393,7 +411,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteTarget = e.target.closest('.delete-cargo'); // Procura o botão de deletar
         if (deleteTarget) {
             if (confirm('Tem certeza que deseja deletar este cargo?')) {
-                await fetch(`/api/cargos/${deleteTarget.dataset.id}`, { method: 'DELETE' });
+                try {
+                    const response = await fetch(`/api/cargos/${deleteTarget.dataset.id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        showSuccessMessage('Cargo deletado com sucesso!');
+                    } else {
+                        showErrorMessage('Erro ao deletar cargo.');
+                    }
+                } catch (error) {
+                    showErrorMessage('Erro ao conectar com o servidor.');
+                }
                 cargoAreaSelect.dispatchEvent(new Event('change'));
             }
         }
