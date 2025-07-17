@@ -1424,6 +1424,8 @@ app.put('/api/cursos/:id', async (req, res) => {
     const { id } = req.params;
     let { title, platform, url, area, level, duration, description } = req.body;
     
+    console.log(`📝 Atualizando curso ${id}:`, { title, platform, url, area, level, duration, description });
+    
     // Converter area (ID) para nome se fornecido
     let categoria = 'Geral';
     if (area) {
@@ -1437,97 +1439,47 @@ app.put('/api/cursos/:id', async (req, res) => {
       }
     }
     
-    // Verificar quais colunas existem na tabela cursos
-    const columnsCheck = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_schema = 'public' 
-      AND table_name = 'cursos'
-      ORDER BY ordinal_position
-    `);
-    
-    const existingColumns = columnsCheck.rows.map(row => row.column_name);
-    
-    // Construir query adaptativa baseada nas colunas existentes
-    let updateFields = [];
-    let values = [id];
-    let valueIndex = 2;
-    let returningColumns = ['id'];
-    
-    if (existingColumns.includes('title')) {
-      updateFields.push('title = $' + valueIndex++);
-      values.push(title || 'Curso sem título');
-      returningColumns.push('title');
-    } else if (existingColumns.includes('titulo')) {
-      updateFields.push('titulo = $' + valueIndex++);
-      values.push(title || 'Curso sem título');
-      returningColumns.push('titulo');
-    }
-    
-    if (existingColumns.includes('platform')) {
-      updateFields.push('platform = $' + valueIndex++);
-      values.push(platform || 'Não especificado');
-      returningColumns.push('platform');
-    } else if (existingColumns.includes('plataforma')) {
-      updateFields.push('plataforma = $' + valueIndex++);
-      values.push(platform || 'Não especificado');
-      returningColumns.push('plataforma');
-    }
-    
-    if (existingColumns.includes('description')) {
-      updateFields.push('description = $' + valueIndex++);
-      values.push(description || '');
-      returningColumns.push('description');
-    } else if (existingColumns.includes('descricao')) {
-      updateFields.push('descricao = $' + valueIndex++);
-      values.push(description || '');
-      returningColumns.push('descricao');
-    }
-    
-    if (existingColumns.includes('area')) {
-      updateFields.push('area = $' + valueIndex++);
-      values.push(categoria);
-      returningColumns.push('area');
-    } else if (existingColumns.includes('categoria')) {
-      updateFields.push('categoria = $' + valueIndex++);
-      values.push(categoria);
-      returningColumns.push('categoria');
-    }
-    
-    if (existingColumns.includes('url_externa')) {
-      updateFields.push('url_externa = $' + valueIndex++);
-      values.push(url || '');
-      returningColumns.push('url_externa');
-    }
-    
-    if (existingColumns.includes('nivel')) {
-      updateFields.push('nivel = $' + valueIndex++);
-      values.push(level || 'Intermediário');
-      returningColumns.push('nivel');
-    }
-    
-    if (existingColumns.includes('duracao')) {
-      updateFields.push('duracao = $' + valueIndex++);
-      values.push(duration || '');
-      returningColumns.push('duracao');
-    }
-    
+    // Query direta e simples - usar os campos que existem no banco
     const query = `
-      UPDATE cursos SET ${updateFields.join(', ')}
-      WHERE id = $1
-      RETURNING ${returningColumns.join(', ')}
+      UPDATE cursos SET
+        titulo = $1,
+        plataforma = $2,
+        url_externa = $3,
+        categoria = $4,
+        nivel = $5,
+        duracao = $6,
+        descricao = $7
+      WHERE id = $8
+      RETURNING id, titulo, plataforma, url_externa, categoria, nivel, duracao, descricao
     `;
+    
+    const values = [
+      title || 'Curso sem título',
+      platform || 'Não especificado',
+      url || '',
+      categoria,
+      level || 'Intermediário',
+      duration || '',
+      description || '',
+      id
+    ];
+    
+    console.log('🔍 Query de atualização:', query);
+    console.log('📋 Valores:', values);
     
     const result = await pool.query(query, values);
     
     if (result.rows.length > 0) {
+      console.log('✅ Curso atualizado:', result.rows[0]);
       res.json(result.rows[0]);
     } else {
+      console.log('❌ Curso não encontrado para atualização:', id);
       res.status(404).json({ error: 'Curso não encontrado' });
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar curso:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 
