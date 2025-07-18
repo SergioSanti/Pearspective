@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node api/app.js",
     "dev": "nodemon api/app.js",
-    "dev:local": "cross-env NODE_ENV=development DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pearspective nodemon api/app.js",
+
     "dev:railway": "cross-env NODE_ENV=production nodemon api/app.js"
   },
   "keywords": [

@@ -54,7 +54,7 @@ Perspective/
 ├── database/             # ✅ Mantém original
 ├── assets/               # ✅ Mantém original
 ├── package.json          # ✅ Mantém original
-├── database/app.js       # ✅ Backend original
+├── api/app.js       # ✅ Backend principal
 └── README.md             # ✅ Mantém original
 ```
 
@@ -64,8 +64,8 @@ Perspective/
 ```json
 {
   "scripts": {
-    "start": "node database/app.js",
-    "dev": "node database/app.js"
+    "start": "node api/app.js",
+    "dev": "node api/app.js"
   },
   "engines": {
     "node": "18.x"
@@ -73,7 +73,7 @@ Perspective/
 }
 ```
 
-### 2. Verificar database/app.js:
+### 2. Verificar api/app.js:
 ```javascript
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

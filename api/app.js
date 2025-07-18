@@ -60,8 +60,16 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-// Configuração do banco de dados para Railway
-console.log('🚂 Configurando banco para Railway...');
+// Configuração do banco de dados Railway
+console.log('🚂 Configurando banco Railway...');
+console.log('🔍 Ambiente:', process.env.NODE_ENV || 'production');
+console.log('🔍 DATABASE_URL configurada:', !!process.env.DATABASE_URL);
+
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL não configurada! O sistema requer conexão com Railway.');
+  process.exit(1);
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -192,19 +200,12 @@ app.get('/api/test', (req, res) => {
 
 // Rota de teste de banco
 app.get('/api/test-db', async (req, res) => {
-  if (!pool) {
-    return res.json({ 
-      message: 'Modo local: sem conexão com banco',
-      mode: 'local'
-    });
-  }
-  
   try {
-    console.log('🔍 Testando conexão com banco...');
+    console.log('🔍 Testando conexão com banco Railway...');
     const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
     console.log('✅ Teste de banco OK:', result.rows[0]);
     res.json({ 
-      message: 'Conexão com banco OK!',
+      message: 'Conexão com banco Railway OK!',
       current_time: result.rows[0].current_time,
       db_version: result.rows[0].db_version,
       mode: 'railway'
@@ -218,7 +219,7 @@ app.get('/api/test-db', async (req, res) => {
 // Rota de teste de tabelas
 app.get('/api/test-tables', async (req, res) => {
   try {
-    console.log('🔍 Listando tabelas...');
+    console.log('🔍 Listando tabelas do Railway...');
     const result = await pool.query(`
       SELECT table_name 
       FROM information_schema.tables 
@@ -241,15 +242,16 @@ app.get('/api/test-tables', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Servidor funcionando',
-    mode: 'railway'
+    message: 'Servidor Railway funcionando',
+    mode: 'railway',
+    hasDatabase: true
   });
 });
 
 // Rota para garantir que os usuários padrão existam
 app.get('/api/ensure-users', async (req, res) => {
   try {
-    console.log('🔧 Verificando e criando usuários padrão...');
+    console.log('🔧 Verificando e criando usuários padrão no Railway...');
     
     // Verificar se a tabela usuarios existe
     const tableExists = await pool.query(`
@@ -350,7 +352,7 @@ app.get('/api/ensure-users', async (req, res) => {
 // Rota para verificar e corrigir estrutura da tabela cursos
 app.get('/api/fix-cursos-table', async (req, res) => {
   try {
-    console.log('🔧 Verificando estrutura da tabela cursos...');
+    console.log('🔧 Verificando estrutura da tabela cursos no Railway...');
     
     // Verificar se a tabela existe
     const tableCheck = await pool.query(`
