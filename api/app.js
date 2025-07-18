@@ -420,61 +420,58 @@ app.post('/api/login', async (req, res) => {
     
     console.log('🔐 Tentativa de login:', { usuario, senha });
     
-    // Login simples e funcional - sem complicação
-    if (usuario === 'admin' && senha === 'Admin123') {
-      console.log('✅ Login admin bem-sucedido');
-      
-      // Gerar token de sessão
-      const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      console.log('🔍 Token gerado para admin:', sessionToken);
-      console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
-      
-      // Configurar cookie de sessão com opções de segurança
-      res.cookie('sessionToken', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
-      });
-      
-      return res.json({ 
-        success: true, 
-        id: 1,
-        nome: 'admin',
-        tipo_usuario: 'admin',
-        foto_perfil: null,
-        sessionToken: sessionToken
-      });
-    } else if (usuario === 'sergio' && senha === '12345') {
-      console.log('✅ Login sergio bem-sucedido');
-      
-      // Gerar token de sessão
-      const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      console.log('🔍 Token gerado para sergio:', sessionToken);
-      console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
-      
-      // Configurar cookie de sessão com opções de segurança
-      res.cookie('sessionToken', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
-      });
-      
-      return res.json({ 
-        success: true,
-        id: 2,
-        nome: 'sergio',
-        tipo_usuario: 'usuario',
-        foto_perfil: null,
-        sessionToken: sessionToken
-      });
-    } else {
-      console.log('❌ Credenciais inválidas');
+    // Consultar usuário no banco de dados
+    const userQuery = 'SELECT id, nome, email, senha, tipo_usuario, foto_perfil FROM usuarios WHERE nome = $1';
+    const userResult = await pool.query(userQuery, [usuario]);
+    
+    if (userResult.rows.length === 0) {
+      console.log('❌ Usuário não encontrado:', usuario);
       return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
     }
+    
+    const user = userResult.rows[0];
+    console.log('🔍 Usuário encontrado no banco:', { id: user.id, nome: user.nome, tipo: user.tipo_usuario });
+    
+    // Verificar senha
+    if (user.senha !== senha) {
+      console.log('❌ Senha incorreta para usuário:', usuario);
+      return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
+    }
+    
+    console.log('✅ Login bem-sucedido para:', user.nome);
+    
+    // Limpar cookie antigo primeiro
+    res.clearCookie('sessionToken', { 
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    
+    // Gerar token de sessão baseado no ID real do banco
+    const sessionToken = `${user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log('🔍 Token gerado:', sessionToken);
+    console.log('🔍 Token começa com ID:', user.id);
+    
+    // Configurar cookie de sessão com opções de segurança
+    res.cookie('sessionToken', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      path: '/'
+    });
+    
+    return res.json({ 
+      success: true,
+      id: user.id,
+      nome: user.nome,
+      tipo_usuario: user.tipo_usuario,
+      foto_perfil: user.foto_perfil,
+      sessionToken: sessionToken
+    });
+    
   } catch (error) {
     console.error('❌ Erro no login:', error);
     res.status(500).json({ success: false, message: 'Erro interno do servidor' });
@@ -502,23 +499,9 @@ app.get('/api/me', async (req, res) => {
       });
     }
     
-    // Determinar qual usuário baseado no token
-    let userName = '';
-    let expectedUserId = null;
-    
-    console.log('🔍 Analisando token:', sessionToken);
-    console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
-    console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
-    
-    if (sessionToken.startsWith('1-')) {
-      userName = 'admin';
-      expectedUserId = 1;
-      console.log('✅ Token identificado como ADMIN');
-    } else if (sessionToken.startsWith('2-')) {
-      userName = 'sergio';
-      expectedUserId = 2;
-      console.log('✅ Token identificado como SERGIO');
-    } else {
+    // Extrair ID do usuário do token
+    const tokenParts = sessionToken.split('-');
+    if (tokenParts.length < 2) {
       console.log('❌ Token inválido:', sessionToken);
       return res.status(401).json({ 
         authenticated: false, 
@@ -526,7 +509,18 @@ app.get('/api/me', async (req, res) => {
       });
     }
     
-    console.log('✅ Usuário identificado:', userName, 'ID:', expectedUserId);
+    const userId = parseInt(tokenParts[0]);
+    console.log('🔍 ID extraído do token:', userId);
+    
+    if (isNaN(userId)) {
+      console.log('❌ ID inválido no token:', tokenParts[0]);
+      return res.status(401).json({ 
+        authenticated: false, 
+        message: 'Sessão inválida' 
+      });
+    }
+    
+    console.log('✅ ID do usuário identificado:', userId);
     
     // Buscar dados do usuário no banco Railway PostgreSQL
     try {
@@ -556,18 +550,18 @@ app.get('/api/me', async (req, res) => {
         throw new Error('Estrutura da tabela inválida');
       }
       
-      const userQuery = `SELECT ${selectColumns.join(', ')} FROM usuarios WHERE nome = $1`;
+      const userQuery = `SELECT ${selectColumns.join(', ')} FROM usuarios WHERE id = $1`;
       console.log('🔍 Query /api/me executada:', userQuery);
       
-      const userResult = await pool.query(userQuery, [userName]);
+      const userResult = await pool.query(userQuery, [userId]);
       
       if (userResult.rows.length > 0) {
         const user = userResult.rows[0];
         console.log('✅ Dados do usuário encontrados no banco:', user);
         
-        // Usar o ID real do banco, não o hardcoded
-        const actualUserId = user.id || expectedUserId;
-        console.log('🔍 ID do usuário:', { expected: expectedUserId, actual: actualUserId });
+        // Usar o ID real do banco
+        const actualUserId = user.id;
+        console.log('🔍 ID do usuário:', actualUserId);
         
         res.json({
           authenticated: true,
@@ -580,37 +574,20 @@ app.get('/api/me', async (req, res) => {
           }
         });
       } else {
-        console.log('❌ Usuário não encontrado no banco:', userName);
-        // Fallback com dados básicos
-        const fallbackUser = {
-          id: expectedUserId,
-          nome: userName,
-          email: `${userName}@example.com`,
-          tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
-          foto_perfil: null
-        };
-        
-        console.log('🔄 Usando dados fallback:', fallbackUser);
-        res.json({
-          authenticated: true,
-          user: fallbackUser
+        console.log('❌ Usuário não encontrado no banco com ID:', userId);
+        return res.status(401).json({ 
+          authenticated: false, 
+          message: 'Usuário não encontrado' 
         });
+        
+
       }
     } catch (dbError) {
       console.error('❌ Erro ao buscar usuário no banco:', dbError);
-      // Fallback com dados básicos em caso de erro no banco
-      const fallbackUser = {
-        id: expectedUserId,
-        nome: userName,
-        email: `${userName}@example.com`,
-        tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
-        foto_perfil: null
-      };
-      
-      console.log('🔄 Usando dados fallback devido a erro no banco:', fallbackUser);
-      res.json({
-        authenticated: true,
-        user: fallbackUser
+      console.log('❌ Erro ao buscar usuário no banco:', dbError);
+      res.status(500).json({ 
+        authenticated: false, 
+        message: 'Erro interno do servidor' 
       });
     }
   } catch (error) {
@@ -627,8 +604,13 @@ app.post('/api/logout', (req, res) => {
   try {
     console.log('🚪 Logout solicitado');
     
-    // Limpar cookie de sessão simples
-    res.clearCookie('sessionToken');
+    // Limpar cookie de sessão com as mesmas opções usadas no login
+    res.clearCookie('sessionToken', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
     
     console.log('✅ Cookie de sessão removido');
     res.json({ success: true, message: 'Logout realizado com sucesso' });
@@ -2846,22 +2828,23 @@ app.get('/api/debug-session', async (req, res) => {
     };
     
     if (sessionToken) {
+      const tokenParts = sessionToken.split('-');
+      const userId = parseInt(tokenParts[0]);
+      
       debugInfo.tokenAnalysis = {
-        startsWith1: sessionToken.startsWith('1-'),
-        startsWith2: sessionToken.startsWith('2-'),
+        tokenParts: tokenParts,
+        userId: userId,
+        isValidUserId: !isNaN(userId),
         length: sessionToken.length,
-        prefix: sessionToken.substring(0, 2),
+        prefix: tokenParts[0],
         fullToken: sessionToken
       };
       
-      if (sessionToken.startsWith('1-')) {
-        debugInfo.identifiedUser = 'admin';
-        debugInfo.expectedUserId = 1;
-      } else if (sessionToken.startsWith('2-')) {
-        debugInfo.identifiedUser = 'sergio';
-        debugInfo.expectedUserId = 2;
+      if (!isNaN(userId)) {
+        debugInfo.identifiedUserId = userId;
+        debugInfo.expectedUserId = userId;
       } else {
-        debugInfo.identifiedUser = 'unknown';
+        debugInfo.identifiedUserId = null;
         debugInfo.expectedUserId = null;
       }
     }
@@ -2872,6 +2855,26 @@ app.get('/api/debug-session', async (req, res) => {
   } catch (error) {
     console.error('❌ [DEBUG] Erro no debug de sessão:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Rota para forçar limpeza de cookies
+app.post('/api/clear-session', (req, res) => {
+  try {
+    console.log('🧹 Forçando limpeza de cookies...');
+    
+    // Limpar cookie com todas as variações possíveis
+    res.clearCookie('sessionToken');
+    res.clearCookie('sessionToken', { path: '/' });
+    res.clearCookie('sessionToken', { path: '/', httpOnly: true });
+    res.clearCookie('sessionToken', { path: '/', httpOnly: true, secure: true });
+    res.clearCookie('sessionToken', { path: '/', httpOnly: true, secure: false });
+    
+    console.log('✅ Cookies limpos forçadamente');
+    res.json({ success: true, message: 'Cookies limpos com sucesso' });
+  } catch (error) {
+    console.error('❌ Erro ao limpar cookies:', error);
+    res.status(500).json({ success: false, message: 'Erro interno do servidor' });
   }
 });
 

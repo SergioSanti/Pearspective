@@ -83,6 +83,7 @@
         <button onclick="debugSession()">🔍 Debug Sessão</button>
         <button onclick="clearLog()">🗑️ Limpar Log</button>
         <button onclick="clearCookies()">🍪 Limpar Cookies</button>
+        <button onclick="forceClearSession()">🧹 Forçar Limpeza</button>
         
         <div class="log" id="log"></div>
     </div>
@@ -106,6 +107,26 @@
                 document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
             });
             log('🍪 Cookies limpos', 'success');
+        }
+        
+        async function forceClearSession() {
+            log('🧹 Forçando limpeza de sessão no servidor...', 'info');
+            
+            try {
+                const response = await fetch('/api/clear-session', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Limpeza forçada realizada: ' + data.message, 'success');
+                } else {
+                    log('❌ Erro na limpeza forçada', 'error');
+                }
+            } catch (error) {
+                log('❌ Erro ao forçar limpeza: ' + error.message, 'error');
+            }
         }
         
         async function testLogin() {
