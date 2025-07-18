@@ -430,8 +430,13 @@ app.post('/api/login', async (req, res) => {
       console.log('🔍 Token gerado para admin:', sessionToken);
       console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
       
-      // Configurar cookie de sessão
-      res.cookie('sessionToken', sessionToken);
+      // Configurar cookie de sessão com opções de segurança
+      res.cookie('sessionToken', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+      });
       
       return res.json({ 
         success: true, 
@@ -450,8 +455,13 @@ app.post('/api/login', async (req, res) => {
       console.log('🔍 Token gerado para sergio:', sessionToken);
       console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
       
-      // Configurar cookie de sessão
-      res.cookie('sessionToken', sessionToken);
+      // Configurar cookie de sessão com opções de segurança
+      res.cookie('sessionToken', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+      });
       
       return res.json({ 
         success: true,
