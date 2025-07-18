@@ -1,0 +1,48 @@
+@startuml fluxo-dados
+!theme plain
+skinparam backgroundColor #f5f5f5
+
+actor "Usuário" as USER
+participant "Frontend" as FE
+participant "Express.js" as API
+participant "JWT Auth" as AUTH
+participant "PostgreSQL" as DB
+participant "Railway" as INFRA
+
+== Autenticação ==
+USER -> FE: Acessa sistema
+FE -> API: GET /api/me
+API -> AUTH: Verifica token
+AUTH -> API: Token válido
+API -> FE: Dados do usuário
+FE -> USER: Página carregada
+
+== Navegação ==
+USER -> FE: Navega para perfil
+FE -> API: GET /api/users/profile/:username
+API -> DB: SELECT usuarios
+DB -> API: Dados do usuário
+API -> FE: Perfil completo
+FE -> USER: Perfil exibido
+
+== Upload de Arquivo ==
+USER -> FE: Faz upload
+FE -> API: POST /api/users/curriculum/:username
+API -> AUTH: Verifica permissão
+AUTH -> API: Permissão OK
+API -> DB: INSERT curriculos
+DB -> API: Arquivo salvo
+API -> FE: Upload confirmado
+FE -> USER: Sucesso
+
+== Atualização de Perfil ==
+USER -> FE: Edita perfil
+FE -> API: PUT /api/users/profile/:username
+API -> AUTH: Verifica token
+AUTH -> API: Token válido
+API -> DB: UPDATE usuarios
+DB -> API: Dados atualizados
+API -> FE: Perfil atualizado
+FE -> USER: Confirmação
+
+@enduml 

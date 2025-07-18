@@ -1,0 +1,65 @@
+@startuml banco-dados
+!theme plain
+skinparam backgroundColor #f5f5f5
+
+entity "usuarios" {
+  * id : SERIAL
+  --
+  * nome : VARCHAR(100)
+  * email : VARCHAR(255)
+  * senha : VARCHAR(255)
+  tipo_usuario : VARCHAR(50)
+  foto_perfil : TEXT
+  departamento : VARCHAR(100)
+  cargo_atual : VARCHAR(100)
+  nome_exibicao : VARCHAR(100)
+  data_cadastro : TIMESTAMP
+}
+
+entity "areas" {
+  * id : SERIAL
+  --
+  * nome : VARCHAR(100)
+  descricao : TEXT
+  data_criacao : TIMESTAMP
+}
+
+entity "cargos" {
+  * id : SERIAL
+  --
+  * nome_cargo : VARCHAR(100)
+  * area_id : INTEGER
+  requisitos : TEXT
+  data_criacao : TIMESTAMP
+}
+
+entity "certificados" {
+  * id : SERIAL
+  --
+  * usuario_id : INTEGER
+  * nome : VARCHAR(200)
+  emissor : VARCHAR(200)
+  data_emissao : DATE
+  data_validade : DATE
+  arquivo : TEXT
+  data_upload : TIMESTAMP
+}
+
+entity "curriculos" {
+  * id : SERIAL
+  --
+  * usuario_nome : VARCHAR(100)
+  * nome_arquivo : VARCHAR(255)
+  * tipo_mime : VARCHAR(100)
+  * tamanho : INTEGER
+  * dados : BYTEA
+  data_upload : TIMESTAMP
+}
+
+' Relacionamentos
+usuarios ||--o{ certificados : possui
+usuarios ||--o{ curriculos : possui
+areas ||--o{ cargos : contém
+cargos }o--|| areas : pertence_a
+
+@enduml 

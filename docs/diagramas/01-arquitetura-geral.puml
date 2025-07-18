@@ -1,0 +1,65 @@
+@startuml arquitetura-geral
+!theme plain
+skinparam backgroundColor #f5f5f5
+skinparam componentStyle rectangle
+
+package "Frontend (Cliente)" {
+  [Páginas HTML] as HTML
+  [CSS Estilos] as CSS
+  [JavaScript ES6+] as JS
+  [Dark Mode] as DM
+}
+
+package "Backend (Servidor)" {
+  [Express.js] as EXPRESS
+  [Node.js Runtime] as NODE
+  [JWT Authentication] as JWT
+  [Multer Upload] as MULTER
+  [bcrypt Security] as BCRYPT
+}
+
+package "Banco de Dados" {
+  database "PostgreSQL" as DB
+  [Tabela: usuarios] as USERS
+  [Tabela: areas] as AREAS
+  [Tabela: cargos] as CARGOS
+  [Tabela: certificados] as CERTS
+  [Tabela: curriculos] as CURR
+}
+
+package "Infraestrutura" {
+  [Railway Platform] as RAILWAY
+  [SSL/TLS] as SSL
+  [Docker Container] as DOCKER
+}
+
+package "APIs Externas" {
+  [File Upload] as UPLOAD
+  [Session Management] as SESSION
+}
+
+' Conexões
+HTML --> EXPRESS : HTTP/HTTPS
+CSS --> HTML : Estilos
+JS --> EXPRESS : AJAX/Fetch
+DM --> JS : Theme Toggle
+
+EXPRESS --> NODE : Runtime
+JWT --> EXPRESS : Auth Middleware
+MULTER --> EXPRESS : File Handling
+BCRYPT --> EXPRESS : Password Hash
+
+EXPRESS --> DB : Connection Pool
+DB --> USERS : CRUD
+DB --> AREAS : CRUD
+DB --> CARGOS : CRUD
+DB --> CERTS : CRUD
+DB --> CURR : Binary Storage
+
+RAILWAY --> DOCKER : Containerization
+DOCKER --> NODE : Runtime
+SSL --> RAILWAY : Security
+UPLOAD --> MULTER : File Processing
+SESSION --> JWT : Token Management
+
+@enduml 

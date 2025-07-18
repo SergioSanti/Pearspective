@@ -1,0 +1,59 @@
+@startuml componentes
+!theme plain
+skinparam backgroundColor #f5f5f5
+
+package "Frontend Components" {
+  [Navbar] as NAV
+  [Profile Page] as PROFILE
+  [Login Page] as LOGIN
+  [Catalog Page] as CATALOG
+  [Library Page] as LIBRARY
+  [Simulator] as SIM
+}
+
+package "Backend Services" {
+  [Auth Service] as AUTH_SVC
+  [User Service] as USER_SVC
+  [File Service] as FILE_SVC
+  [Area Service] as AREA_SVC
+  [Position Service] as POS_SVC
+}
+
+package "Database Layer" {
+  [User Repository] as USER_REPO
+  [File Repository] as FILE_REPO
+  [Area Repository] as AREA_REPO
+  [Position Repository] as POS_REPO
+}
+
+package "Infrastructure" {
+  [Railway Hosting] as HOST
+  [PostgreSQL DB] as DB
+  [SSL Certificate] as SSL
+  [Docker Container] as DOCKER
+}
+
+' Conexões
+NAV --> AUTH_SVC : Session Check
+PROFILE --> USER_SVC : CRUD Operations
+LOGIN --> AUTH_SVC : Authentication
+CATALOG --> AREA_SVC : List Areas
+LIBRARY --> FILE_SVC : File Management
+SIM --> POS_SVC : Position Data
+
+AUTH_SVC --> USER_REPO : User Data
+USER_SVC --> USER_REPO : User Operations
+FILE_SVC --> FILE_REPO : File Storage
+AREA_SVC --> AREA_REPO : Area Data
+POS_SVC --> POS_REPO : Position Data
+
+USER_REPO --> DB : SQL Queries
+FILE_REPO --> DB : Binary Storage
+AREA_REPO --> DB : Area Queries
+POS_REPO --> DB : Position Queries
+
+HOST --> DOCKER : Containerization
+DOCKER --> DB : Database Connection
+SSL --> HOST : Security Layer
+
+@enduml 

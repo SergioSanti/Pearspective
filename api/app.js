@@ -1361,26 +1361,7 @@ app.delete('/api/cargos/:id', async (req, res) => {
   }
 });
 
-// Rota para deletar área
-app.delete('/api/areas/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`🗑️ Deletando área ${id}...`);
-    
-    const result = await pool.query('DELETE FROM areas WHERE id = $1 RETURNING *', [id]);
-    
-    if (result.rows.length > 0) {
-      console.log('✅ Área deletada:', result.rows[0]);
-      res.json({ message: 'Área deletada com sucesso' });
-    } else {
-      console.log('❌ Área não encontrada para deletar:', id);
-      res.status(404).json({ error: 'Área não encontrada' });
-    }
-  } catch (error) {
-    console.error('❌ Erro ao deletar área:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
+// Rota para deletar área (removida duplicata - mantida apenas a versão completa abaixo)
 
 
 
@@ -2023,23 +2004,48 @@ app.delete('/api/areas/:id', async (req, res) => {
     const { id } = req.params;
     
     console.log(`🗑️ Deletando área ${id}...`);
+    console.log(`🔍 Verificando se a área ${id} existe...`);
+    
+    // Verificar se a área existe antes de tentar deletar
+    const areaCheck = await pool.query('SELECT id, nome FROM areas WHERE id = $1', [id]);
+    if (areaCheck.rows.length === 0) {
+      console.log('❌ Área não encontrada para deletar:', id);
+      return res.status(404).json({ error: 'Área não encontrada' });
+    }
+    
+    console.log('✅ Área encontrada:', areaCheck.rows[0]);
+    
+    // Verificar quantos cargos estão associados à área
+    const cargosCheck = await pool.query('SELECT COUNT(*) as total FROM cargos WHERE area_id = $1', [id]);
+    const totalCargos = parseInt(cargosCheck.rows[0].total);
+    console.log(`📋 Encontrados ${totalCargos} cargos associados à área ${id}`);
     
     // Primeiro deletar todos os cargos da área
-    await pool.query('DELETE FROM cargos WHERE area_id = $1', [id]);
-    console.log('✅ Cargos da área deletados');
+    if (totalCargos > 0) {
+      const deleteCargosResult = await pool.query('DELETE FROM cargos WHERE area_id = $1 RETURNING id', [id]);
+      console.log(`✅ ${deleteCargosResult.rows.length} cargos da área deletados`);
+    } else {
+      console.log('✅ Nenhum cargo associado à área');
+    }
     
     // Depois deletar a área
     const result = await pool.query('DELETE FROM areas WHERE id = $1 RETURNING *', [id]);
     
     if (result.rows.length > 0) {
-      console.log('✅ Área deletada:', result.rows[0]);
-      res.json({ message: 'Área e cargos associados deletados com sucesso' });
+      console.log('✅ Área deletada com sucesso:', result.rows[0]);
+      res.json({ 
+        message: 'Área e cargos associados deletados com sucesso',
+        area: result.rows[0],
+        cargosDeletados: totalCargos
+      });
     } else {
-      res.status(404).json({ error: 'Área não encontrada' });
+      console.log('❌ Erro: Área não foi deletada');
+      res.status(500).json({ error: 'Erro ao deletar área' });
     }
   } catch (error) {
     console.error('❌ Erro ao deletar área:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });
 

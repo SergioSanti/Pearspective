@@ -298,16 +298,28 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target.classList.contains('delete-area')) {
         if (confirm('Tem certeza? Deletar uma área também deletará todos os cargos associados.')) {
           const id = e.target.dataset.id;
+          console.log(`🗑️ Tentando deletar área ${id}...`);
+          
           try {
+            console.log(`📡 Enviando requisição DELETE para /api/areas/${id}`);
             const response = await fetch(`/api/areas/${id}`, { method: 'DELETE' });
+            console.log(`📡 Resposta recebida:`, response.status, response.statusText);
+            
             if (response.ok) {
+              const result = await response.json();
+              console.log('✅ Área deletada com sucesso:', result);
               showSuccessMessage('Área deletada com sucesso!');
             } else {
-              showErrorMessage('Erro ao deletar área.');
+              const errorData = await response.json();
+              console.error('❌ Erro ao deletar área:', errorData);
+              showErrorMessage(`Erro ao deletar área: ${errorData.error || 'Tente novamente.'}`);
             }
           } catch (error) {
+            console.error('❌ Erro de conexão ao deletar área:', error);
             showErrorMessage('Erro ao conectar com o servidor.');
           }
+          
+          console.log('🔄 Recarregando lista de áreas...');
           loadAreasIntoModal();
           carregarAreas(); // Recarrega o select principal
         }
