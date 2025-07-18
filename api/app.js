@@ -156,6 +156,7 @@ pool.query('SELECT NOW()', async (err, res) => {
             foto_perfil TEXT,
             departamento VARCHAR(100),
             cargo_atual VARCHAR(100),
+            nome_exibicao VARCHAR(100),
             data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           );
         `);
@@ -163,6 +164,24 @@ pool.query('SELECT NOW()', async (err, res) => {
         console.log('✅ Tabela usuarios criada');
       } else {
         console.log('✅ Tabela usuarios já existe');
+        
+        // Verificar se a coluna nome_exibicao existe
+        const nomeExibicaoExists = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'usuarios' 
+            AND column_name = 'nome_exibicao'
+          );
+        `);
+        
+        if (!nomeExibicaoExists.rows[0].exists) {
+          console.log('❌ Coluna nome_exibicao não existe, criando...');
+          await pool.query('ALTER TABLE usuarios ADD COLUMN nome_exibicao VARCHAR(100)');
+          console.log('✅ Coluna nome_exibicao criada');
+        } else {
+          console.log('✅ Coluna nome_exibicao já existe');
+        }
       }
       
       // Verificar se os usuários padrão existem
@@ -415,6 +434,78 @@ app.put('/api/test-put', (req, res) => {
 
 
 
+// Rota para verificar e corrigir estrutura da tabela usuarios
+app.get('/api/fix-usuarios-table', async (req, res) => {
+  try {
+    console.log('🔧 Verificando estrutura da tabela usuarios...');
+    
+    // Verificar se a tabela existe
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'usuarios'
+    `);
+    
+    if (tableCheck.rows.length === 0) {
+      console.log('❌ Tabela usuarios não existe, criando...');
+      
+      // Criar tabela usuarios completa
+      await pool.query(`
+        CREATE TABLE usuarios (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(100) UNIQUE NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          senha VARCHAR(255) NOT NULL,
+          tipo_usuario VARCHAR(50) DEFAULT 'usuario',
+          foto_perfil TEXT,
+          departamento VARCHAR(100),
+          cargo_atual VARCHAR(100),
+          nome_exibicao VARCHAR(100),
+          data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ Tabela usuarios criada com sucesso');
+      res.json({ message: 'Tabela usuarios criada com sucesso', mode: 'railway' });
+    } else {
+      console.log('✅ Tabela usuarios já existe');
+      
+      // Verificar colunas existentes
+      const columnsCheck = await pool.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'usuarios'
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('📋 Colunas existentes:', columnsCheck.rows);
+      
+      // Verificar se nome_exibicao existe
+      const hasNomeExibicao = columnsCheck.rows.some(row => row.column_name === 'nome_exibicao');
+      
+      if (!hasNomeExibicao) {
+        console.log('❌ Coluna nome_exibicao não existe, criando...');
+        await pool.query('ALTER TABLE usuarios ADD COLUMN nome_exibicao VARCHAR(100)');
+        console.log('✅ Coluna nome_exibicao criada');
+      }
+      
+      res.json({ 
+        message: 'Tabela usuarios verificada',
+        columns: columnsCheck.rows,
+        hasNomeExibicao: hasNomeExibicao || true,
+        mode: 'railway'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar tabela usuarios:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+
+
 // Rota de login com banco de dados
 app.post('/api/login', async (req, res) => {
   try {
@@ -426,11 +517,17 @@ app.post('/api/login', async (req, res) => {
     if (usuario === 'admin' && senha === 'Admin123') {
       console.log('✅ Login admin bem-sucedido');
       
-      // Limpar cookie antigo primeiro
+      // Limpar cookie antigo primeiro (mais robusto)
       res.clearCookie('sessionToken', { 
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      res.clearCookie('sessionToken', { 
+        path: '/',
+        httpOnly: false,
+        secure: false,
         sameSite: 'lax'
       });
       
@@ -438,6 +535,8 @@ app.post('/api/login', async (req, res) => {
       const sessionToken = `1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       console.log('🔍 Token gerado para admin:', sessionToken);
+      console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
+      console.log('🔍 Primeiros 2 caracteres do token:', sessionToken.substring(0, 2));
       
       // Configurar cookie de sessão com opções de segurança
       res.cookie('sessionToken', sessionToken, {
@@ -459,11 +558,17 @@ app.post('/api/login', async (req, res) => {
     } else if (usuario === 'sergio' && senha === '12345') {
       console.log('✅ Login sergio bem-sucedido');
       
-      // Limpar cookie antigo primeiro
+      // Limpar cookie antigo primeiro (mais robusto)
       res.clearCookie('sessionToken', { 
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      res.clearCookie('sessionToken', { 
+        path: '/',
+        httpOnly: false,
+        secure: false,
         sameSite: 'lax'
       });
       
@@ -471,6 +576,8 @@ app.post('/api/login', async (req, res) => {
       const sessionToken = `2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       console.log('🔍 Token gerado para sergio:', sessionToken);
+      console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
+      console.log('🔍 Primeiros 2 caracteres do token:', sessionToken.substring(0, 2));
       
       // Configurar cookie de sessão com opções de segurança
       res.cookie('sessionToken', sessionToken, {
@@ -528,6 +635,8 @@ app.get('/api/me', async (req, res) => {
     console.log('🔍 Analisando token:', sessionToken);
     console.log('🔍 Token começa com 1-:', sessionToken.startsWith('1-'));
     console.log('🔍 Token começa com 2-:', sessionToken.startsWith('2-'));
+    console.log('🔍 Token completo:', sessionToken);
+    console.log('🔍 Primeiros 2 caracteres:', sessionToken.substring(0, 2));
     
     if (sessionToken.startsWith('1-')) {
       userName = 'admin';
@@ -539,6 +648,7 @@ app.get('/api/me', async (req, res) => {
       console.log('✅ Token identificado como SERGIO');
     } else {
       console.log('❌ Token inválido:', sessionToken);
+      console.log('❌ Token não começa com 1- ou 2-');
       return res.status(401).json({ 
         authenticated: false, 
         message: 'Sessão inválida' 
@@ -569,6 +679,7 @@ app.get('/api/me', async (req, res) => {
       if (availableColumns.includes('email')) selectColumns.push('email');
       if (availableColumns.includes('tipo_usuario')) selectColumns.push('tipo_usuario');
       if (availableColumns.includes('foto_perfil')) selectColumns.push('foto_perfil');
+      if (availableColumns.includes('nome_exibicao')) selectColumns.push('nome_exibicao');
       
       if (selectColumns.length === 0) {
         console.error('❌ Nenhuma coluna válida encontrada na tabela usuarios');
@@ -595,7 +706,8 @@ app.get('/api/me', async (req, res) => {
             nome: user.nome || userName,
             email: user.email || `${userName}@example.com`,
             tipo_usuario: user.tipo_usuario || 'usuario',
-            foto_perfil: user.foto_perfil || null
+            foto_perfil: user.foto_perfil || null,
+            nome_exibicao: user.nome_exibicao || user.nome || userName
           }
         });
       } else {
@@ -606,7 +718,8 @@ app.get('/api/me', async (req, res) => {
           nome: userName,
           email: `${userName}@example.com`,
           tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
-          foto_perfil: null
+          foto_perfil: null,
+          nome_exibicao: userName
         };
         
         console.log('🔄 Usando dados fallback:', fallbackUser);
@@ -626,7 +739,8 @@ app.get('/api/me', async (req, res) => {
         nome: userName,
         email: `${userName}@example.com`,
         tipo_usuario: userName === 'admin' ? 'admin' : 'usuario',
-        foto_perfil: null
+        foto_perfil: null,
+        nome_exibicao: userName
       };
       
       console.log('🔄 Usando dados fallback devido a erro no banco:', fallbackUser);
@@ -787,12 +901,13 @@ app.get('/api/users/profile/:username', async (req, res) => {
 app.put('/api/users/profile/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    const { departamento, cargo_atual, foto_perfil } = req.body;
+    const { departamento, cargo_atual, foto_perfil, nome_exibicao } = req.body;
     
     console.log(`👤 Atualizando perfil do usuário ${username}:`, { 
       departamento, 
       cargo_atual, 
-      foto_perfil: foto_perfil ? 'Foto fornecida' : 'Sem foto' 
+      foto_perfil: foto_perfil ? 'Foto fornecida' : 'Sem foto',
+      nome_exibicao
     });
     
     // Verificar se o usuário existe primeiro
@@ -800,30 +915,82 @@ app.put('/api/users/profile/:username', async (req, res) => {
     
     if (userCheck.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', username);
-          return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
     console.log('✅ Usuário encontrado:', userCheck.rows[0]);
     
-    // Query simples para atualizar o perfil
+    // Verificar estrutura da tabela usuarios
+    const tableInfo = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'usuarios' 
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('🔍 Estrutura da tabela usuarios:', tableInfo.rows.map(row => row.column_name));
+    
+    // Construir query dinamicamente baseada nas colunas existentes
+    const availableColumns = tableInfo.rows.map(row => row.column_name);
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    // Adicionar campos que existem na tabela
+    if (availableColumns.includes('departamento') && departamento !== undefined) {
+      updateFields.push(`departamento = $${paramIndex++}`);
+      queryParams.push(departamento);
+    }
+    
+    if (availableColumns.includes('cargo_atual') && cargo_atual !== undefined) {
+      updateFields.push(`cargo_atual = $${paramIndex++}`);
+      queryParams.push(cargo_atual);
+    }
+    
+    if (availableColumns.includes('foto_perfil') && foto_perfil !== undefined) {
+      updateFields.push(`foto_perfil = $${paramIndex++}`);
+      queryParams.push(foto_perfil);
+    }
+    
+    if (availableColumns.includes('nome_exibicao') && nome_exibicao !== undefined) {
+      updateFields.push(`nome_exibicao = $${paramIndex++}`);
+      queryParams.push(nome_exibicao);
+    }
+    
+    if (updateFields.length === 0) {
+      console.log('❌ Nenhum campo válido para atualizar');
+      return res.status(400).json({ error: 'Nenhum campo válido para atualizar' });
+    }
+    
+    // Construir query de retorno baseada nas colunas disponíveis
+    const returnColumns = [];
+    if (availableColumns.includes('id')) returnColumns.push('id');
+    if (availableColumns.includes('nome')) returnColumns.push('nome');
+    if (availableColumns.includes('email')) returnColumns.push('email');
+    if (availableColumns.includes('tipo_usuario')) returnColumns.push('tipo_usuario');
+    if (availableColumns.includes('foto_perfil')) returnColumns.push('foto_perfil');
+    if (availableColumns.includes('departamento')) returnColumns.push('departamento');
+    if (availableColumns.includes('cargo_atual')) returnColumns.push('cargo_atual');
+    if (availableColumns.includes('nome_exibicao')) returnColumns.push('nome_exibicao');
+    
     const query = `
       UPDATE usuarios 
-      SET departamento = COALESCE($1, departamento), 
-          cargo_atual = COALESCE($2, cargo_atual), 
-          foto_perfil = COALESCE($3, foto_perfil)
-      WHERE nome = $4 
-      RETURNING id, nome, email, tipo_usuario, foto_perfil, departamento, cargo_atual
+      SET ${updateFields.join(', ')}
+      WHERE nome = $${paramIndex}
+      RETURNING ${returnColumns.join(', ')}
     `;
     
-    console.log('🔍 Executando query:', query);
-    console.log('📋 Parâmetros:', [departamento, cargo_atual, foto_perfil ? 'Foto presente' : 'Sem foto', username]);
+    queryParams.push(username);
     
-    const result = await pool.query(query, [departamento, cargo_atual, foto_perfil, username]);
+    console.log('🔍 Executando query:', query);
+    console.log('📋 Parâmetros:', queryParams);
+    
+    const result = await pool.query(query, queryParams);
     
     if (result.rows.length > 0) {
       console.log('✅ Perfil atualizado com sucesso:', result.rows[0]);
       res.json(result.rows[0]);
-        } else {
+    } else {
       console.log('❌ Nenhuma linha atualizada');
       res.status(500).json({ error: 'Erro ao atualizar perfil' });
     }

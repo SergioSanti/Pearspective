@@ -779,33 +779,14 @@ class ProfileManager {
                 throw new Error('Nome é obrigatório');
             }
 
-            // Atualizar nome de exibição separadamente
-            if (updatedData.nome !== this.originalData.nome_exibicao) {
-                const displayNameResponse = await fetch(`/api/users/display-name/${encodeURIComponent(this.loginUserName)}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ displayName: updatedData.nome })
-                });
-
-                if (!displayNameResponse.ok) {
-                    const errorData = await displayNameResponse.json().catch(() => ({}));
-                    const errorMessage = errorData.error || errorData.details || 'Erro ao atualizar nome de exibição';
-                    throw new Error(errorMessage);
-                }
-
-                const updatedUserDisplay = await displayNameResponse.json();
-                console.log('✅ Nome de exibição atualizado:', updatedUserDisplay.nome_exibicao);
-            }
-
-            // Atualizar perfil (departamento, cargo, foto) no banco de dados usando o nome de login original
+            // Atualizar perfil completo (incluindo nome_exibicao, departamento, cargo, foto)
             const response = await fetch(`/api/users/profile/${encodeURIComponent(this.loginUserName)}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
+                    nome_exibicao: updatedData.nome,
                     departamento: updatedData.departamento || '',
                     cargo_atual: updatedData.cargo_atual || '',
                     foto_perfil: updatedData.foto_perfil

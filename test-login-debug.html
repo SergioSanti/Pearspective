@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+        input { padding: 8px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Login - Teste de Autenticação</h1>
+    
+    <div class="test-section">
+        <h2>1. Teste de Login</h2>
+        <input type="text" id="username" placeholder="Usuário" value="sergio">
+        <input type="password" id="password" placeholder="Senha" value="12345">
+        <button onclick="testLogin()">Testar Login</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Verificar Sessão Atual</h2>
+        <button onclick="checkSession()">Verificar Sessão</button>
+        <div id="sessionResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Verificar Cookies</h2>
+        <button onclick="checkCookies()">Verificar Cookies</button>
+        <div id="cookiesResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Debug Token</h2>
+        <button onclick="debugToken()">Debug Token</button>
+        <div id="debugResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Logout</h2>
+        <button onclick="logout()">Fazer Logout</button>
+        <div id="logoutResult" class="result"></div>
+    </div>
+
+    <script>
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            resultDiv.innerHTML = '🔄 Fazendo login...';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        usuario: username,
+                        senha: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Login bem-sucedido!</h3>
+                        <p><strong>Usuário:</strong> ${data.nome}</p>
+                        <p><strong>ID:</strong> ${data.id}</p>
+                        <p><strong>Tipo:</strong> ${data.tipo_usuario}</p>
+                        <p><strong>Token:</strong> ${data.sessionToken}</p>
+                        <p><strong>Token começa com:</strong> ${data.sessionToken.substring(0, 2)}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Login falhou!</h3>
+                        <p><strong>Erro:</strong> ${data.message}</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro na requisição!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function checkSession() {
+            const resultDiv = document.getElementById('sessionResult');
+            resultDiv.innerHTML = '🔄 Verificando sessão...';
+            
+            try {
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.authenticated) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Sessão válida!</h3>
+                        <p><strong>Usuário:</strong> ${data.user.nome}</p>
+                        <p><strong>ID:</strong> ${data.user.id}</p>
+                        <p><strong>Tipo:</strong> ${data.user.tipo_usuario}</p>
+                        <p><strong>Email:</strong> ${data.user.email}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Sessão inválida!</h3>
+                        <p><strong>Mensagem:</strong> ${data.message}</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro ao verificar sessão!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        function checkCookies() {
+            const resultDiv = document.getElementById('cookiesResult');
+            const cookies = document.cookie;
+            
+            if (cookies) {
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>🍪 Cookies encontrados:</h3>
+                    <pre>${cookies}</pre>
+                `;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Nenhum cookie encontrado</h3>
+                `;
+            }
+        }
+        
+        async function logout() {
+            const resultDiv = document.getElementById('logoutResult');
+            resultDiv.innerHTML = '🔄 Fazendo logout...';
+            
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Logout realizado!</h3>
+                        <p><strong>Mensagem:</strong> ${data.message}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Erro no logout!</h3>
+                        <p><strong>Erro:</strong> ${data.message}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro na requisição!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function debugToken() {
+            const resultDiv = document.getElementById('debugResult');
+            resultDiv.innerHTML = '🔄 Debugando token...';
+            
+            try {
+                const response = await fetch('/api/debug-token', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>🔍 Debug do Token</h3>
+                    <p><strong>Token:</strong> ${data.token || 'Nenhum'}</p>
+                    <p><strong>Começa com 1-:</strong> ${data.startsWith1}</p>
+                    <p><strong>Começa com 2-:</strong> ${data.startsWith2}</p>
+                    <p><strong>Tamanho:</strong> ${data.tokenLength}</p>
+                    <p><strong>Primeiros 10 chars:</strong> ${data.firstChars}</p>
+                    <p><strong>Cookies:</strong> ${JSON.stringify(data.cookies, null, 2)}</p>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro no debug!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

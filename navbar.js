@@ -40,7 +40,10 @@ async function updateUserCircle() {
           
           // Nome de exibição
           if (userNameDisplay) {
-            userNameDisplay.textContent = user.nome;
+            // Usar nome_exibicao se disponível, senão usar nome
+            const displayName = user.nome_exibicao || user.nome;
+            userNameDisplay.textContent = displayName;
+            console.log('[NAVBAR] Nome de exibição definido:', displayName);
           }
         } else {
           console.error('[NAVBAR] Dados de sessão inválidos:', sessionData);
