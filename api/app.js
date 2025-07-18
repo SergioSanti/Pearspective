@@ -92,7 +92,7 @@ pool.query('SELECT NOW()', async (err, res) => {
   if (err) {
     console.error('❌ Erro ao conectar com o banco:', err);
     console.error('❌ DATABASE_URL:', process.env.DATABASE_URL ? 'Configurada' : 'Não configurada');
-  } else {
+        } else {
     console.log('✅ Conectado ao banco de dados PostgreSQL');
     console.log('🔍 Configuração do banco:', {
       hasDatabaseUrl: !!process.env.DATABASE_URL,
@@ -449,7 +449,7 @@ app.post('/api/login', async (req, res) => {
       });
       
       return res.json({ 
-        success: true,
+        success: true, 
         id: 1,
         nome: 'admin',
         tipo_usuario: 'admin',
@@ -588,9 +588,9 @@ app.get('/api/me', async (req, res) => {
         const actualUserId = user.id || expectedUserId;
         console.log('🔍 ID do usuário:', { expected: expectedUserId, actual: actualUserId });
         
-        res.json({
-          authenticated: true,
-          user: {
+      res.json({
+        authenticated: true,
+        user: {
             id: actualUserId,
             nome: user.nome || userName,
             email: user.email || `${userName}@example.com`,
@@ -610,8 +610,8 @@ app.get('/api/me', async (req, res) => {
         };
         
         console.log('🔄 Usando dados fallback:', fallbackUser);
-        res.json({
-          authenticated: true,
+      res.json({
+        authenticated: true,
           user: fallbackUser
         });
         
@@ -800,7 +800,7 @@ app.put('/api/users/profile/:username', async (req, res) => {
     
     if (userCheck.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', username);
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+          return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
     console.log('✅ Usuário encontrado:', userCheck.rows[0]);
@@ -823,7 +823,7 @@ app.put('/api/users/profile/:username', async (req, res) => {
     if (result.rows.length > 0) {
       console.log('✅ Perfil atualizado com sucesso:', result.rows[0]);
       res.json(result.rows[0]);
-    } else {
+        } else {
       console.log('❌ Nenhuma linha atualizada');
       res.status(500).json({ error: 'Erro ao atualizar perfil' });
     }
@@ -1145,7 +1145,7 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
     
     if (userCheck.rows.length === 0) {
       console.log('❌ Usuário não encontrado:', username);
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+        return res.status(404).json({ error: 'Usuário não encontrado' });
     }
     
     console.log('✅ Usuário encontrado, verificando tabela curriculos...');
@@ -1195,11 +1195,11 @@ app.get('/api/users/curriculum/:username/status', async (req, res) => {
       });
     } else {
       console.log('❌ Nenhum currículo encontrado para:', username);
-      res.json({
-        hasCurriculum: false,
-        lastUpdated: null,
-        status: 'not_uploaded'
-      });
+    res.json({ 
+      hasCurriculum: false, 
+      lastUpdated: null,
+      status: 'not_uploaded'
+    });
     }
   } catch (error) {
     console.error('❌ Erro ao buscar status do currículo:', error);
@@ -1236,7 +1236,7 @@ app.get('/api/users/curriculum/:username', async (req, res) => {
       res.send(curriculum.dados);
     } else {
       console.log('❌ Currículo não encontrado para:', username);
-      res.status(404).json({ error: 'Currículo não encontrado' });
+    res.status(404).json({ error: 'Currículo não encontrado' });
     }
   } catch (error) {
     console.error('❌ Erro ao buscar currículo:', error);
@@ -1351,7 +1351,7 @@ app.delete('/api/users/curriculum/:username', async (req, res) => {
     
     if (result.rows.length > 0) {
       console.log('✅ Currículo deletado com sucesso');
-      res.json({ message: 'Currículo deletado com sucesso' });
+    res.json({ message: 'Currículo deletado com sucesso' });
     } else {
       console.log('❌ Nenhum currículo encontrado para deletar');
       res.status(404).json({ error: 'Currículo não encontrado' });
