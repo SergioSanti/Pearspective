@@ -519,11 +519,25 @@ app.get('/api/fix-sergio-profile', async (req, res) => {
   try {
     console.log('🔧 Definindo área e cargo fixos para o Sergio...');
     
+    // Primeiro verificar se o usuário existe
+    const checkUser = await pool.query('SELECT id, nome, departamento, cargo_atual, nome_exibicao FROM usuarios WHERE nome = $1', ['sergio']);
+    
+    if (checkUser.rows.length === 0) {
+      console.log('❌ Usuário Sergio não encontrado');
+      return res.json({ 
+        message: 'Usuário Sergio não encontrado',
+        user: null,
+        error: 'Usuário não existe'
+      });
+    }
+    
+    console.log('✅ Usuário Sergio encontrado:', checkUser.rows[0]);
+    
     // Atualizar o perfil do Sergio com área e cargo fixos
     const result = await pool.query(`
       UPDATE usuarios 
-      SET departamento = 'Desenvolvimento', 
-          cargo_atual = 'Desenvolvedor Full Stack',
+      SET departamento = 'Tecnologia da Informação', 
+          cargo_atual = 'Desenvolvedor Front End',
           nome_exibicao = 'Sergio'
       WHERE nome = 'sergio'
       RETURNING id, nome, departamento, cargo_atual, nome_exibicao
@@ -533,17 +547,49 @@ app.get('/api/fix-sergio-profile', async (req, res) => {
       console.log('✅ Perfil do Sergio atualizado:', result.rows[0]);
       res.json({ 
         message: 'Perfil do Sergio atualizado com sucesso',
-        user: result.rows[0]
+        user: result.rows[0],
+        previous: checkUser.rows[0]
       });
     } else {
-      console.log('⚠️ Usuário Sergio não encontrado');
-      res.json({ 
-        message: 'Usuário Sergio não encontrado',
+      console.log('❌ Erro ao atualizar perfil do Sergio');
+      res.status(500).json({ 
+        error: 'Erro ao atualizar perfil',
         user: null
       });
     }
   } catch (error) {
     console.error('❌ Erro ao atualizar perfil do Sergio:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Rota de debug para verificar dados do usuário
+app.get('/api/debug-user/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    console.log(`🔍 Debug: Verificando usuário ${username}...`);
+    
+    const result = await pool.query(`
+      SELECT id, nome, email, tipo_usuario, departamento, cargo_atual, nome_exibicao, data_cadastro
+      FROM usuarios 
+      WHERE nome = $1
+    `, [username]);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Usuário encontrado:', result.rows[0]);
+      res.json({ 
+        message: 'Usuário encontrado',
+        user: result.rows[0]
+      });
+    } else {
+      console.log('❌ Usuário não encontrado');
+      res.json({ 
+        message: 'Usuário não encontrado',
+        user: null
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar usuário:', error);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
   }
 });

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Sergio</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-secondary { background: #2196F3; color: white; }
+        .debug { background: #fff3e0; color: #e65100; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Sergio</h1>
+    
+    <div class="debug-section" style="background: #e3f2fd; border: 1px solid #2196F3;">
+        <h3>📋 Configurações Atuais:</h3>
+        <ul>
+            <li><strong>Nome de Exibição:</strong> Sergio</li>
+            <li><strong>Departamento:</strong> Tecnologia da Informação</li>
+            <li><strong>Cargo:</strong> Desenvolvedor Front End</li>
+            <li><strong>Status:</strong> Campos fixos (não editáveis)</li>
+        </ul>
+    </div>
+    
+    <div class="debug-section">
+        <h2>1. Verificar Dados do Sergio</h2>
+        <button class="btn-secondary" onclick="checkSergio()">Verificar Sergio</button>
+        <div id="sergioResult" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. Aplicar Configurações Fixas</h2>
+        <button class="btn-primary" onclick="fixSergio()">Fixar Sergio</button>
+        <div id="fixResult" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. Verificar Sessão Atual</h2>
+        <button class="btn-secondary" onclick="checkSession()">Verificar Sessão</button>
+        <div id="sessionResult" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>4. Testar Perfil</h2>
+        <a href="/perfil.html" target="_blank" class="btn-primary">Abrir Perfil</a>
+    </div>
+
+    <script>
+        async function checkSergio() {
+            const resultDiv = document.getElementById('sergioResult');
+            resultDiv.innerHTML = '🔄 Verificando dados do Sergio...';
+            
+            try {
+                const response = await fetch('/api/debug-user/sergio');
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Dados do Sergio</h3>
+                    <p><strong>Mensagem:</strong> ${data.message}</p>
+                    ${data.user ? `
+                        <p><strong>ID:</strong> ${data.user.id}</p>
+                        <p><strong>Nome:</strong> ${data.user.nome}</p>
+                        <p><strong>Email:</strong> ${data.user.email}</p>
+                        <p><strong>Tipo:</strong> ${data.user.tipo_usuario}</p>
+                        <p><strong>Nome Exibição:</strong> ${data.user.nome_exibicao || 'Não definido'}</p>
+                        <p><strong>Departamento:</strong> ${data.user.departamento || 'Não definido'}</p>
+                        <p><strong>Cargo:</strong> ${data.user.cargo_atual || 'Não definido'}</p>
+                        <h4>Dados Completos:</h4>
+                        <pre class="debug">${JSON.stringify(data.user, null, 2)}</pre>
+                    ` : '<p>Usuário não encontrado</p>'}
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function fixSergio() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '🔄 Aplicando configurações...';
+            
+            try {
+                const response = await fetch('/api/fix-sergio-profile');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Configurações Aplicadas</h3>
+                        <p><strong>Mensagem:</strong> ${data.message}</p>
+                        ${data.user ? `
+                            <h4>Dados Atualizados:</h4>
+                            <p><strong>Nome:</strong> ${data.user.nome}</p>
+                            <p><strong>Nome Exibição:</strong> ${data.user.nome_exibicao}</p>
+                            <p><strong>Departamento:</strong> ${data.user.departamento}</p>
+                            <p><strong>Cargo:</strong> ${data.user.cargo_atual}</p>
+                            <pre class="debug">${JSON.stringify(data.user, null, 2)}</pre>
+                        ` : '<p>Usuário não encontrado</p>'}
+                    `;
+                } else {
+                    throw new Error(data.error || 'Erro ao aplicar configurações');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function checkSession() {
+            const resultDiv = document.getElementById('sessionResult');
+            resultDiv.innerHTML = '🔄 Verificando sessão...';
+            
+            try {
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Sessão inválida');
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Sessão Ativa</h3>
+                    <p><strong>Usuário:</strong> ${data.user.nome}</p>
+                    <p><strong>Tipo:</strong> ${data.user.tipo_usuario}</p>
+                    <h4>Dados da Sessão:</h4>
+                    <pre class="debug">${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

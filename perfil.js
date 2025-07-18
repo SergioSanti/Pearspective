@@ -254,10 +254,17 @@ class ProfileManager {
             // Se for o Sergio, usar valores fixos
             if (this.currentUser.nome === 'sergio') {
                 console.log('✅ [PERFIL] Sergio - usando valores fixos');
-                document.getElementById('userDepartment').value = 'Desenvolvimento';
+                console.log('🔍 [PERFIL] Dados do Sergio:', this.currentUser);
+                
+                // Definir valores fixos
+                document.getElementById('userDepartment').value = 'Tecnologia da Informação';
                 document.getElementById('userDepartment').disabled = true;
-                document.getElementById('userPosition').value = 'Desenvolvedor Full Stack';
+                document.getElementById('userPosition').value = 'Desenvolvedor Front End';
                 document.getElementById('userPosition').disabled = true;
+                
+                console.log('✅ [PERFIL] Campos definidos para Sergio');
+                console.log('🔍 [PERFIL] Departamento value:', document.getElementById('userDepartment').value);
+                console.log('🔍 [PERFIL] Cargo value:', document.getElementById('userPosition').value);
                 return;
             }
             
@@ -909,8 +916,8 @@ class ProfileManager {
             let cargoToSave = document.getElementById('userPosition').value;
             
             if (this.loginUserName === 'sergio') {
-                departamentoToSave = 'Desenvolvimento';
-                cargoToSave = 'Desenvolvedor Full Stack';
+                departamentoToSave = 'Tecnologia da Informação';
+                cargoToSave = 'Desenvolvedor Front End';
                 console.log('✅ [PERFIL] Sergio - usando valores fixos para salvamento');
             }
 

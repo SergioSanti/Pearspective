@@ -28,8 +28,8 @@
             <h3>📋 Configurações que serão aplicadas:</h3>
             <ul>
                 <li><strong>Nome de Exibição:</strong> Sergio</li>
-                <li><strong>Departamento:</strong> Desenvolvimento</li>
-                <li><strong>Cargo:</strong> Desenvolvedor Full Stack</li>
+                <li><strong>Departamento:</strong> Tecnologia da Informação</li>
+                <li><strong>Cargo:</strong> Desenvolvedor Front End</li>
                 <li><strong>Status:</strong> Campos fixos (não editáveis)</li>
             </ul>
         </div>
@@ -161,15 +161,15 @@
                 // Verificar se as configurações foram aplicadas corretamente
                 const isCorrect = 
                     profileData.nome_exibicao === 'Sergio' &&
-                    profileData.departamento === 'Desenvolvimento' &&
-                    profileData.cargo_atual === 'Desenvolvedor Full Stack';
+                    profileData.departamento === 'Tecnologia da Informação' &&
+                    profileData.cargo_atual === 'Desenvolvedor Front End';
                 
                 resultDiv.className = isCorrect ? 'result success' : 'result error';
                 resultDiv.innerHTML = `
                     <h3>${isCorrect ? '✅' : '❌'} Verificação Completa</h3>
                     <p><strong>Nome de Exibição:</strong> ${profileData.nome_exibicao || 'Não definido'} ${profileData.nome_exibicao === 'Sergio' ? '✅' : '❌'}</p>
-                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'} ${profileData.departamento === 'Desenvolvimento' ? '✅' : '❌'}</p>
-                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'} ${profileData.cargo_atual === 'Desenvolvedor Full Stack' ? '✅' : '❌'}</p>
+                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'} ${profileData.departamento === 'Tecnologia da Informação' ? '✅' : '❌'}</p>
+                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'} ${profileData.cargo_atual === 'Desenvolvedor Front End' ? '✅' : '❌'}</p>
                     <p><strong>Status:</strong> ${isCorrect ? 'Configurações aplicadas corretamente' : 'Configurações não aplicadas corretamente'}</p>
                     <h4>Dados Atuais:</h4>
                     <pre class="debug">${JSON.stringify(profileData, null, 2)}</pre>
