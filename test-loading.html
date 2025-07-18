@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Carregamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+        select { padding: 8px; margin: 5px; width: 200px; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 150px; }
+        .debug { background: #fff3e0; color: #e65100; font-family: monospace; font-size: 12px; }
+        .status { padding: 5px 10px; margin: 5px; border-radius: 3px; }
+        .status.loading { background: #e3f2fd; color: #1976d2; }
+        .status.success { background: #e8f5e8; color: #2e7d32; }
+        .status.error { background: #ffebee; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Carregamento - Área e Cargo</h1>
+    
+    <div class="test-section">
+        <h2>Status do Carregamento</h2>
+        <div id="statusContainer"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Dados do Usuário</h2>
+        <div id="userDataResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Formulário de Teste</h2>
+        <div class="form-group">
+            <label>Área:</label>
+            <select id="testArea" onchange="loadCargosForTest()">
+                <option value="">-- Carregando áreas --</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Cargo:</label>
+            <select id="testCargo">
+                <option value="">Escolha uma área primeiro</option>
+            </select>
+        </div>
+        <button onclick="checkSelection()">Verificar Seleção</button>
+        <div id="selectionResult" class="result"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let areas = [];
+        
+        // Função para adicionar status
+        function addStatus(message, type = 'loading') {
+            const container = document.getElementById('statusContainer');
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            container.appendChild(status);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Inicializar teste
+        async function initTest() {
+            addStatus('Iniciando teste de carregamento...', 'loading');
+            
+            try {
+                // 1. Verificar sessão
+                addStatus('Verificando sessão...', 'loading');
+                const sessionResponse = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                if (!sessionResponse.ok) {
+                    throw new Error('Sessão inválida');
+                }
+                
+                const sessionData = await sessionResponse.json();
+                const userName = sessionData.user.nome;
+                addStatus(`Sessão válida para usuário: ${userName}`, 'success');
+                
+                // 2. Carregar dados do usuário
+                addStatus('Carregando dados do usuário...', 'loading');
+                const profileResponse = await fetch(`/api/users/profile/${encodeURIComponent(userName)}`);
+                const profileData = await profileResponse.json();
+                
+                currentUser = profileData;
+                addStatus(`Dados carregados - Departamento: ${profileData.departamento || 'Nenhum'}, Cargo: ${profileData.cargo_atual || 'Nenhum'}`, 'success');
+                
+                // 3. Carregar áreas
+                addStatus('Carregando áreas...', 'loading');
+                const areasResponse = await fetch('/api/areas');
+                areas = await areasResponse.json();
+                addStatus(`${areas.length} áreas carregadas`, 'success');
+                
+                // 4. Preencher select de área
+                const areaSelect = document.getElementById('testArea');
+                areaSelect.innerHTML = '<option value="">-- Escolha uma área --</option>';
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.nome;
+                    areaSelect.appendChild(option);
+                });
+                
+                // 5. Se o usuário tem departamento, selecionar
+                if (profileData.departamento) {
+                    addStatus(`Procurando área: ${profileData.departamento}`, 'loading');
+                    const userArea = areas.find(area => area.nome === profileData.departamento);
+                    
+                    if (userArea) {
+                        areaSelect.value = userArea.id;
+                        addStatus(`Área encontrada e selecionada: ${userArea.nome} (ID: ${userArea.id})`, 'success');
+                        
+                        // 6. Carregar cargos da área
+                        await loadCargosForTest();
+                        
+                        // 7. Se o usuário tem cargo, selecionar
+                        if (profileData.cargo_atual) {
+                            addStatus(`Procurando cargo: ${profileData.cargo_atual}`, 'loading');
+                            const cargoSelect = document.getElementById('testCargo');
+                            
+                            // Aguardar um pouco para os cargos carregarem
+                            setTimeout(() => {
+                                const cargoOptions = Array.from(cargoSelect.options);
+                                const cargoOption = cargoOptions.find(option => 
+                                    option.value === profileData.cargo_atual || 
+                                    option.textContent === profileData.cargo_atual
+                                );
+                                
+                                if (cargoOption) {
+                                    cargoSelect.value = cargoOption.value;
+                                    addStatus(`Cargo encontrado e selecionado: ${cargoOption.textContent}`, 'success');
+                                } else {
+                                    addStatus(`Cargo não encontrado: ${profileData.cargo_atual}`, 'error');
+                                }
+                            }, 500);
+                        }
+                    } else {
+                        addStatus(`Área não encontrada: ${profileData.departamento}`, 'error');
+                    }
+                }
+                
+                // Atualizar dados do usuário
+                updateUserDataDisplay();
+                
+            } catch (error) {
+                addStatus(`Erro: ${error.message}`, 'error');
+                console.error('Erro no teste:', error);
+            }
+        }
+        
+        async function loadCargosForTest() {
+            const areaId = document.getElementById('testArea').value;
+            const cargoSelect = document.getElementById('testCargo');
+            
+            if (!areaId) {
+                cargoSelect.innerHTML = '<option value="">Escolha uma área primeiro</option>';
+                return;
+            }
+            
+            addStatus(`Carregando cargos para área ID: ${areaId}`, 'loading');
+            
+            try {
+                const response = await fetch(`/api/cargos/area/${areaId}`);
+                const cargos = await response.json();
+                
+                cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
+                
+                cargos.forEach(cargo => {
+                    const option = document.createElement('option');
+                    const cargoName = cargo.nome_cargo || cargo.nome || 'Cargo sem nome';
+                    option.value = cargoName;
+                    option.textContent = cargoName;
+                    cargoSelect.appendChild(option);
+                });
+                
+                addStatus(`${cargos.length} cargos carregados`, 'success');
+                
+            } catch (error) {
+                addStatus(`Erro ao carregar cargos: ${error.message}`, 'error');
+                cargoSelect.innerHTML = '<option value="">Erro ao carregar cargos</option>';
+            }
+        }
+        
+        function updateUserDataDisplay() {
+            const resultDiv = document.getElementById('userDataResult');
+            
+            if (currentUser) {
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Dados do Usuário</h3>
+                    <p><strong>Nome:</strong> ${currentUser.nome}</p>
+                    <p><strong>Nome de Exibição:</strong> ${currentUser.nome_exibicao || 'Não definido'}</p>
+                    <p><strong>Departamento:</strong> ${currentUser.departamento || 'Não definido'}</p>
+                    <p><strong>Cargo:</strong> ${currentUser.cargo_atual || 'Não definido'}</p>
+                    <h4>Dados Completos:</h4>
+                    <pre class="debug">${JSON.stringify(currentUser, null, 2)}</pre>
+                `;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<h3>❌ Nenhum usuário carregado</h3>';
+            }
+        }
+        
+        function checkSelection() {
+            const resultDiv = document.getElementById('selectionResult');
+            const areaSelect = document.getElementById('testArea');
+            const cargoSelect = document.getElementById('testCargo');
+            
+            const selectedArea = areaSelect.options[areaSelect.selectedIndex];
+            const selectedCargo = cargoSelect.options[cargoSelect.selectedIndex];
+            
+            resultDiv.className = 'result success';
+            resultDiv.innerHTML = `
+                <h3>🔍 Verificação de Seleção</h3>
+                <p><strong>Área selecionada:</strong> ${selectedArea ? selectedArea.textContent : 'Nenhuma'} (ID: ${areaSelect.value || 'Nenhum'})</p>
+                <p><strong>Cargo selecionado:</strong> ${selectedCargo ? selectedCargo.textContent : 'Nenhum'} (Valor: ${cargoSelect.value || 'Nenhum'})</p>
+                <p><strong>Departamento salvo:</strong> ${currentUser?.departamento || 'Não definido'}</p>
+                <p><strong>Cargo salvo:</strong> ${currentUser?.cargo_atual || 'Não definido'}</p>
+                <p><strong>Área coincide:</strong> ${selectedArea && currentUser?.departamento === selectedArea.textContent ? '✅ Sim' : '❌ Não'}</p>
+                <p><strong>Cargo coincide:</strong> ${selectedCargo && currentUser?.cargo_atual === selectedCargo.value ? '✅ Sim' : '❌ Não'}</p>
+            `;
+        }
+        
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', initTest);
+    </script>
+</body>
+</html> 

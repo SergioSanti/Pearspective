@@ -121,6 +121,8 @@ class ProfileManager {
     async loadCargosByArea(areaId, selectedCargo = null) {
         const cargoSelect = document.getElementById('userPosition');
         
+        console.log('🔄 [PERFIL] loadCargosByArea chamada com:', { areaId, selectedCargo });
+        
         if (!areaId) {
             cargoSelect.innerHTML = '<option value="">Escolha uma área primeiro</option>';
             cargoSelect.disabled = true;
@@ -129,16 +131,19 @@ class ProfileManager {
 
         try {
             // Buscar cargos da área específica
+            console.log('🔍 [PERFIL] Buscando cargos para área ID:', areaId);
             const response = await fetch(`/api/cargos/area/${areaId}`);
             if (!response.ok) {
                 throw new Error('Erro ao carregar cargos');
             }
             
             const cargos = await response.json();
+            console.log('📋 [PERFIL] Cargos recebidos:', cargos);
             
             if (cargos.length === 0) {
                 cargoSelect.innerHTML = '<option value="">Nenhum cargo encontrado para esta área</option>';
                 cargoSelect.disabled = true;
+                console.log('⚠️ [PERFIL] Nenhum cargo encontrado para a área');
             } else {
                 cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
                 cargos.forEach(cargo => {
@@ -150,6 +155,8 @@ class ProfileManager {
                     cargoSelect.appendChild(option);
                 });
                 cargoSelect.disabled = false;
+                
+                console.log('✅ [PERFIL] Cargos carregados no select:', cargos.length, 'cargos');
                 
                 // Se há um cargo selecionado, definir o valor
                 if (selectedCargo) {
@@ -170,12 +177,17 @@ class ProfileManager {
                         console.log('⚠️ [PERFIL] Cargo não encontrado, tentando adicionar...');
                         // Tentar adicionar o cargo se não existir
                         try {
+                            const areaSelect = document.getElementById('userDepartment');
+                            const areaName = areaSelect.options[areaSelect.selectedIndex]?.text || '';
+                            
+                            console.log('🔍 [PERFIL] Adicionando cargo:', selectedCargo, 'para área:', areaName);
+                            
                             const addCargoResponse = await fetch('/api/positions', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ 
                                     nome_cargo: selectedCargo,
-                                    area_nome: document.getElementById('userDepartment').options[document.getElementById('userDepartment').selectedIndex]?.text || ''
+                                    area_nome: areaName
                                 })
                             });
                             
@@ -192,11 +204,13 @@ class ProfileManager {
                             cargoSelect.value = selectedCargo; // Usar o valor original
                         }
                     }
+                } else {
+                    console.log('ℹ️ [PERFIL] Nenhum cargo para selecionar');
                 }
             }
             
         } catch (error) {
-            console.error('Erro ao carregar cargos:', error);
+            console.error('❌ [PERFIL] Erro ao carregar cargos:', error);
             cargoSelect.innerHTML = '<option value="">Erro ao carregar cargos</option>';
             cargoSelect.disabled = true;
         }
@@ -249,7 +263,16 @@ class ProfileManager {
                             document.getElementById('userDepartment').value = area.id;
                             
                             // Carregar cargos da área selecionada
+                            console.log('🔄 [PERFIL] Carregando cargos para área:', area.id, 'cargo:', userCargo);
                             await this.loadCargosByArea(area.id, userCargo);
+                            
+                            // Verificar se o cargo foi selecionado corretamente
+                            setTimeout(() => {
+                                const cargoSelect = document.getElementById('userPosition');
+                                console.log('🔍 [PERFIL] Verificação final - Cargo selecionado:', cargoSelect.value);
+                                console.log('🔍 [PERFIL] Cargo esperado:', userCargo);
+                            }, 1000);
+                            
                         } else {
                             console.log('⚠️ [PERFIL] Área não encontrada, tentando adicionar...');
                             // Tentar adicionar a área se não existir
@@ -284,6 +307,7 @@ class ProfileManager {
                 }
             } else {
                 // Se não há departamento definido, limpar os campos
+                console.log('⚠️ [PERFIL] Nenhum departamento definido, limpando campos');
                 document.getElementById('userDepartment').value = '';
                 document.getElementById('userPosition').value = '';
                 document.getElementById('userPosition').disabled = true;
