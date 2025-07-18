@@ -167,11 +167,16 @@ class ProfileManager {
 
 
     async populateForm() {
+        console.log('🔍 [PERFIL] Preenchendo formulário com dados:', this.currentUser);
+        
         // Preencher campos do formulário
-        document.getElementById('userName').value = this.currentUser.nome_exibicao || this.currentUser.nome || '';
+        const displayName = this.currentUser.nome_exibicao || this.currentUser.nome || '';
+        document.getElementById('userName').value = displayName;
         document.getElementById('userLogin').value = this.currentUser.nome || '';
         document.getElementById('userEmail').value = this.currentUser.email || '';
         document.getElementById('userType').value = this.currentUser.tipo_usuario || '';
+        
+        console.log('✅ [PERFIL] Nome de exibição definido:', displayName);
         
         // Formatar data de cadastro
         const registrationDate = this.currentUser.data_cadastro ? 
@@ -186,25 +191,37 @@ class ProfileManager {
             document.getElementById('userDepartment').value = 'Tecnologia'; // Nome da área
             document.getElementById('userDepartment').disabled = true;
         } else {
-            // Definir a área diretamente pelo nome (áreas já foram carregadas)
+            // Definir a área e cargo
             const userDepartment = this.currentUser.departamento || '';
+            const userCargo = this.currentUser.cargo_atual || '';
+            
+            console.log('🔍 [PERFIL] Departamento e cargo do usuário:', { userDepartment, userCargo });
+            
             if (userDepartment) {
-                // Buscar o ID da área pelo nome
-                const areasResponse = await fetch('/api/areas');
-                if (areasResponse.ok) {
-                    const areas = await areasResponse.json();
-                    const area = areas.find(a => a.nome === userDepartment);
-                    if (area) {
-                        document.getElementById('userDepartment').value = area.id;
+                try {
+                    // Buscar o ID da área pelo nome
+                    const areasResponse = await fetch('/api/areas');
+                    if (areasResponse.ok) {
+                        const areas = await areasResponse.json();
+                        console.log('📋 [PERFIL] Áreas disponíveis:', areas.map(a => ({ id: a.id, nome: a.nome })));
                         
-                        // Aguardar um pouco e carregar cargos da área selecionada
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                        const selectedCargo = this.currentUser.cargo_atual || '';
-                        await this.loadCargosByArea(area.id, selectedCargo);
+                        const area = areas.find(a => a.nome === userDepartment);
+                        if (area) {
+                            console.log('✅ [PERFIL] Área encontrada:', area);
+                            document.getElementById('userDepartment').value = area.id;
+                            
+                            // Carregar cargos da área selecionada
+                            await this.loadCargosByArea(area.id, userCargo);
+                        } else {
+                            console.log('⚠️ [PERFIL] Área não encontrada, usando nome diretamente');
+                            document.getElementById('userDepartment').value = userDepartment;
+                        }
                     } else {
+                        console.log('⚠️ [PERFIL] Erro ao buscar áreas, usando nome diretamente');
                         document.getElementById('userDepartment').value = userDepartment;
                     }
-                } else {
+                } catch (error) {
+                    console.error('❌ [PERFIL] Erro ao configurar área:', error);
                     document.getElementById('userDepartment').value = userDepartment;
                 }
             }

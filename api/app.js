@@ -491,10 +491,20 @@ app.get('/api/fix-usuarios-table', async (req, res) => {
         console.log('✅ Coluna nome_exibicao criada');
       }
       
+      // Verificar dados dos usuários
+      const usersData = await pool.query(`
+        SELECT id, nome, email, tipo_usuario, departamento, cargo_atual, nome_exibicao 
+        FROM usuarios 
+        ORDER BY id
+      `);
+      
+      console.log('👥 Dados dos usuários:', usersData.rows);
+      
       res.json({ 
         message: 'Tabela usuarios verificada',
         columns: columnsCheck.rows,
         hasNomeExibicao: hasNomeExibicao || true,
+        users: usersData.rows,
         mode: 'railway'
       });
     }
@@ -855,6 +865,7 @@ app.get('/api/users/profile/:username', async (req, res) => {
     if (availableColumns.includes('foto_perfil')) selectColumns.push('foto_perfil');
     if (availableColumns.includes('departamento')) selectColumns.push('departamento');
     if (availableColumns.includes('cargo_atual')) selectColumns.push('cargo_atual');
+    if (availableColumns.includes('nome_exibicao')) selectColumns.push('nome_exibicao');
     if (availableColumns.includes('data_cadastro')) selectColumns.push('data_cadastro');
     
     if (selectColumns.length === 0) {
@@ -875,7 +886,7 @@ app.get('/api/users/profile/:username', async (req, res) => {
       const response = {
         id: user.id || null,
         nome: user.nome || username,
-        nome_exibicao: user.nome || username,
+        nome_exibicao: user.nome_exibicao || user.nome || username,
         email: user.email || `${username}@example.com`,
         tipo_usuario: user.tipo_usuario || 'usuario',
         foto_perfil: user.foto_perfil || null,

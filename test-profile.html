@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Perfil</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+        input, select { padding: 8px; margin: 5px; width: 200px; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Perfil - Debug</h1>
+    
+    <div class="test-section">
+        <h2>1. Verificar Estrutura da Tabela</h2>
+        <button onclick="checkTableStructure()">Verificar Tabela</button>
+        <div id="tableResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Carregar Dados do Perfil</h2>
+        <button onclick="loadProfile()">Carregar Perfil</button>
+        <div id="profileResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Atualizar Perfil</h2>
+        <div class="form-group">
+            <label>Nome de Exibição:</label>
+            <input type="text" id="displayName" placeholder="Nome de exibição">
+        </div>
+        <div class="form-group">
+            <label>Departamento:</label>
+            <input type="text" id="department" placeholder="Departamento">
+        </div>
+        <div class="form-group">
+            <label>Cargo:</label>
+            <input type="text" id="position" placeholder="Cargo">
+        </div>
+        <button onclick="updateProfile()">Atualizar Perfil</button>
+        <div id="updateResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Recarregar Perfil (Teste)</h2>
+        <button onclick="reloadProfile()">Recarregar</button>
+        <div id="reloadResult" class="result"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        
+        async function checkTableStructure() {
+            const resultDiv = document.getElementById('tableResult');
+            resultDiv.innerHTML = '🔄 Verificando estrutura da tabela...';
+            
+            try {
+                const response = await fetch('/api/fix-usuarios-table');
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Estrutura da Tabela</h3>
+                    <p><strong>Mensagem:</strong> ${data.message}</p>
+                    <p><strong>Colunas:</strong> ${data.columns.map(c => c.column_name).join(', ')}</p>
+                    <p><strong>Tem nome_exibicao:</strong> ${data.hasNomeExibicao}</p>
+                    <h4>Usuários:</h4>
+                    <pre>${JSON.stringify(data.users, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function loadProfile() {
+            const resultDiv = document.getElementById('profileResult');
+            resultDiv.innerHTML = '🔄 Carregando perfil...';
+            
+            try {
+                // Primeiro verificar sessão
+                const sessionResponse = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                if (!sessionResponse.ok) {
+                    throw new Error('Sessão inválida');
+                }
+                
+                const sessionData = await sessionResponse.json();
+                const userName = sessionData.user.nome;
+                
+                // Carregar perfil
+                const profileResponse = await fetch(`/api/users/profile/${encodeURIComponent(userName)}`);
+                const profileData = await profileResponse.json();
+                
+                currentUser = profileData;
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Perfil Carregado</h3>
+                    <p><strong>Nome:</strong> ${profileData.nome}</p>
+                    <p><strong>Nome de Exibição:</strong> ${profileData.nome_exibicao || 'Não definido'}</p>
+                    <p><strong>Email:</strong> ${profileData.email}</p>
+                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'}</p>
+                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'}</p>
+                    <p><strong>Tipo:</strong> ${profileData.tipo_usuario}</p>
+                    <h4>Dados Completos:</h4>
+                    <pre>${JSON.stringify(profileData, null, 2)}</pre>
+                `;
+                
+                // Preencher formulário
+                document.getElementById('displayName').value = profileData.nome_exibicao || '';
+                document.getElementById('department').value = profileData.departamento || '';
+                document.getElementById('position').value = profileData.cargo_atual || '';
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function updateProfile() {
+            const resultDiv = document.getElementById('updateResult');
+            resultDiv.innerHTML = '🔄 Atualizando perfil...';
+            
+            try {
+                if (!currentUser) {
+                    throw new Error('Carregue o perfil primeiro');
+                }
+                
+                const updateData = {
+                    nome_exibicao: document.getElementById('displayName').value,
+                    departamento: document.getElementById('department').value,
+                    cargo_atual: document.getElementById('position').value
+                };
+                
+                const response = await fetch(`/api/users/profile/${encodeURIComponent(currentUser.nome)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Perfil Atualizado</h3>
+                        <p><strong>Nome de Exibição:</strong> ${result.nome_exibicao || 'Não definido'}</p>
+                        <p><strong>Departamento:</strong> ${result.departamento || 'Não definido'}</p>
+                        <p><strong>Cargo:</strong> ${result.cargo_atual || 'Não definido'}</p>
+                        <h4>Resposta Completa:</h4>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Erro na atualização');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function reloadProfile() {
+            const resultDiv = document.getElementById('reloadResult');
+            resultDiv.innerHTML = '🔄 Recarregando perfil...';
+            
+            try {
+                if (!currentUser) {
+                    throw new Error('Carregue o perfil primeiro');
+                }
+                
+                const response = await fetch(`/api/users/profile/${encodeURIComponent(currentUser.nome)}`);
+                const profileData = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Perfil Recarregado</h3>
+                    <p><strong>Nome:</strong> ${profileData.nome}</p>
+                    <p><strong>Nome de Exibição:</strong> ${profileData.nome_exibicao || 'Não definido'}</p>
+                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'}</p>
+                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'}</p>
+                    <h4>Dados Atualizados:</h4>
+                    <pre>${JSON.stringify(profileData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 
