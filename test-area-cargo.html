@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Área e Cargo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+        select, input { padding: 8px; margin: 5px; width: 200px; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 150px; }
+        .debug { background: #fff3e0; color: #e65100; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste Área e Cargo - Debug</h1>
+    
+    <div class="test-section">
+        <h2>1. Verificar Dados Atuais</h2>
+        <button onclick="checkCurrentData()">Verificar Dados</button>
+        <div id="currentDataResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Carregar Áreas e Cargos</h2>
+        <button onclick="loadAreasAndCargos()">Carregar Áreas</button>
+        <div id="areasResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Testar Seleção</h2>
+        <div class="form-group">
+            <label>Área:</label>
+            <select id="testArea" onchange="loadCargosForTest()">
+                <option value="">-- Escolha uma área --</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Cargo:</label>
+            <select id="testCargo">
+                <option value="">Escolha uma área primeiro</option>
+            </select>
+        </div>
+        <button onclick="testSave()">Testar Salvamento</button>
+        <div id="testResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Recarregar e Verificar</h2>
+        <button onclick="reloadAndCheck()">Recarregar Dados</button>
+        <div id="reloadResult" class="result"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let areas = [];
+        
+        async function checkCurrentData() {
+            const resultDiv = document.getElementById('currentDataResult');
+            resultDiv.innerHTML = '🔄 Verificando dados atuais...';
+            
+            try {
+                // Verificar sessão
+                const sessionResponse = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                if (!sessionResponse.ok) {
+                    throw new Error('Sessão inválida');
+                }
+                
+                const sessionData = await sessionResponse.json();
+                const userName = sessionData.user.nome;
+                
+                // Carregar perfil
+                const profileResponse = await fetch(`/api/users/profile/${encodeURIComponent(userName)}`);
+                const profileData = await profileResponse.json();
+                
+                currentUser = profileData;
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Dados Atuais</h3>
+                    <p><strong>Nome:</strong> ${profileData.nome}</p>
+                    <p><strong>Nome de Exibição:</strong> ${profileData.nome_exibicao || 'Não definido'}</p>
+                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'}</p>
+                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'}</p>
+                    <h4>Dados Completos:</h4>
+                    <pre class="debug">${JSON.stringify(profileData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function loadAreasAndCargos() {
+            const resultDiv = document.getElementById('areasResult');
+            resultDiv.innerHTML = '🔄 Carregando áreas...';
+            
+            try {
+                const response = await fetch('/api/areas');
+                const areasData = await response.json();
+                
+                areas = areasData;
+                
+                // Preencher select de teste
+                const areaSelect = document.getElementById('testArea');
+                areaSelect.innerHTML = '<option value="">-- Escolha uma área --</option>';
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.nome;
+                    areaSelect.appendChild(option);
+                });
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Áreas Carregadas</h3>
+                    <p><strong>Total:</strong> ${areas.length} áreas</p>
+                    <h4>Áreas:</h4>
+                    <pre class="debug">${JSON.stringify(areas, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function loadCargosForTest() {
+            const areaId = document.getElementById('testArea').value;
+            const cargoSelect = document.getElementById('testCargo');
+            
+            if (!areaId) {
+                cargoSelect.innerHTML = '<option value="">Escolha uma área primeiro</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/cargos/area/${areaId}`);
+                const cargos = await response.json();
+                
+                cargoSelect.innerHTML = '<option value="">-- Escolha um cargo --</option>';
+                
+                cargos.forEach(cargo => {
+                    const option = document.createElement('option');
+                    const cargoName = cargo.nome_cargo || cargo.nome || 'Cargo sem nome';
+                    option.value = cargoName;
+                    option.textContent = cargoName;
+                    cargoSelect.appendChild(option);
+                });
+                
+                console.log('Cargos carregados:', cargos);
+                
+            } catch (error) {
+                console.error('Erro ao carregar cargos:', error);
+                cargoSelect.innerHTML = '<option value="">Erro ao carregar cargos</option>';
+            }
+        }
+        
+        async function testSave() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '🔄 Testando salvamento...';
+            
+            try {
+                if (!currentUser) {
+                    throw new Error('Carregue os dados primeiro');
+                }
+                
+                const areaSelect = document.getElementById('testArea');
+                const cargoSelect = document.getElementById('testCargo');
+                
+                const selectedAreaId = areaSelect.value;
+                const selectedCargo = cargoSelect.value;
+                
+                if (!selectedAreaId || !selectedCargo) {
+                    throw new Error('Selecione uma área e um cargo');
+                }
+                
+                // Buscar nome da área
+                const selectedArea = areas.find(area => area.id == selectedAreaId);
+                if (!selectedArea) {
+                    throw new Error('Área não encontrada');
+                }
+                
+                const updateData = {
+                    nome_exibicao: currentUser.nome_exibicao || currentUser.nome,
+                    departamento: selectedArea.nome,
+                    cargo_atual: selectedCargo
+                };
+                
+                console.log('Dados para salvar:', updateData);
+                
+                const response = await fetch(`/api/users/profile/${encodeURIComponent(currentUser.nome)}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Salvamento Testado</h3>
+                        <p><strong>Área:</strong> ${selectedArea.nome} (ID: ${selectedArea.id})</p>
+                        <p><strong>Cargo:</strong> ${selectedCargo}</p>
+                        <h4>Resposta do Servidor:</h4>
+                        <pre class="debug">${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Erro no salvamento');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function reloadAndCheck() {
+            const resultDiv = document.getElementById('reloadResult');
+            resultDiv.innerHTML = '🔄 Recarregando e verificando...';
+            
+            try {
+                if (!currentUser) {
+                    throw new Error('Carregue os dados primeiro');
+                }
+                
+                // Recarregar dados do usuário
+                const response = await fetch(`/api/users/profile/${encodeURIComponent(currentUser.nome)}`);
+                const profileData = await response.json();
+                
+                // Verificar se os dados foram salvos corretamente
+                const areaSelect = document.getElementById('testArea');
+                const cargoSelect = document.getElementById('testCargo');
+                
+                let areaMatch = false;
+                let cargoMatch = false;
+                
+                if (profileData.departamento) {
+                    const savedArea = areas.find(area => area.nome === profileData.departamento);
+                    if (savedArea) {
+                        areaMatch = areaSelect.value == savedArea.id;
+                    }
+                }
+                
+                if (profileData.cargo_atual) {
+                    cargoMatch = cargoSelect.value === profileData.cargo_atual;
+                }
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Verificação Completa</h3>
+                    <p><strong>Departamento salvo:</strong> ${profileData.departamento || 'Não definido'}</p>
+                    <p><strong>Cargo salvo:</strong> ${profileData.cargo_atual || 'Não definido'}</p>
+                    <p><strong>Área selecionada:</strong> ${areaSelect.options[areaSelect.selectedIndex]?.text || 'Nenhuma'}</p>
+                    <p><strong>Cargo selecionado:</strong> ${cargoSelect.options[cargoSelect.selectedIndex]?.text || 'Nenhum'}</p>
+                    <p><strong>Área coincide:</strong> ${areaMatch ? '✅ Sim' : '❌ Não'}</p>
+                    <p><strong>Cargo coincide:</strong> ${cargoMatch ? '✅ Sim' : '❌ Não'}</p>
+                    <h4>Dados Recarregados:</h4>
+                    <pre class="debug">${JSON.stringify(profileData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -153,7 +153,45 @@ class ProfileManager {
                 
                 // Se há um cargo selecionado, definir o valor
                 if (selectedCargo) {
-                    cargoSelect.value = selectedCargo;
+                    console.log('🔍 [PERFIL] Procurando cargo:', selectedCargo);
+                    console.log('📋 [PERFIL] Cargos disponíveis:', cargos.map(c => c.nome_cargo || c.nome));
+                    
+                    // Tentar encontrar o cargo exato
+                    const exactCargo = cargos.find(c => 
+                        (c.nome_cargo && c.nome_cargo === selectedCargo) || 
+                        (c.nome && c.nome === selectedCargo)
+                    );
+                    
+                    if (exactCargo) {
+                        const cargoName = exactCargo.nome_cargo || exactCargo.nome;
+                        cargoSelect.value = cargoName;
+                        console.log('✅ [PERFIL] Cargo encontrado e selecionado:', cargoName);
+                    } else {
+                        console.log('⚠️ [PERFIL] Cargo não encontrado, tentando adicionar...');
+                        // Tentar adicionar o cargo se não existir
+                        try {
+                            const addCargoResponse = await fetch('/api/positions', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    nome_cargo: selectedCargo,
+                                    area_nome: document.getElementById('userDepartment').options[document.getElementById('userDepartment').selectedIndex]?.text || ''
+                                })
+                            });
+                            
+                            if (addCargoResponse.ok) {
+                                console.log('✅ [PERFIL] Novo cargo criado');
+                                // Recarregar cargos para incluir o novo
+                                await this.loadCargosByArea(areaId, selectedCargo);
+                            } else {
+                                console.log('⚠️ [PERFIL] Não foi possível criar cargo');
+                                cargoSelect.value = selectedCargo; // Usar o valor original
+                            }
+                        } catch (addError) {
+                            console.error('❌ [PERFIL] Erro ao criar cargo:', addError);
+                            cargoSelect.value = selectedCargo; // Usar o valor original
+                        }
+                    }
                 }
             }
             
@@ -213,17 +251,42 @@ class ProfileManager {
                             // Carregar cargos da área selecionada
                             await this.loadCargosByArea(area.id, userCargo);
                         } else {
-                            console.log('⚠️ [PERFIL] Área não encontrada, usando nome diretamente');
-                            document.getElementById('userDepartment').value = userDepartment;
+                            console.log('⚠️ [PERFIL] Área não encontrada, tentando adicionar...');
+                            // Tentar adicionar a área se não existir
+                            try {
+                                const addAreaResponse = await fetch('/api/areas', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ nome: userDepartment })
+                                });
+                                
+                                if (addAreaResponse.ok) {
+                                    const newArea = await addAreaResponse.json();
+                                    console.log('✅ [PERFIL] Nova área criada:', newArea);
+                                    document.getElementById('userDepartment').value = newArea.id;
+                                    await this.loadCargosByArea(newArea.id, userCargo);
+                                } else {
+                                    console.log('⚠️ [PERFIL] Não foi possível criar área, usando valor padrão');
+                                    document.getElementById('userDepartment').value = '';
+                                }
+                            } catch (addError) {
+                                console.error('❌ [PERFIL] Erro ao criar área:', addError);
+                                document.getElementById('userDepartment').value = '';
+                            }
                         }
                     } else {
-                        console.log('⚠️ [PERFIL] Erro ao buscar áreas, usando nome diretamente');
-                        document.getElementById('userDepartment').value = userDepartment;
+                        console.log('⚠️ [PERFIL] Erro ao buscar áreas');
+                        document.getElementById('userDepartment').value = '';
                     }
                 } catch (error) {
                     console.error('❌ [PERFIL] Erro ao configurar área:', error);
-                    document.getElementById('userDepartment').value = userDepartment;
+                    document.getElementById('userDepartment').value = '';
                 }
+            } else {
+                // Se não há departamento definido, limpar os campos
+                document.getElementById('userDepartment').value = '';
+                document.getElementById('userPosition').value = '';
+                document.getElementById('userPosition').disabled = true;
             }
         }
     }
@@ -784,9 +847,30 @@ class ProfileManager {
         this.showLoading(true);
 
         try {
+            // Obter o nome da área selecionada em vez do ID
+            const areaSelect = document.getElementById('userDepartment');
+            const selectedAreaId = areaSelect.value;
+            let selectedAreaName = '';
+            
+            // Se há uma área selecionada, buscar o nome dela
+            if (selectedAreaId) {
+                try {
+                    const areasResponse = await fetch('/api/areas');
+                    if (areasResponse.ok) {
+                        const areas = await areasResponse.json();
+                        const selectedArea = areas.find(area => area.id == selectedAreaId);
+                        if (selectedArea) {
+                            selectedAreaName = selectedArea.nome;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar nome da área:', error);
+                }
+            }
+
             const updatedData = {
                 nome: document.getElementById('userName').value,
-                departamento: document.getElementById('userDepartment').value,
+                departamento: selectedAreaName, // Usar o nome da área
                 cargo_atual: document.getElementById('userPosition').value,
                 foto_perfil: this.fotoPerfil
             };
@@ -795,6 +879,8 @@ class ProfileManager {
             if (!updatedData.nome.trim()) {
                 throw new Error('Nome é obrigatório');
             }
+
+            console.log('💾 [PERFIL] Salvando dados:', updatedData);
 
             // Atualizar perfil completo (incluindo nome_exibicao, departamento, cargo, foto)
             const response = await fetch(`/api/users/profile/${encodeURIComponent(this.loginUserName)}`, {
