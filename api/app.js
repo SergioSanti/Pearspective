@@ -2812,6 +2812,59 @@ app.get('/api/schema', async (req, res) => {
   }
 });
 
+// Rota de debug para verificar tokens e sessões
+app.get('/api/debug-session', async (req, res) => {
+  try {
+    console.log('🔍 [DEBUG] Verificando sessão debug...');
+    
+    const authHeader = req.headers.authorization;
+    const sessionToken = req.cookies?.sessionToken || authHeader?.replace('Bearer ', '');
+    
+    console.log('🔍 [DEBUG] Headers:', {
+      authorization: authHeader,
+      cookies: req.cookies,
+      sessionToken: sessionToken
+    });
+    
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      hasAuthHeader: !!authHeader,
+      hasSessionToken: !!sessionToken,
+      cookies: req.cookies,
+      sessionToken: sessionToken,
+      tokenAnalysis: {}
+    };
+    
+    if (sessionToken) {
+      debugInfo.tokenAnalysis = {
+        startsWith1: sessionToken.startsWith('1-'),
+        startsWith2: sessionToken.startsWith('2-'),
+        length: sessionToken.length,
+        prefix: sessionToken.substring(0, 2),
+        fullToken: sessionToken
+      };
+      
+      if (sessionToken.startsWith('1-')) {
+        debugInfo.identifiedUser = 'admin';
+        debugInfo.expectedUserId = 1;
+      } else if (sessionToken.startsWith('2-')) {
+        debugInfo.identifiedUser = 'sergio';
+        debugInfo.expectedUserId = 2;
+      } else {
+        debugInfo.identifiedUser = 'unknown';
+        debugInfo.expectedUserId = null;
+      }
+    }
+    
+    console.log('🔍 [DEBUG] Informações de debug:', debugInfo);
+    res.json(debugInfo);
+    
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro no debug de sessão:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Rota catch-all para arquivos estáticos (apenas para rotas que não começam com /api)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {

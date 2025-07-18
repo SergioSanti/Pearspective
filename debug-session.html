@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Session - Pearspective</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Session - Pearspective</h1>
+        <p>Esta página ajuda a debugar problemas de autenticação e sessão.</p>
+        
+        <div class="form-group">
+            <label for="usuario">Usuário:</label>
+            <input type="text" id="usuario" value="sergio">
+        </div>
+        
+        <div class="form-group">
+            <label for="senha">Senha:</label>
+            <input type="password" id="senha" value="12345">
+        </div>
+        
+        <button onclick="testLogin()">🔐 Testar Login</button>
+        <button onclick="checkSession()">👤 Verificar Sessão</button>
+        <button onclick="debugSession()">🔍 Debug Sessão</button>
+        <button onclick="clearLog()">🗑️ Limpar Log</button>
+        <button onclick="clearCookies()">🍪 Limpar Cookies</button>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLog() {
+            logElement.textContent = '';
+        }
+        
+        function clearCookies() {
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            log('🍪 Cookies limpos', 'success');
+        }
+        
+        async function testLogin() {
+            const usuario = document.getElementById('usuario').value;
+            const senha = document.getElementById('senha').value;
+            
+            log(`🔐 Iniciando teste de login para: ${usuario}`, 'info');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ usuario, senha })
+                });
+                
+                log(`📡 Status da resposta: ${response.status} ${response.statusText}`, 'info');
+                
+                const data = await response.json();
+                log(`📊 Resposta do servidor: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                if (data.success) {
+                    log(`✅ Login bem-sucedido para: ${data.nome}`, 'success');
+                    log(`🔑 Token gerado: ${data.sessionToken}`, 'info');
+                    log(`🔑 Token começa com: ${data.sessionToken.substring(0, 2)}`, 'info');
+                } else {
+                    log(`❌ Login falhou: ${data.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no login: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkSession() {
+            log(`👤 Verificando sessão atual...`, 'info');
+            
+            try {
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                log(`📡 Status da resposta: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`📊 Dados da sessão: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    if (data.authenticated && data.user) {
+                        log(`✅ Usuário autenticado: ${data.user.nome}`, 'success');
+                        log(`🆔 ID do usuário: ${data.user.id}`, 'info');
+                        log(`👤 Tipo de usuário: ${data.user.tipo_usuario}`, 'info');
+                    } else {
+                        log(`❌ Sessão inválida`, 'error');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    log(`❌ Erro na sessão: ${JSON.stringify(errorData, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro ao verificar sessão: ${error.message}`, 'error');
+            }
+        }
+        
+        async function debugSession() {
+            log(`🔍 Debug detalhado da sessão...`, 'info');
+            
+            try {
+                const response = await fetch('/api/debug-session', {
+                    credentials: 'include'
+                });
+                
+                log(`📡 Status da resposta: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`📊 Debug da sessão: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    if (data.sessionToken) {
+                        log(`🔑 Token encontrado: ${data.sessionToken}`, 'info');
+                        log(`🔑 Análise do token: ${JSON.stringify(data.tokenAnalysis, null, 2)}`, 'info');
+                        
+                        if (data.identifiedUser) {
+                            log(`👤 Usuário identificado: ${data.identifiedUser}`, 'success');
+                            log(`🆔 ID esperado: ${data.expectedUserId}`, 'info');
+                        }
+                    } else {
+                        log(`❌ Nenhum token encontrado`, 'error');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    log(`❌ Erro no debug: ${JSON.stringify(errorData, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro ao fazer debug: ${error.message}`, 'error');
+            }
+        }
+        
+        // Verificar sessão ao carregar a página
+        window.addEventListener('load', () => {
+            log('🚀 Página carregada, verificando sessão inicial...', 'info');
+            checkSession();
+        });
+    </script>
+</body>
+</html> 
