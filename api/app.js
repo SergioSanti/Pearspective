@@ -514,6 +514,40 @@ app.get('/api/fix-usuarios-table', async (req, res) => {
   }
 });
 
+// Rota para definir área e cargo fixos para o Sergio
+app.get('/api/fix-sergio-profile', async (req, res) => {
+  try {
+    console.log('🔧 Definindo área e cargo fixos para o Sergio...');
+    
+    // Atualizar o perfil do Sergio com área e cargo fixos
+    const result = await pool.query(`
+      UPDATE usuarios 
+      SET departamento = 'Desenvolvimento', 
+          cargo_atual = 'Desenvolvedor Full Stack',
+          nome_exibicao = 'Sergio'
+      WHERE nome = 'sergio'
+      RETURNING id, nome, departamento, cargo_atual, nome_exibicao
+    `);
+    
+    if (result.rows.length > 0) {
+      console.log('✅ Perfil do Sergio atualizado:', result.rows[0]);
+      res.json({ 
+        message: 'Perfil do Sergio atualizado com sucesso',
+        user: result.rows[0]
+      });
+    } else {
+      console.log('⚠️ Usuário Sergio não encontrado');
+      res.json({ 
+        message: 'Usuário Sergio não encontrado',
+        user: null
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar perfil do Sergio:', error);
+    res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
 
 
 // Rota de login com banco de dados

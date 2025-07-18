@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixar Perfil do Sergio</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-primary:hover { background: #45a049; }
+        .btn-secondary { background: #2196F3; color: white; }
+        .btn-secondary:hover { background: #1976D2; }
+        .info-box { background: #e3f2fd; border: 1px solid #2196F3; padding: 15px; border-radius: 4px; margin: 10px 0; }
+        .debug { background: #fff3e0; color: #e65100; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fixar Perfil do Sergio</h1>
+        
+        <div class="info-box">
+            <h3>📋 Configurações que serão aplicadas:</h3>
+            <ul>
+                <li><strong>Nome de Exibição:</strong> Sergio</li>
+                <li><strong>Departamento:</strong> Desenvolvimento</li>
+                <li><strong>Cargo:</strong> Desenvolvedor Full Stack</li>
+                <li><strong>Status:</strong> Campos fixos (não editáveis)</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h2>1. Verificar Dados Atuais</h2>
+            <button class="btn-secondary" onclick="checkCurrentData()">Verificar Dados Atuais</button>
+            <div id="currentDataResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. Aplicar Configurações Fixas</h2>
+            <button class="btn-primary" onclick="fixSergioProfile()">Fixar Perfil do Sergio</button>
+            <div id="fixResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. Verificar Resultado</h2>
+            <button class="btn-secondary" onclick="verifyResult()">Verificar Resultado</button>
+            <div id="verifyResult" class="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. Testar no Perfil</h2>
+            <p>Após aplicar as configurações, teste no perfil:</p>
+            <a href="/perfil.html" target="_blank" class="btn-primary">Abrir Página de Perfil</a>
+        </div>
+    </div>
+
+    <script>
+        async function checkCurrentData() {
+            const resultDiv = document.getElementById('currentDataResult');
+            resultDiv.innerHTML = '🔄 Verificando dados atuais...';
+            
+            try {
+                // Verificar sessão
+                const sessionResponse = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                if (!sessionResponse.ok) {
+                    throw new Error('Sessão inválida');
+                }
+                
+                const sessionData = await sessionResponse.json();
+                const userName = sessionData.user.nome;
+                
+                // Carregar perfil
+                const profileResponse = await fetch(`/api/users/profile/${encodeURIComponent(userName)}`);
+                const profileData = await profileResponse.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ Dados Atuais do ${userName}</h3>
+                    <p><strong>Nome:</strong> ${profileData.nome}</p>
+                    <p><strong>Nome de Exibição:</strong> ${profileData.nome_exibicao || 'Não definido'}</p>
+                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'}</p>
+                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'}</p>
+                    <p><strong>Tipo:</strong> ${profileData.tipo_usuario}</p>
+                    <h4>Dados Completos:</h4>
+                    <pre class="debug">${JSON.stringify(profileData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function fixSergioProfile() {
+            const resultDiv = document.getElementById('fixResult');
+            resultDiv.innerHTML = '🔄 Aplicando configurações fixas...';
+            
+            try {
+                const response = await fetch('/api/fix-sergio-profile');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Configurações Aplicadas</h3>
+                        <p><strong>Mensagem:</strong> ${data.message}</p>
+                        ${data.user ? `
+                            <h4>Dados Atualizados:</h4>
+                            <p><strong>Nome:</strong> ${data.user.nome}</p>
+                            <p><strong>Nome de Exibição:</strong> ${data.user.nome_exibicao}</p>
+                            <p><strong>Departamento:</strong> ${data.user.departamento}</p>
+                            <p><strong>Cargo:</strong> ${data.user.cargo_atual}</p>
+                            <pre class="debug">${JSON.stringify(data.user, null, 2)}</pre>
+                        ` : '<p>Usuário não encontrado</p>'}
+                    `;
+                } else {
+                    throw new Error(data.error || 'Erro ao aplicar configurações');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function verifyResult() {
+            const resultDiv = document.getElementById('verifyResult');
+            resultDiv.innerHTML = '🔄 Verificando resultado...';
+            
+            try {
+                // Verificar sessão
+                const sessionResponse = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                if (!sessionResponse.ok) {
+                    throw new Error('Sessão inválida');
+                }
+                
+                const sessionData = await sessionResponse.json();
+                const userName = sessionData.user.nome;
+                
+                // Carregar perfil atualizado
+                const profileResponse = await fetch(`/api/users/profile/${encodeURIComponent(userName)}`);
+                const profileData = await profileResponse.json();
+                
+                // Verificar se as configurações foram aplicadas corretamente
+                const isCorrect = 
+                    profileData.nome_exibicao === 'Sergio' &&
+                    profileData.departamento === 'Desenvolvimento' &&
+                    profileData.cargo_atual === 'Desenvolvedor Full Stack';
+                
+                resultDiv.className = isCorrect ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <h3>${isCorrect ? '✅' : '❌'} Verificação Completa</h3>
+                    <p><strong>Nome de Exibição:</strong> ${profileData.nome_exibicao || 'Não definido'} ${profileData.nome_exibicao === 'Sergio' ? '✅' : '❌'}</p>
+                    <p><strong>Departamento:</strong> ${profileData.departamento || 'Não definido'} ${profileData.departamento === 'Desenvolvimento' ? '✅' : '❌'}</p>
+                    <p><strong>Cargo:</strong> ${profileData.cargo_atual || 'Não definido'} ${profileData.cargo_atual === 'Desenvolvedor Full Stack' ? '✅' : '❌'}</p>
+                    <p><strong>Status:</strong> ${isCorrect ? 'Configurações aplicadas corretamente' : 'Configurações não aplicadas corretamente'}</p>
+                    <h4>Dados Atuais:</h4>
+                    <pre class="debug">${JSON.stringify(profileData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro!</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

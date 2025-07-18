@@ -651,7 +651,7 @@ body {
 
 .upload-area {
     width: 100%;
-    max-width: 300px;
+    max-width: 200px;
 }
 
 .upload-label {
@@ -659,10 +659,10 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
+    padding: 1rem;
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     border: 2px dashed var(--brand-primary);
-    border-radius: 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
@@ -678,20 +678,20 @@ body {
 }
 
 .upload-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
     opacity: 0.7;
 }
 
 .upload-text strong {
     display: block;
-    font-size: 1rem;
-    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
     color: var(--gray-800);
 }
 
 .upload-text span {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     color: var(--gray-600);
 }
 

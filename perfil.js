@@ -238,16 +238,28 @@ class ProfileManager {
 
         // Configurar cargo baseado no tipo de usuário
         if (this.currentUser.tipo_usuario === 'admin') {
-            document.getElementById('userPosition').value = 'Administrador do Sistema';
+            // Admin não tem área/cargo específicos
+            document.getElementById('userPosition').value = '';
             document.getElementById('userPosition').disabled = true;
-            document.getElementById('userDepartment').value = 'Tecnologia'; // Nome da área
+            document.getElementById('userDepartment').value = '';
             document.getElementById('userDepartment').disabled = true;
+            console.log('✅ [PERFIL] Admin - campos de área/cargo desabilitados');
         } else {
             // Definir a área e cargo
             const userDepartment = this.currentUser.departamento || '';
             const userCargo = this.currentUser.cargo_atual || '';
             
             console.log('🔍 [PERFIL] Departamento e cargo do usuário:', { userDepartment, userCargo });
+            
+            // Se for o Sergio, usar valores fixos
+            if (this.currentUser.nome === 'sergio') {
+                console.log('✅ [PERFIL] Sergio - usando valores fixos');
+                document.getElementById('userDepartment').value = 'Desenvolvimento';
+                document.getElementById('userDepartment').disabled = true;
+                document.getElementById('userPosition').value = 'Desenvolvedor Full Stack';
+                document.getElementById('userPosition').disabled = true;
+                return;
+            }
             
             if (userDepartment) {
                 try {
@@ -892,10 +904,20 @@ class ProfileManager {
                 }
             }
 
+            // Para o Sergio, usar valores fixos
+            let departamentoToSave = selectedAreaName;
+            let cargoToSave = document.getElementById('userPosition').value;
+            
+            if (this.loginUserName === 'sergio') {
+                departamentoToSave = 'Desenvolvimento';
+                cargoToSave = 'Desenvolvedor Full Stack';
+                console.log('✅ [PERFIL] Sergio - usando valores fixos para salvamento');
+            }
+
             const updatedData = {
                 nome: document.getElementById('userName').value,
-                departamento: selectedAreaName, // Usar o nome da área
-                cargo_atual: document.getElementById('userPosition').value,
+                departamento: departamentoToSave,
+                cargo_atual: cargoToSave,
                 foto_perfil: this.fotoPerfil
             };
 
